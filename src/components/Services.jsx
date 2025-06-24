@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment } from '@mui/material';
+import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
 import privateOfficeImage from '../assets/images/Service Space .png';
@@ -13,6 +13,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KYCImage from '../assets/images/KYC.png';
 
 const Services = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
+
   const navigate = useNavigate();
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('upi');
@@ -912,18 +917,26 @@ const Services = () => {
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'white' }}>
       {/* Title Section */}
       <Box sx={{ 
-        px: 4,
-        pt: 4,
+        px: { xs: 2, sm: 3, md: 4 },
+        pt: { xs: 2, sm: 3, md: 4 },
         pb: 2
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <ArrowBackIcon sx={{ fontSize: 24, color: '#333' }} />
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: { xs: 1, sm: 2 },
+          flexWrap: 'wrap'
+        }}>
+          <ArrowBackIcon sx={{ 
+            fontSize: { xs: 20, sm: 24 }, 
+            color: '#333' 
+          }} />
           <Typography 
-            variant="h5" 
+            variant={isMobile ? "h6" : "h5"}
             component="h2" 
             sx={{ 
               fontWeight: 'bold',
-              fontSize: '24px',
+              fontSize: { xs: '20px', sm: '24px' },
               color: '#333'
             }}
           >
@@ -935,37 +948,39 @@ const Services = () => {
       {/* Main Content Section */}
       <Box sx={{ 
         bgcolor: '#9FE2DF',
-        py: 4,
-        px: 4,
-        borderRadius: '0px'
+        py: { xs: 3, sm: 4, md: 4 },
+        px: { xs: 2, sm: 3, md: 4 }
       }}>
-        <Grid container spacing={4}>
+        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
           <Grid item xs={12} md={6}>
             <Box sx={{ 
-              borderRadius: '24px',
+              borderRadius: { xs: '16px', sm: '24px' },
               overflow: 'hidden',
-              mb: 3,
-              maxWidth: '500px',
-              marginLeft: 0,
-              marginRight: 'auto',
-              '& img': {
-                width: '100%',
-                height: '300px',
-                display: 'block',
-                objectFit: 'cover'
-              }
+              mb: { xs: 2, sm: 3 },
+              maxWidth: { xs: '100%', md: '500px' },
+              mx: { xs: 'auto', md: 0 }
             }}>
-              <img src={privateOfficeImage} alt="Private Office" />
+              <img 
+                src={privateOfficeImage} 
+                alt="Private Office" 
+                style={{
+                  width: '100%',
+                  height: isMobile ? '200px' : '300px',
+                  display: 'block',
+                  objectFit: 'cover'
+                }}
+              />
             </Box>
             <Typography 
               variant="body1" 
               sx={{ 
                 color: 'white',
-                mb: 3,
-                fontSize: '18px',
+                mb: { xs: 2, sm: 3 },
+                fontSize: { xs: '16px', sm: '18px' },
                 fontWeight: 300,
                 lineHeight: 1.6,
-                maxWidth: '500px'
+                maxWidth: { xs: '100%', md: '500px' },
+                textAlign: { xs: 'center', md: 'left' }
               }}
             >
               "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
@@ -974,20 +989,26 @@ const Services = () => {
 
           <Grid item xs={12} md={6}>
             <Typography 
-              variant="h4" 
+              variant={isMobile ? "h5" : "h4"}
               component="h3"
               sx={{ 
                 color: '#333',
-                mb: 4,
+                mb: { xs: 2, sm: 4 },
                 fontWeight: 'bold',
                 borderBottom: '2px solid white',
-                pb: 2
+                pb: 2,
+                fontSize: { xs: '24px', sm: '32px' }
               }}
             >
               Private Cabin ( 4 Seater )
             </Typography>
 
-            <List sx={{ mt: 2 }}>
+            <List sx={{ 
+              mt: { xs: 1, sm: 2 },
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gap: { xs: 1, sm: 2 }
+            }}>
               {[
                 'High-speed internet connectivity',
                 'Ergonomic furniture and setup',
@@ -1001,19 +1022,24 @@ const Services = () => {
                 <ListItem 
                   key={index} 
                   sx={{ 
-                    py: 0.5,
+                    py: { xs: 0.5, sm: 1 },
                     px: 0
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: '32px' }}>
-                    <CheckIcon sx={{ color: '#333' }} />
+                  <ListItemIcon sx={{ 
+                    minWidth: { xs: '24px', sm: '32px' }
+                  }}>
+                    <CheckIcon sx={{ 
+                      color: '#333',
+                      fontSize: { xs: 18, sm: 24 }
+                    }} />
                   </ListItemIcon>
                   <ListItemText 
                     primary={feature} 
                     sx={{ 
                       '& .MuiListItemText-primary': {
                         color: '#333',
-                        fontSize: '16px',
+                        fontSize: { xs: '14px', sm: '16px' },
                         fontWeight: 500
                       }
                     }}
@@ -1022,18 +1048,23 @@ const Services = () => {
               ))}
             </List>
 
-            <Box sx={{ mt: 4 }}>
+            <Box sx={{ 
+              mt: { xs: 3, sm: 4 },
+              display: 'flex',
+              justifyContent: { xs: 'center', md: 'flex-start' }
+            }}>
               <Typography 
-                variant="h5" 
+                variant={isMobile ? "h6" : "h5"}
                 component="div"
                 sx={{ 
                   display: 'inline-block',
                   bgcolor: 'white',
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: '8px',
+                  px: { xs: 2, sm: 3 },
+                  py: { xs: 1, sm: 1.5 },
+                  borderRadius: { xs: '6px', sm: '8px' },
                   color: '#333',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  fontSize: { xs: '18px', sm: '24px' }
                 }}
               >
                 ₹18k + GST Per Month
@@ -1045,12 +1076,12 @@ const Services = () => {
 
       {/* Payment Button Section */}
       <Box sx={{ 
-        px: 4,
+        px: { xs: 2, sm: 3, md: 4 },
         pt: 0,
-        pb: 3,
+        pb: { xs: 2, sm: 3 },
         display: 'flex',
-        justifyContent: 'flex-start',
-        marginTop: '-30px'
+        justifyContent: { xs: 'center', md: 'flex-start' },
+        marginTop: { xs: '-20px', sm: '-30px' }
       }}>
         <Button
           variant="contained"
@@ -1058,12 +1089,12 @@ const Services = () => {
           sx={{
             bgcolor: '#E53935',
             color: 'white',
-            px: 4,
-            py: 1.5,
-            borderRadius: '8px',
-            fontSize: '18px',
+            px: { xs: 3, sm: 4 },
+            py: { xs: 1, sm: 1.5 },
+            borderRadius: { xs: '6px', sm: '8px' },
+            fontSize: { xs: '16px', sm: '18px' },
             fontWeight: 'bold',
-            marginLeft: '64px',
+            marginLeft: { xs: 0, md: '64px' },
             '&:hover': {
               bgcolor: '#C62828'
             }
@@ -1071,6 +1102,65 @@ const Services = () => {
         >
           PROCEED TO PAYMENT
         </Button>
+      </Box>
+
+      {/* Similar Search Section */}
+      <Box sx={{ 
+        bgcolor: 'white',
+        py: { xs: 4, sm: 6 },
+        px: { xs: 2, sm: 0 }
+      }}>
+        <Box sx={{ 
+          px: { xs: 2, sm: 4 },
+          mb: { xs: 3, sm: 4 }
+        }}>
+          <Typography 
+            variant={isMobile ? "h6" : "h5"}
+            component="h2"
+            sx={{ 
+              fontWeight: 'bold',
+              color: '#333',
+              textAlign: { xs: 'center', sm: 'left' },
+              fontSize: { xs: '20px', sm: '24px' }
+            }}
+          >
+            Similar Search
+          </Typography>
+        </Box>
+
+        <Grid 
+          container 
+          spacing={{ xs: 2, sm: 3 }} 
+          sx={{ 
+            marginLeft: { xs: 0, sm: '50px', md: '100px' },
+            width: { xs: '100%', sm: 'calc(100% - 50px)', md: 'calc(100% - 100px)' }
+          }}
+        >
+          {[
+            { image: spaceImage4 },
+            { image: spaceImage6 }
+          ].map((item, index) => (
+            <Grid item xs={12} sm={6} key={index}>
+              <Card sx={{ 
+                height: '100%', 
+                borderRadius: '0px',
+                boxShadow: 'none',
+                maxWidth: '100%'
+              }}>
+                <CardMedia
+                  component="img"
+                  image={item.image}
+                  alt="Office Space"
+                  sx={{ 
+                    height: { xs: 300, sm: 400, md: 600 },
+                    objectFit: 'cover',
+                    width: '100%'
+                  }}
+                />
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       </Box>
 
       {/* Payment Modal */}
@@ -1081,8 +1171,10 @@ const Services = () => {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: '20px',
-            overflow: 'hidden'
+            borderRadius: { xs: '12px', sm: '20px' },
+            overflow: 'hidden',
+            margin: { xs: 2, sm: 4 },
+            maxWidth: { xs: '95%', sm: '600px', md: '900px' }
           }
         }}
       >
@@ -1434,8 +1526,10 @@ const Services = () => {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: '20px',
-            overflow: 'hidden'
+            borderRadius: { xs: '12px', sm: '20px' },
+            overflow: 'hidden',
+            margin: { xs: 2, sm: 4 },
+            maxWidth: { xs: '95%', sm: '600px', md: '900px' }
           }
         }}
       >
@@ -1604,59 +1698,6 @@ const Services = () => {
           </>
         )}
       </Dialog>
-
-      {/* Similar Search Section */}
-      <Box sx={{ 
-        bgcolor: 'white',
-        py: 6,
-        px: 0
-      }}>
-        <Box sx={{ px: 4 }}>
-          <Typography 
-            variant="h5" 
-            component="h2"
-            sx={{ 
-              fontWeight: 'bold',
-              color: '#333',
-              mb: 4,
-              textAlign: 'left'
-            }}
-          >
-            Similar Search
-          </Typography>
-        </Box>
-
-        <Grid container spacing={3} sx={{ marginLeft: '100px' }}>
-          {[
-            { 
-              image: spaceImage4,
-            },
-            {
-              image: spaceImage6,
-            }
-          ].map((item, index) => (
-            <Grid item xs={12} md={6} key={index} sx={{ px: 0 }}>
-              <Card sx={{ 
-                height: '100%', 
-                borderRadius: '0px',
-                boxShadow: 'none',
-                maxWidth: '100%'
-              }}>
-                <CardMedia
-                  component="img"
-                  image={item.image}
-                  alt="Office Space"
-                  sx={{ 
-                    height: 600,
-                    objectFit: 'cover',
-                    width: '100%'
-                  }}
-                />
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
     </Box>
   );
 };

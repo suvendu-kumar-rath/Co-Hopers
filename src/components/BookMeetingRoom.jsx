@@ -1214,11 +1214,11 @@ const handleHourlyMemberType = (memberType) => {
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    width: 400,
+                    width: { xs: '90%', sm: '80%', md: 400 },
                     bgcolor: 'background.paper',
-                    borderRadius: 2,
+                    borderRadius: { xs: 2, sm: 3 },
                     boxShadow: 24,
-                    p: 4,
+                    p: { xs: 2, sm: 3, md: 4 },
                     textAlign: 'center',
                     background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
                     zIndex: 9999
@@ -1227,17 +1227,17 @@ const handleHourlyMemberType = (memberType) => {
                         onClick={() => setShowConfirmationModal(false)}
                         sx={{
                             position: 'absolute',
-                            right: 8,
-                            top: 8,
+                            right: { xs: 4, sm: 8 },
+                            top: { xs: 4, sm: 8 },
                             color: 'gray'
                         }}
                     >
                         <CloseIcon />
                     </IconButton>
 
-                    <Box sx={{ mb: 3 }}>
+                    <Box sx={{ mb: { xs: 2, sm: 3 } }}>
                         <PendingIcon sx={{ 
-                            fontSize: 60, 
+                            fontSize: { xs: '3rem', sm: '4rem', md: '60px' }, 
                             color: '#FFA500',
                             animation: 'spin 2s linear infinite',
                             '@keyframes spin': {
@@ -1248,14 +1248,14 @@ const handleHourlyMemberType = (memberType) => {
                     </Box>
 
                     <Typography variant="h5" component="h2" sx={{ 
-                        mb: 2,
+                        mb: { xs: 2, sm: 3 },
                         color: '#FFA500',
                         fontWeight: 'bold'
                     }}>
                         Pending
                     </Typography>
 
-                    <Typography variant="body1" sx={{ mb: 3 }}>
+                    <Typography variant="body1" sx={{ mb: { xs: 2, sm: 3 } }}>
                         You will receive a confirmation email for the booking of the meeting room within an hour.
                     </Typography>
 
@@ -1423,13 +1423,13 @@ const handleHourlyMemberType = (memberType) => {
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    width: 400,
+                    width: { xs: '90%', sm: '80%', md: 400 },
                     bgcolor: 'background.paper',
                     boxShadow: 24,
-                    p: 4,
-                    borderRadius: 2,
+                    p: { xs: 2, sm: 3, md: 4 },
+                    borderRadius: { xs: 2, sm: 3 },
                 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
                         <Typography variant="h6" component="h2">
                             Payment Summary
                         </Typography>
@@ -1437,31 +1437,31 @@ const handleHourlyMemberType = (memberType) => {
                             <CloseIcon />
                         </IconButton>
                     </Box>
-                    <Divider sx={{ mb: 2 }} />
+                    <Divider sx={{ mb: { xs: 2, sm: 3 } }} />
 
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="body1" sx={{ mb: 1 }}>
+                    <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                        <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                             <strong>Mode of Payment:</strong> {paymentMethod}
                         </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
+                        <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                             <strong>Amount Paid:</strong> ₹{paymentAmount}
                         </Typography>
 
-                        <Typography variant="body1" sx={{ mb: 1 }}>
+                        <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                             <strong>Upload Payment Receipt:</strong>
                         </Typography>
                         <Input
                             type="file"
                             fullWidth
                             onChange={(e) => setPaymentReceipt(e.target.files[0])}
-                            sx={{ mb: 2 }}
+                            sx={{ mb: { xs: 2, sm: 3 } }}
                             inputProps={{
                                 accept: 'image/*,.pdf'
                             }}
                         />
                     </Box>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: { xs: 1, sm: 2 } }}>
                         <Button 
                             variant="outlined" 
                             onClick={() => setShowSummaryModal(false)}
@@ -1501,42 +1501,42 @@ const handleHourlyMemberType = (memberType) => {
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: 400,
+                        width: { xs: '90%', sm: '80%', md: 400 },
                         bgcolor: 'background.paper',
                         boxShadow: 24,
-                        p: 4,
-                        borderRadius: 2,
+                        p: { xs: 2, sm: 3, md: 4 },
+                        borderRadius: { xs: 2, sm: 3 },
                         textAlign: 'center'
                     }}>
-                        <PendingIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-                        <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
+                        <PendingIcon sx={{ fontSize: { xs: '3rem', sm: '4rem', md: '60px' }, color: 'primary.main', mb: { xs: 2, sm: 3 } }} />
+                        <Typography variant="h6" component="h2" sx={{ mb: { xs: 2, sm: 3 } }}>
                             Booking Submitted Successfully
                         </Typography>
                         
                         {lastBooking.booking && (
-                            <Box sx={{ mb: 3, textAlign: 'left' }}>
-                                <Typography variant="body1" sx={{ mb: 1 }}>
+                            <Box sx={{ mb: { xs: 2, sm: 3 }, textAlign: 'left' }}>
+                                <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                                     <strong>Booking ID:</strong> {lastBooking.booking.id}
                                 </Typography>
-                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                                     <strong>Room:</strong> {lastBooking.roomName}
                                 </Typography>
-                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                                     <strong>Date:</strong> {lastBooking.booking.bookingDate}
                                 </Typography>
-                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                                     <strong>Time Slots:</strong> {lastBooking.booking.timeSlots.join(', ')}
                                 </Typography>
-                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                                     <strong>Total Amount:</strong> ₹{lastBooking.totalAmount}/-
                                 </Typography>
-                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                                     <strong>Status:</strong> {lastBooking.booking.status}
                                 </Typography>
                             </Box>
                         )}
 
-                        <Typography variant="body1" sx={{ mb: 3 }}>
+                        <Typography variant="body1" sx={{ mb: { xs: 2, sm: 3 } }}>
                             Your booking request has been submitted and is pending approval. 
                             We will notify you once it's confirmed.
                         </Typography>
@@ -1569,13 +1569,28 @@ const handleHourlyMemberType = (memberType) => {
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    width: 400,
+                    width: { xs: '90%', sm: '80%', md: 400 },
                     bgcolor: 'background.paper',
+                    borderRadius: { xs: 2, sm: 3 },
                     boxShadow: 24,
-                    p: 4,
-                    borderRadius: 2,
+                    p: { xs: 2, sm: 3, md: 4 },
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
+                    '&::-webkit-scrollbar': {
+                        width: '8px'
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        background: '#f1f1f1',
+                        borderRadius: '4px'
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        background: '#888',
+                        borderRadius: '4px',
+                        '&:hover': {
+                            background: '#555'
+                        }
+                    }
                 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
                         <Typography variant="h6" component="h2">
                             Select Payment Method
                         </Typography>
@@ -1583,25 +1598,25 @@ const handleHourlyMemberType = (memberType) => {
                             <CloseIcon />
                         </IconButton>
                     </Box>
-                    <Divider sx={{ mb: 2 }} />
+                    <Divider sx={{ mb: { xs: 2, sm: 3 } }} />
 
                     {/* Display Room Details */}
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                        <Typography variant="subtitle2" sx={{ mb: { xs: 1, sm: 2 } }}>
                             Room: Room {selectedRoom}
                         </Typography>
-                        <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" sx={{ mb: { xs: 1, sm: 2 } }}>
                             Capacity: {selectedSeating}
                         </Typography>
                     </Box>
 
                     {/* Display Selected Time Slots */}
-                    <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                        <Typography variant="subtitle1" sx={{ mb: { xs: 1, sm: 2 } }}>
                             Selected Time Slots: ({selectedTimeSlots.length}/4)
                         </Typography>
                         {selectedTimeSlots.map((slot, index) => (
-                            <Typography key={index} variant="body2" sx={{ mb: 1 }}>
+                            <Typography key={index} variant="body2" sx={{ mb: { xs: 1, sm: 2 } }}>
                                 {slot.start} - {slot.end} (30 Minutes)
                             </Typography>
                         ))}
@@ -1616,24 +1631,24 @@ const handleHourlyMemberType = (memberType) => {
                                 value="UPI" 
                                 control={<Radio />} 
                                 label="UPI Payment"
-                                sx={{ mb: 1 }}
+                                sx={{ mb: { xs: 1, sm: 2 } }}
                             />
                             <FormControlLabel 
                                 value="NET_BANKING" 
                                 control={<Radio />} 
                                 label="Net Banking"
-                                sx={{ mb: 2 }}
+                                sx={{ mb: { xs: 1, sm: 2 } }}
                             />
                         </RadioGroup>
                     </FormControl>
 
-                    <Box sx={{ mt: 3 }}>
-                        <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                    <Box sx={{ mt: { xs: 2, sm: 3 } }}>
+                        <Typography variant="subtitle1" sx={{ mb: { xs: 1, sm: 2 } }}>
                             Total Price: ₹{calculatedPrice.total}/- (Including GST)
                         </Typography>
                     </Box>
 
-                    <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                    <Box sx={{ mt: { xs: 2, sm: 3 }, display: 'flex', justifyContent: 'flex-end', gap: { xs: 1, sm: 2 } }}>
                         <Button 
                             variant="outlined" 
                             onClick={() => setShowPaymentModal(false)}
@@ -1676,12 +1691,12 @@ const handleHourlyMemberType = (memberType) => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    mb: 2,
-                    pb: 1,
+                    mb: { xs: 1, sm: 2 },
+                    pb: { xs: 0.5, sm: 1 },
                     '&::before': {
                         content: '""',
                         position: 'absolute',
-                        top: -100,
+                        top: { xs: -50, sm: -100 },
                         left: 0,
                         right: 0,
                         bottom: 0,
@@ -1698,8 +1713,8 @@ const handleHourlyMemberType = (memberType) => {
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: '300px',
-                        height: '300px',
+                        width: { xs: '200px', sm: '250px', md: '300px' },
+                        height: { xs: '200px', sm: '250px', md: '300px' },
                         backgroundImage: `url(${logo})`,
                         backgroundSize: 'contain',
                         backgroundPosition: 'center',
@@ -1716,16 +1731,16 @@ const handleHourlyMemberType = (memberType) => {
             >
                 <Box
                     sx={{
-                        mb: 4,
+                        mb: { xs: 2, sm: 3, md: 4 },
                         position: 'relative',
                         zIndex: 2,
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
                         width: '100%',
-                        marginTop: '5px',
+                        marginTop: { xs: '2px', sm: '5px' },
                         '& img': {
-                            width: '150px',
+                            width: { xs: '100px', sm: '120px', md: '150px' },
                             height: 'auto',
                             animation: 'zoomInOut 20s infinite alternate',
                         },
@@ -1736,17 +1751,18 @@ const handleHourlyMemberType = (memberType) => {
                     }}
                 >
                     <img style={{
-                        height: "150px",
-                        width: "150px",
-                        marginBottom: "-60px"
+                        height: { xs: "100px", sm: "120px", md: "150px" },
+                        width: { xs: "100px", sm: "120px", md: "150px" },
+                        marginBottom: { xs: "-30px", sm: "-45px", md: "-60px" }
                     }} src={logo} alt="Logo" />
                 </Box>
 
                 <Paper
                     elevation={6}
                     sx={{
-                        p: 4,
-                        maxWidth: 400,
+                        p: { xs: 2, sm: 3, md: 4 },
+                        maxWidth: { xs: '90%', sm: 400 },
+                        width: { xs: '90%', sm: 'auto' },
                         textAlign: 'center',
                         background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,240,255,0.9) 100%)',
                         borderRadius: 2,
@@ -1756,14 +1772,13 @@ const handleHourlyMemberType = (memberType) => {
                             to: { opacity: 1, transform: 'translateY(0)' }
                         },
                         position: 'absolute',
-                        top: '75%',
+                        top: { xs: '70%', sm: '75%' },
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        marginTop: '2rem',
+                        marginTop: { xs: '1rem', sm: '2rem' },
                         zIndex: 2
                     }}
                 >
-                    {/* Removed the Box with logo here */}
                     <Typography 
                         variant="h4" 
                         component="h1" 
@@ -1771,14 +1786,18 @@ const handleHourlyMemberType = (memberType) => {
                         sx={{ 
                             color: '#7B68EE',
                             fontWeight: 'bold',
-                            mb: 3
+                            mb: { xs: 2, sm: 3 },
+                            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' }
                         }}
                     >
                         Book Meeting Room
                     </Typography>
                     <Typography 
                         variant="body1" 
-                        sx={{ mb: 4 }}
+                        sx={{ 
+                            mb: { xs: 3, sm: 4 },
+                            fontSize: { xs: '0.875rem', sm: '1rem' }
+                        }}
                     >
                         Book our professional meeting room for your important discussions and presentations.
                     </Typography>
@@ -1795,6 +1814,8 @@ const handleHourlyMemberType = (memberType) => {
                                 '50%': { transform: 'scale(1.05)' },
                                 '100%': { transform: 'scale(1)' },
                             },
+                            fontSize: { xs: '0.875rem', sm: '1rem' },
+                            padding: { xs: '8px 16px', sm: '10px 24px' }
                         }}
                     >
                         Book Now
@@ -1810,11 +1831,13 @@ const handleHourlyMemberType = (memberType) => {
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: 360,
+                        width: { xs: '90%', sm: 360 },
+                        maxHeight: { xs: '90vh', sm: 'auto' },
+                        overflow: 'auto',
                         bgcolor: 'background.paper',
                         borderRadius: 2,
                         boxShadow: 24,
-                        p: 3,
+                        p: { xs: 2, sm: 3 },
                         background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
                     }}>
                         <IconButton
@@ -1974,29 +1997,60 @@ const handleHourlyMemberType = (memberType) => {
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: 400,
+                        width: { xs: '90%', sm: '80%', md: 500 },
+                        maxHeight: { xs: '90vh', sm: '85vh' },
+                        overflow: 'auto',
                         bgcolor: 'background.paper',
-                        borderRadius: 2,
+                        borderRadius: { xs: 2, sm: 3 },
                         boxShadow: 24,
-                        p: 4,
-                        background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)'
+                        p: { xs: 2, sm: 3, md: 4 },
+                        background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
+                        '&::-webkit-scrollbar': {
+                            width: '8px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            background: '#f1f1f1',
+                            borderRadius: '4px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: '#888',
+                            borderRadius: '4px',
+                            '&:hover': {
+                                background: '#555'
+                            }
+                        }
                     }}>
                         <IconButton
                             onClick={() => setShowTimeSlotModal(false)}
                             sx={{
                                 position: 'absolute',
-                                right: 8,
-                                top: 8,
+                                right: { xs: 4, sm: 8 },
+                                top: { xs: 4, sm: 8 },
                                 color: 'gray'
                             }}
                         >
                             <CloseIcon />
                         </IconButton>
-                        <Typography variant="h6" gutterBottom>
+
+                        <Typography 
+                            variant="h6" 
+                            gutterBottom
+                            sx={{
+                                fontSize: { xs: '1.2rem', sm: '1.5rem' },
+                                mb: { xs: 2, sm: 3 },
+                                fontWeight: 'bold'
+                            }}
+                        >
                             Select Date and Seating Capacity
                         </Typography>
                         
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            mb: { xs: 2, sm: 3 },
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            gap: { xs: 2, sm: 0 }
+                        }}>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DatePicker
                                     value={selectedDate}
@@ -2008,12 +2062,25 @@ const handleHourlyMemberType = (memberType) => {
                                             {...params}
                                             fullWidth
                                             label="Selected Date"
+                                            sx={{
+                                                '& .MuiInputBase-root': {
+                                                    height: { xs: '45px', sm: '50px' },
+                                                    fontSize: { xs: '0.9rem', sm: '1rem' }
+                                                }
+                                            }}
                                             InputProps={{
                                                 ...params.InputProps,
                                                 readOnly: true,
                                                 endAdornment: (
-                                                    <IconButton onClick={handleCalendarClick}>
-                                                        <CalendarTodayIcon />
+                                                    <IconButton 
+                                                        onClick={handleCalendarClick}
+                                                        sx={{ 
+                                                            p: { xs: 0.5, sm: 1 }
+                                                        }}
+                                                    >
+                                                        <CalendarTodayIcon sx={{ 
+                                                            fontSize: { xs: '1.2rem', sm: '1.5rem' }
+                                                        }} />
                                                     </IconButton>
                                                 )
                                             }}
@@ -2023,6 +2090,11 @@ const handleHourlyMemberType = (memberType) => {
                                         anchorEl: calendarAnchorEl,
                                         open: Boolean(calendarAnchorEl),
                                         onClose: handleCalendarClose,
+                                        sx: {
+                                            '& .MuiPaper-root': {
+                                                width: { xs: '280px', sm: '320px' }
+                                            }
+                                        }
                                     }}
                                     components={{
                                         OpenPickerIcon: () => null,
@@ -2032,15 +2104,23 @@ const handleHourlyMemberType = (memberType) => {
                         </Box>
 
                         {selectedDate && (
-                            <FormControl fullWidth sx={{ mb: 2 }}>
+                            <FormControl fullWidth sx={{ mb: { xs: 2, sm: 3 } }}>
                                 <InputLabel>Seating Capacity</InputLabel>
                                 <Select
                                     value={selectedSeating}
                                     onChange={handleSeatingChange}
                                     label="Seating Capacity"
+                                    sx={{
+                                        height: { xs: '45px', sm: '50px' },
+                                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                                    }}
                                 >
                                     {seatingOptions.map((option) => (
-                                        <MenuItem key={option.id} value={option.id}>
+                                        <MenuItem 
+                                            key={option.id} 
+                                            value={option.id}
+                                            sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
+                                        >
                                             {option.name}
                                         </MenuItem>
                                     ))}
@@ -2055,8 +2135,14 @@ const handleHourlyMemberType = (memberType) => {
                             disabled={!selectedDate || !selectedSeating}
                             sx={{
                                 background: 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)',
+                                height: { xs: '40px', sm: '45px' },
+                                fontSize: { xs: '0.9rem', sm: '1rem' },
+                                fontWeight: 'bold',
                                 '&:hover': {
                                     background: 'linear-gradient(135deg, #6A5ACD 0%, #5B4ACE 100%)'
+                                },
+                                '&:disabled': {
+                                    background: '#ccc'
                                 }
                             }}
                         >
@@ -2078,29 +2164,297 @@ const handleHourlyMemberType = (memberType) => {
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: '80%',
+                        width: { xs: '95%', sm: '90%', md: '80%' },
                         maxWidth: 900,
-                        bgcolor: 'background.paper',
-                        borderRadius: 2,
-                        boxShadow: 24,
-                        p: 4,
-                        background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
                         maxHeight: '90vh',
-                        overflow: 'auto'
+                        overflow: 'auto',
+                        bgcolor: 'background.paper',
+                        borderRadius: { xs: 2, sm: 3 },
+                        boxShadow: 24,
+                        p: { xs: 2, sm: 3, md: 4 },
+                        background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
+                        '&::-webkit-scrollbar': {
+                            width: '8px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            background: '#f1f1f1',
+                            borderRadius: '4px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: '#888',
+                            borderRadius: '4px',
+                            '&:hover': {
+                                background: '#555'
+                            }
+                        }
                     }}>
                         <IconButton
                             onClick={() => setShowRoomSelectionModal(false)}
                             sx={{
                                 position: 'absolute',
-                                right: 8,
-                                top: 8,
+                                right: { xs: 4, sm: 8 },
+                                top: { xs: 4, sm: 8 },
                                 color: 'gray'
                             }}
                         >
                             <CloseIcon />
                         </IconButton>
-                        
-                        <RoomSelectionContent />
+
+                        <Typography 
+                            variant="h6" 
+                            gutterBottom
+                            sx={{
+                                fontSize: { xs: '1.2rem', sm: '1.5rem' },
+                                mb: { xs: 2, sm: 3 },
+                                fontWeight: 'bold',
+                                textAlign: 'center'
+                            }}
+                        >
+                            Select Time Slot
+                        </Typography>
+
+                        {/* Date Selection Tabs with Navigation */}
+                        <Box sx={{ 
+                            display: 'flex', 
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            gap: { xs: 1, sm: 2 }, 
+                            mb: { xs: 3, sm: 4 },
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        }}>
+                            <Button
+                                onClick={goToPreviousDates}
+                                variant="outlined"
+                                sx={{ 
+                                    minWidth: { xs: '35px', sm: '40px' }, 
+                                    borderRadius: '50%',
+                                    p: { xs: 0.5, sm: 1 }
+                                }}
+                            >
+                                &lt;
+                            </Button>
+                            
+                            <Box sx={{
+                                display: 'flex',
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                gap: { xs: 1, sm: 2 }
+                            }}>
+                                {getAvailableDates().map((date) => (
+                                    <Button
+                                        key={format(date, 'yyyy-MM-dd')}
+                                        variant={selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') 
+                                            ? "contained" 
+                                            : "outlined"
+                                        }
+                                        onClick={() => {
+                                            setSelectedDate(date);
+                                            fetchAvailableSlots(date);
+                                        }}
+                                        sx={{
+                                            minWidth: { xs: '100%', sm: '120px' },
+                                            fontSize: { xs: '0.9rem', sm: '1rem' },
+                                            background: selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                                                ? 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)'
+                                                : 'transparent'
+                                        }}
+                                    >
+                                        {format(date, 'dd MMM yyyy')}
+                                    </Button>
+                                ))}
+                            </Box>
+                            
+                            <Button
+                                onClick={goToNextDates}
+                                variant="outlined"
+                                sx={{ 
+                                    minWidth: { xs: '35px', sm: '40px' }, 
+                                    borderRadius: '50%',
+                                    p: { xs: 0.5, sm: 1 }
+                                }}
+                            >
+                                &gt;
+                            </Button>
+                        </Box>
+
+                        {isLoadingSlots ? (
+                            <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 4 } }}>
+                                <Typography sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+                                    Loading available slots...
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <Box sx={{ 
+                                display: 'grid',
+                                gridTemplateColumns: {
+                                    xs: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                    sm: 'repeat(auto-fill, minmax(180px, 1fr))',
+                                    md: 'repeat(auto-fill, minmax(200px, 1fr))'
+                                },
+                                gap: { xs: 1, sm: 2 },
+                                mb: { xs: 2, sm: 3 },
+                                px: { xs: 2, sm: 4 }
+                            }}>
+                                {availableSlots.map((slot, index) => {
+                                    const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                                    
+                                    return (
+                                        <Box
+                                            key={index}
+                                            onClick={() => handleTimeSlotSelection(slot)}
+                                            sx={{
+                                                width: '100%',
+                                                aspectRatio: '1',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                border: isSelected ? '2px solid #4CAF50' : '1px solid #4CAF50',
+                                                borderRadius: { xs: '6px', sm: '8px' },
+                                                cursor: isSelected || selectedTimeSlots.length < getMaxAllowedSlots() ? 'pointer' : 'not-allowed',
+                                                bgcolor: isSelected 
+                                                    ? 'rgba(76, 175, 80, 0.2)'
+                                                    : selectedTimeSlots.length >= getMaxAllowedSlots() && !isSelected
+                                                        ? 'rgba(255, 152, 0, 0.1)'
+                                                        : 'rgba(76, 175, 80, 0.05)',
+                                                '&:hover': isSelected || selectedTimeSlots.length < getMaxAllowedSlots() ? {
+                                                    bgcolor: 'rgba(76, 175, 80, 0.1)',
+                                                    transform: 'scale(1.05)',
+                                                } : {},
+                                                transition: 'all 0.2s ease',
+                                                p: { xs: 1, sm: 2 }
+                                            }}
+                                        >
+                                            <Typography
+                                                sx={{
+                                                    fontSize: { xs: '0.75rem', sm: '0.85rem' },
+                                                    fontWeight: 'medium',
+                                                    color: '#4CAF50',
+                                                    textAlign: 'center'
+                                                }}
+                                            >
+                                                {slot.display}
+                                            </Typography>
+                                            {isSelected && (
+                                                <Typography
+                                                    sx={{
+                                                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                                                        color: '#4CAF50',
+                                                        mt: { xs: 0.5, sm: 1 }
+                                                    }}
+                                                >
+                                                    Selected
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        )}
+
+                        {selectedTimeSlots.length > 0 && (
+                            <Box sx={{ 
+                                mt: { xs: 2, sm: 3 }, 
+                                p: { xs: 1.5, sm: 2 }, 
+                                bgcolor: '#f5f5ff', 
+                                borderRadius: { xs: 1, sm: 2 }, 
+                                border: '1px solid #e0e0e0' 
+                            }}>
+                                <Typography 
+                                    variant="subtitle2" 
+                                    gutterBottom
+                                    sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
+                                >
+                                    Selected Time Slots: ({selectedTimeSlots.length}/{getMaxAllowedSlots()})
+                                </Typography>
+                                {selectedTimeSlots.map((slot, index) => (
+                                    <Typography 
+                                        key={index} 
+                                        variant="body2" 
+                                        sx={{ 
+                                            mb: 0.5,
+                                            fontSize: { xs: '0.8rem', sm: '0.9rem' }
+                                        }}
+                                    >
+                                        {slot.display} ({slot.duration})
+                                    </Typography>
+                                ))}
+                                <Typography 
+                                    variant="subtitle2" 
+                                    sx={{ 
+                                        mt: { xs: 1.5, sm: 2 },
+                                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                                    }}
+                                >
+                                    Total Price: ₹{Math.ceil(calculatedPrice.total)}/- (Including GST)
+                                </Typography>
+                            </Box>
+                        )}
+
+                        {/* Add Reason Dropdown for Member Type */}
+                        {memberType === 'Member' && selectedTimeSlots.length > 0 && (
+                            <FormControl fullWidth sx={{ mt: { xs: 2, sm: 3 } }}>
+                                <InputLabel>Select Reason</InputLabel>
+                                <Select
+                                    value={selectedReason}
+                                    onChange={(e) => setSelectedReason(e.target.value)}
+                                    label="Select Reason"
+                                    sx={{
+                                        height: { xs: '45px', sm: '50px' },
+                                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                                    }}
+                                >
+                                    <MenuItem value="" disabled>
+                                        Select a reason
+                                    </MenuItem>
+                                    {meetingReasons.map((reason) => (
+                                        <MenuItem 
+                                            key={reason.id} 
+                                            value={reason.id}
+                                            sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
+                                        >
+                                            {reason.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
+
+                        {/* Update the button text based on member type */}
+                        <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            mt: { xs: 2, sm: 3 },
+                            gap: { xs: 1, sm: 2 }
+                        }}>
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    setShowRoomSelectionModal(false);
+                                    setShowTimeSlotModal(true);
+                                }}
+                                sx={{
+                                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                                    height: { xs: '40px', sm: '45px' }
+                                }}
+                            >
+                                Back
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleFinalBooking}
+                                disabled={!selectedDate || selectedTimeSlots.length === 0 || (memberType === 'Member' && !selectedReason)}
+                                sx={{
+                                    background: 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #6A5ACD 0%, #5B4ACE 100%)'
+                                    },
+                                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                                    height: { xs: '40px', sm: '45px' }
+                                }}
+                            >
+                                {memberType === 'Member' ? 'Book Now' : 'Proceed to Payment'}
+                            </Button>
+                        </Box>
                     </Box>
                 </Fade>
             </Modal>

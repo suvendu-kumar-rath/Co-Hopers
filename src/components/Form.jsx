@@ -530,14 +530,22 @@ const Form = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', p: 4, bgcolor: '#fff' }}>
-      <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      p: { xs: 2, sm: 3, md: 4 }, 
+      bgcolor: '#fff' 
+    }}>
+      <Box sx={{ 
+        maxWidth: '1200px', 
+        mx: 'auto',
+        width: '100%'
+      }}>
         <Accordion 
           expanded={expanded === 'panel1'} 
           onChange={handleAccordionChange('panel1')}
           sx={{ 
             mb: 2,
-            borderRadius: '12px',
+            borderRadius: { xs: '8px', sm: '12px' },
             boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
             '&:before': { display: 'none' }
           }}
@@ -545,67 +553,105 @@ const Form = () => {
           <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
           >
-            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 'bold',
+                fontSize: { xs: '1.2rem', sm: '1.5rem', md: '1.8rem' },
+                lineHeight: { xs: 1.4, sm: 1.5 }
+              }}
+            >
               KYC for Co-Working CoHopers 9C Technology Labs Pvt. Ltd.
             </Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ p: 4 }}>
+          <AccordionDetails sx={{ 
+            p: { xs: 2, sm: 3, md: 4 }
+          }}>
             <Box>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: { xs: 2, sm: 3 }, 
+                  fontWeight: 'bold',
+                  fontSize: { xs: '1.1rem', sm: '1.3rem' }
+                }}
+              >
                 Credential Needed :
               </Typography>
 
               {/* For a Company Section */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
+              <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    mb: { xs: 1.5, sm: 2 },
+                    fontSize: { xs: '1rem', sm: '1.2rem' }
+                  }}
+                >
                   1. For a Company:
-              </Typography>
-              <Box sx={{ pl: 3 }}>
-                <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
-                <Box sx={{ pl: 3 }}>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- Certificate of Incorporation (proof that your company is legally registered).</Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- PAN of the Company (for tax identification).</Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- ID Card and PAN Card of the Director or Signing Authority (for identification and authorization).</Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (if available): If you provide your GSTIN, a GST Invoice will be issued.</Typography>
+                </Typography>
+                <Box sx={{ pl: { xs: 2, sm: 3 } }}>
+                  <Typography 
+                    variant="body1" 
+                    sx={{ 
+                      mb: 1,
+                      fontSize: { xs: '0.9rem', sm: '1rem' }
+                    }}
+                  >
+                    - Documents Required:
+                  </Typography>
+                  <Box sx={{ pl: { xs: 2, sm: 3 } }}>
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        mb: 1,
+                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                      }}
+                    >
+                      - Certificate of Incorporation (proof that your company is legally registered).
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- PAN of the Company (for tax identification).</Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- ID Card and PAN Card of the Director or Signing Authority (for identification and authorization).</Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (if available): If you provide your GSTIN, a GST Invoice will be issued.</Typography>
+                  </Box>
                 </Box>
               </Box>
-            </Box>
 
               {/* For a Freelancer Section */}
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                2. For a Freelancer:
-              </Typography>
-              <Box sx={{ pl: 3 }}>
-                <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
+              <Box sx={{ mb: 4 }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                  2. For a Freelancer:
+                </Typography>
                 <Box sx={{ pl: 3 }}>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- PAN Card (for tax identification).</Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- ID Card (for identity verification).</Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (Optional): You don't need to provide GSTIN if you're a freelancer, but if you have one, you may use it for invoicing.</Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
+                  <Box sx={{ pl: 3 }}>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- PAN Card (for tax identification).</Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- ID Card (for identity verification).</Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (Optional): You don't need to provide GSTIN if you're a freelancer, but if you have one, you may use it for invoicing.</Typography>
+                  </Box>
                 </Box>
               </Box>
-            </Box>
 
               {/* For Sole-Proprietorship Section */}
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                3. For Sole-Proprietorship or Partnership Firm:
-              </Typography>
-              <Box sx={{ pl: 3 }}>
-                <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
+              <Box sx={{ mb: 4 }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                  3. For Sole-Proprietorship or Partnership Firm:
+                </Typography>
                 <Box sx={{ pl: 3 }}>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- Choose as Freelancer: For registration purposes, you may be asked to choose as a freelancer.</Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- PAN and ID Card of the Proprietor or Partner (for identification and tax purposes).</Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (Optional): You're not required to provide GSTIN unless you have one.</Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
+                  <Box sx={{ pl: 3 }}>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- Choose as Freelancer: For registration purposes, you may be asked to choose as a freelancer.</Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- PAN and ID Card of the Proprietor or Partner (for identification and tax purposes).</Typography>
+                    <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (Optional): You're not required to provide GSTIN unless you have one.</Typography>
+                  </Box>
                 </Box>
               </Box>
-            </Box>
 
               <Typography variant="body1" sx={{ color: '#666', mb: 4 }}>
               Let us know if you need further clarification! ( +91 97787 08100 ).
             </Typography>
 
-          <Divider sx={{ my: 4 }} />
+            <Divider sx={{ my: 4 }} />
 
             <Typography variant="h5" sx={{ 
               textAlign: 'center',
@@ -667,7 +713,7 @@ const Form = () => {
                   Next
                 </Button>
               </Box>
-          </Box>
+            </Box>
           </AccordionDetails>
         </Accordion>
 
