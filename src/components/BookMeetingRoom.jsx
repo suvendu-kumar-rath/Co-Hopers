@@ -2199,7 +2199,7 @@ const handleHourlyMemberType = (memberType) => {
                         >
                             <CloseIcon />
                         </IconButton>
-
+                        
                         <Typography 
                             variant="h6" 
                             gutterBottom

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery, IconButton } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
-import privateOfficeImage from '../assets/images/Service Space .png';
+import ShareIcon from '@mui/icons-material/Share';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import privateOfficeJpg from '../assets/images/private office.jpg';
 import spaceImage4 from '../assets/images/03_Spaces 4.png';
 import spaceImage6 from '../assets/images/03_Spaces 6.png';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -11,1035 +14,342 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import directorKYCImage from '../assets/images/KYC.png';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KYCImage from '../assets/images/KYC.png';
+import CloseIcon from '@mui/icons-material/Close';
 
 const Services = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
-
   const navigate = useNavigate();
-  const [openPaymentModal, setOpenPaymentModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('upi');
-  const [paymentStep, setPaymentStep] = useState('select');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [openKYCModal, setOpenKYCModal] = useState(false);
-  const [kycType, setKYCType] = useState('company');
-  const [showCompanyForm, setShowCompanyForm] = useState(false);
-  const [signingAuthority, setSigningAuthority] = useState('');
-  const [companyFiles, setCompanyFiles] = useState({
-    coi: null,
-    pan: null,
-    gstin: null
-  });
-  const [currentStep, setCurrentStep] = useState(1);
-  const [uploadedFiles, setUploadedFiles] = useState({
-    coi: null,
-    pan: null,
-    gstin: null
-  });
-  const [showDirectorKYC, setShowDirectorKYC] = useState(false);
-  const [showCompanyKYC, setShowCompanyKYC] = useState(true);
-  const [showSigningAuthorityKYC, setShowSigningAuthorityKYC] = useState(false);
-  const [directorKYCFiles, setDirectorKYCFiles] = useState({
-    paymentProof: null,
-    frontID: null,
-    backID: null,
-    directorPAN: null,
-    directorPhoto: null
-  });
-  const [formData, setFormData] = useState({
-    companyName: '',
-    directorName: '',
-    din: '',
-    email: '',
-    mobile: ''
-  });
-  const [companyData, setCompanyData] = useState({
-    companyName: '',
-    directorName: '',
-    din: '',
-    email: '',
-    mobile: ''
-  });
+  const { officeType, id } = useParams();
 
-  const handleOpenPaymentModal = () => {
-    setOpenPaymentModal(true);
-    setPaymentStep('select');
-  };
+  // State for popup modal and slider
+  const [showOfficeModal, setShowOfficeModal] = useState(false);
+  const [selectedOffice, setSelectedOffice] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  const handleClosePaymentModal = () => {
-    setOpenPaymentModal(false);
-    setPaymentStep('select');
-    setSelectedFile(null);
-  };
-
-  const handlePaymentMethodChange = (event) => {
-    setPaymentMethod(event.target.value);
-  };
-
-  const handleNextStep = () => {
-    setPaymentStep('upload');
-  };
-
-  const handleFileSelect = (event) => {
-    if (event.target.files && event.target.files[0]) {
-      setSelectedFile(event.target.files[0]);
+  // Private Office Data
+  const privateOffices = [
+    {
+      id: 'executive-cabin-3',
+      title: 'Executive Cabin (3 Seater)',
+      price: '₹16k + GST',
+      image: privateOfficeJpg,
+      description: '3 Seater including 1 Boss seat',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'window-executive-4',
+      title: 'Window Side Executive Cabin (4 Seater)',
+      price: '₹18k + GST',
+      image: privateOfficeJpg,
+      description: '4 Seater including 1 Boss seat',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'private-cabin-4',
+      title: 'Private Cabin (4 Seater)',
+      price: '₹17k + GST',
+      image: privateOfficeJpg,
+      description: '4 Seater',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'private-cabin-6',
+      title: 'Private Cabin (6 Seater)',
+      price: '₹20k + GST',
+      image: privateOfficeJpg,
+      description: '6 Seater',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'premium-cabin-8',
+      title: 'Premium Cabin (8 Seater)',
+      price: '₹24k + GST',
+      image: privateOfficeJpg,
+      description: '8 Seater Luxury Space',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'team-space-10',
+      title: 'Team Space (10 Seater)',
+      price: '₹28k + GST',
+      image: privateOfficeJpg,
+      description: '10 Seater Collaborative Space',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'executive-suite-12',
+      title: 'Executive Suite (12 Seater)',
+      price: '₹32k + GST',
+      image: privateOfficeJpg,
+      description: '12 Seater Premium Suite',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'corporate-space-15',
+      title: 'Corporate Space (15 Seater)',
+      price: '₹38k + GST',
+      image: privateOfficeJpg,
+      description: '15 Seater Corporate Environment',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'business-hub-20',
+      title: 'Business Hub (20 Seater)',
+      price: '₹45k + GST',
+      image: privateOfficeJpg,
+      description: '20 Seater Business Center',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
+    },
+    {
+      id: 'enterprise-space-25',
+      title: 'Enterprise Space (25 Seater)',
+      price: '₹52k + GST',
+      image: privateOfficeJpg,
+      description: '25 Seater Enterprise Solution',
+      features: [
+        '24/7 access',
+        'Conference room facility',
+        '300 MBPS internet',
+        'Price includes electricity, AC, Office boy'
+      ]
     }
+  ];
+
+  // Virtual Office Data (commented out)
+  // const virtualOffices = [
+  //   {
+  //     id: 'virtual-basic',
+  //     title: 'Virtual Office Basic',
+  //     price: '₹5k + GST',
+  //     image: privateOfficeImage,
+  //     description: 'Basic virtual office services',
+  //     features: [
+  //       'Business address',
+  //       'Mail handling',
+  //       'Phone answering',
+  //       'Meeting room access'
+  //     ]
+  //   },
+  //   {
+  //     id: 'virtual-premium',
+  //     title: 'Virtual Office Premium',
+  //     price: '₹8k + GST',
+  //     image: privateOfficeImage,
+  //     description: 'Premium virtual office services',
+  //     features: [
+  //       'Business address',
+  //       'Mail handling',
+  //       'Phone answering',
+  //       'Meeting room access',
+  //       'Reception services'
+  //     ]
+  //   }
+  // ];
+
+  const handleOfficeClick = (office) => {
+    setSelectedOffice(office);
+    setShowOfficeModal(true);
   };
 
-  const handleBack = () => {
-    setShowDirectorKYC(false);
-    setShowSigningAuthorityKYC(false);
-    setShowCompanyKYC(true);
-    setOpenKYCModal(true);
+  const handleCloseModal = () => {
+    setShowOfficeModal(false);
+    setSelectedOffice(null);
   };
 
-  const handleOpenKYCModal = () => {
-    setOpenKYCModal(true);
-    setOpenPaymentModal(false);
+  const handleProceedToPayment = () => {
+    // Navigate to payment flow
+    navigate('/form');
+    handleCloseModal();
   };
 
-  const handleCloseKYCModal = () => {
-    setOpenKYCModal(false);
+  const handleShare = (office) => {
+    const message = `Check out this amazing office space at CoHopers!\n\n${office.title}\nPrice: ${office.price}\n\nFeatures:\n${office.features.join('\n')}\n\nVisit: https://co-hopers.vercel.app/services`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
-  const handleKYCTypeChange = (event) => {
-    setKYCType(event.target.value);
-  };
-
-  const handleNextInKYC = () => {
-    if (kycType === 'company') {
-      setShowCompanyForm(true);
-    }
-  };
-
-  const handleBackToKYC = () => {
-    setShowCompanyForm(false);
-  };
-
-  const handleFileUpload = (type) => (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [type]: file
-      }));
-    }
-  };
-
-  const handleDirectorFileUpload = (type) => (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setDirectorKYCFiles(prev => ({
-        ...prev,
-        [type]: file
-      }));
-    }
-  };
-
-  const handleNextClick = () => {
-    console.log("Next clicked, signing authority:", signingAuthority);
-    if (signingAuthority === 'director') {
-      setShowDirectorKYC(true);
-      setShowCompanyKYC(false);
-      setShowSigningAuthorityKYC(false);
-      setOpenKYCModal(false);
-    } else if (signingAuthority === 'someone_else') {
-      setShowSigningAuthorityKYC(true);
-      setShowCompanyKYC(false);
-      setShowDirectorKYC(false);
-      setOpenKYCModal(false);
-    }
-  };
-
-  const handleCloseDirectorKYC = () => {
-    setShowDirectorKYC(false);
-    setShowCompanyKYC(true);
-  };
-
-  const handleCompanyDataChange = (field) => (event) => {
-    setCompanyData({
-      ...companyData,
-      [field]: event.target.value
+  const handleNextSlide = () => {
+    setCurrentSlide((prev) => {
+      const next = (prev + 1) % privateOffices.length;
+      document.querySelector('.slider-container').style.transform = 'rotateY(-180deg)';
+      setTimeout(() => {
+        document.querySelector('.slider-container').style.transform = 'rotateY(0)';
+      }, 300);
+      return next;
     });
   };
 
-  const handleRadioChange = (event) => {
-    console.log("Radio changed to:", event.target.value);
-    setSigningAuthority(event.target.value);
+  const handlePrevSlide = () => {
+    setCurrentSlide((prev) => {
+      const next = (prev - 1 + privateOffices.length) % privateOffices.length;
+      document.querySelector('.slider-container').style.transform = 'rotateY(180deg)';
+      setTimeout(() => {
+        document.querySelector('.slider-container').style.transform = 'rotateY(0)';
+      }, 300);
+      return next;
+    });
   };
 
-  const handleCloseSigningAuthorityKYC = () => {
-    setShowSigningAuthorityKYC(false);
-    setShowCompanyKYC(true);
-  };
-
-  const handleOpenKYCForm = () => {
-    if (selectedFile) {
-      navigate('/form');  // Navigate to Form component
-      handleClosePaymentModal();  // Close the payment modal after navigation
-    }
-  };
-
-  const DirectorKYCDialog = () => (
+  const OfficeModal = () => (
     <Dialog 
-      open={showDirectorKYC} 
-      onClose={handleCloseDirectorKYC}
+      open={showOfficeModal}
+      onClose={handleCloseModal}
       maxWidth="lg"
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          maxWidth: '1200px',
-          m: 2
+          borderRadius: { xs: 2, sm: 3 },
+          overflow: 'hidden',
+          margin: { xs: 2, sm: 4 },
+          maxWidth: { xs: '95%', sm: '900px' }
         }
       }}
     >
-      <DialogContent sx={{ p: 4, bgcolor: 'white' }}>
-        <Box sx={{ 
-          bgcolor: '#75A5A3', 
-          p: 2, 
-          borderRadius: 1,
-          mb: 4
-        }}>
-          <Typography variant="h5" sx={{ 
-            color: 'white', 
-            textAlign: 'center',
-            fontWeight: 500
-          }}>
-            DIRECTOR KYC
-          </Typography>
-        </Box>
-
-        <Typography variant="h6" sx={{ mb: 4, fontWeight: 500 }}>
-          Enter Your Details
-        </Typography>
-
-        <Box sx={{ display: 'flex' }}>
-          {/* Left Section */}
-          <Box sx={{ flex: 1, pr: 4 }}>
-            {/* Upload Fields - Left Column */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
-                Payment Proof*
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, color: '#666' }}>
-                Upload 1 supported file. Max 10 MB.
-              </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<CloudUploadIcon sx={{ color: '#75A5A3' }} />}
+      <IconButton
+        onClick={handleCloseModal}
                 sx={{ 
-                  color: '#75A5A3',
-                  borderColor: '#75A5A3',
-                  textTransform: 'none',
-                  mb: 3,
-                  '&:hover': {
-                    borderColor: '#75A5A3',
-                    bgcolor: 'rgba(117, 165, 163, 0.04)'
-                  }
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          zIndex: 1000,
+          bgcolor: 'rgba(255,255,255,0.8)',
+          '&:hover': { bgcolor: 'rgba(255,255,255,1)' }
                 }}
               >
-                ADD File
-              </Button>
-
-              <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
-                Director Photo ID Card Front Side (Aadhar/Driving License/Voter ID)*
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, color: '#666' }}>
-                Upload 1 supported file. Max 10 MB.
-              </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<CloudUploadIcon sx={{ color: '#75A5A3' }} />}
-                sx={{ 
-                  color: '#75A5A3',
-                  borderColor: '#75A5A3',
-                  textTransform: 'none',
-                  mb: 3,
-                  '&:hover': {
-                    borderColor: '#75A5A3',
-                    bgcolor: 'rgba(117, 165, 163, 0.04)'
-                  }
-                }}
-              >
-                ADD File
-              </Button>
-
-              <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
-                Director Photo ID Card Back Side (Aadhar/Driving License/Voter ID)*
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, color: '#666' }}>
-                Upload 1 supported file. Max 10 MB.
-              </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<CloudUploadIcon sx={{ color: '#75A5A3' }} />}
-                sx={{ 
-                  color: '#75A5A3',
-                  borderColor: '#75A5A3',
-                  textTransform: 'none',
-                  mb: 3,
-                  '&:hover': {
-                    borderColor: '#75A5A3',
-                    bgcolor: 'rgba(117, 165, 163, 0.04)'
-                  }
-                }}
-              >
-                ADD File
-              </Button>
-            </Box>
-
-            {/* Text Fields */}
-            <Box sx={{ mb: 4 }}>
-              <TextField
-                fullWidth
-                placeholder="Email-ID (Invoice will be sent)*"
-                variant="outlined"
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'white',
-                    borderRadius: 1
-                  }
-                }}
-              />
-
-              <TextField
-                fullWidth
-                placeholder="Mobile Number*"
-                variant="outlined"
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'white',
-                    borderRadius: 1
-                  }
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Right Section */}
-          <Box sx={{ flex: 1, pl: 4 }}>
-            {/* Upload Fields - Right Column */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
-                Director PAN*
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, color: '#666' }}>
-                Upload 1 supported file. Max 10 MB.
-              </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<CloudUploadIcon sx={{ color: '#75A5A3' }} />}
-                sx={{ 
-                  color: '#75A5A3',
-                  borderColor: '#75A5A3',
-                  textTransform: 'none',
-                  mb: 3,
-                  '&:hover': {
-                    borderColor: '#75A5A3',
-                    bgcolor: 'rgba(117, 165, 163, 0.04)'
-                  }
-                }}
-              >
-                ADD File
-              </Button>
-
-              <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
-                Director Photo*
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, color: '#666' }}>
-                Upload 1 supported file. Max 10 MB.
-              </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<CloudUploadIcon sx={{ color: '#75A5A3' }} />}
-                sx={{ 
-                  color: '#75A5A3',
-                  borderColor: '#75A5A3',
-                  textTransform: 'none',
-                  mb: 3,
-                  '&:hover': {
-                    borderColor: '#75A5A3',
-                    bgcolor: 'rgba(117, 165, 163, 0.04)'
-                  }
-                }}
-              >
-                ADD File
-              </Button>
-            </Box>
-
-            {/* KYC Illustration */}
+        <CloseIcon sx={{ color: '#333', fontSize: 28 }} />
+      </IconButton>
+      {selectedOffice && (
+        <>
+          {/* Blue Section */}
             <Box sx={{ 
+            bgcolor: '#9FE2DF',
+            p: { xs: 3, sm: 4 },
               display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: { xs: 3, md: 4 }
+          }}>
+            {/* Left Section - Image */}
+        <Box sx={{ 
+              flex: 1,
+          display: 'flex', 
               justifyContent: 'center',
-              alignItems: 'flex-start',
-              mt: 4
+              alignItems: 'center'
             }}>
               <img 
-                src={KYCImage} 
-                alt="KYC Illustration" 
-                style={{
-                  width: '100%',
-                  maxWidth: '400px',
-                  height: 'auto'
-                }}
-              />
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Footer Text */}
-        <Box sx={{ mt: 4, mb: 4 }}>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Thank you for Connecting with us.
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Note: By submitting this KYC form, you acknowledge and agree to abide by the rules of Cohopers Coworking as established in the agreement between your company and 9C Technology Labs Pvt. Ltd.
-          </Typography>
-          <Typography variant="body2">
-            Team Cohopers
-          </Typography>
-          <Typography variant="body2">
-            9C Technology labs Pvt. Ltd.
-          </Typography>
-        </Box>
-
-        {/* Buttons */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          mt: 4
-        }}>
-          <Button
-            variant="outlined"
-            onClick={handleBack}
-            sx={{ 
-              color: '#75A5A3',
-              borderColor: '#75A5A3',
-              bgcolor: 'white',
-              px: 4,
-              '&:hover': {
-                borderColor: '#75A5A3',
-                bgcolor: 'rgba(117, 165, 163, 0.04)'
-              }
-            }}
-          >
-            Back
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ 
-              bgcolor: '#8BC34A',
-              color: 'white',
-              px: 4,
-              '&:hover': {
-                bgcolor: '#7CB342'
-              }
-            }}
-          >
-            SUBMIT
-          </Button>
-        </Box>
-      </DialogContent>
-    </Dialog>
-  );
-
-  const SigningAuthorityKYCDialog = () => (
-    <Dialog 
-      open={showSigningAuthorityKYC} 
-      onClose={handleCloseSigningAuthorityKYC}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          maxWidth: '1200px',
-          m: 2
-        }
-      }}
-    >
-      <DialogContent sx={{ p: 4, bgcolor: 'white' }}>
-        <Box sx={{ 
-          bgcolor: '#75A5A3', 
-          p: 2, 
-          borderRadius: 1,
-          mb: 4
-        }}>
-          <Typography variant="h5" sx={{ 
-            color: 'white', 
-            textAlign: 'center',
-            fontWeight: 500
-          }}>
-            SIGNING AUTHORITY KYC
-          </Typography>
-        </Box>
-
-        <Typography variant="h6" sx={{ mb: 2 }}>Enter Your Details</Typography>
-        
-        <TextField
-          fullWidth
-          placeholder="Enter your details"
-          variant="outlined"
-          sx={{ 
-            mb: 4,
-            maxWidth: '500px',
-            bgcolor: 'white'
-          }}
-        />
-
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            {/* Left Section */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: 3
-            }}>
-              <Box>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  Authorization Letter from Company*
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, display: 'block' }}>
-                  (Note: Granting power to signing authority to sign on behalf of company.)
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  component="label"
-                  sx={{ 
-                    width: '100%',
-                    height: '45px',
-                    borderColor: '#75A5A3',
-                    color: '#75A5A3',
-                    '&:hover': {
-                      borderColor: '#75A5A3',
-                      bgcolor: 'rgba(117, 165, 163, 0.04)'
-                    }
-                  }}
-                >
-                  ADD File
-                  <input type="file" hidden />
-                </Button>
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                  Upload 1 supported file. Max 10 MB.
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  Photo ID Card Front Side (Aadhar/Driving License/Voter ID)*
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  component="label"
-                  sx={{ 
-                    width: '100%',
-                    height: '45px',
-                    borderColor: '#75A5A3',
-                    color: '#75A5A3',
-                    '&:hover': {
-                      borderColor: '#75A5A3',
-                      bgcolor: 'rgba(117, 165, 163, 0.04)'
-                    }
-                  }}
-                >
-                  ADD File
-                  <input type="file" hidden />
-                </Button>
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                  Upload 1 supported file. Max 10 MB.
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  Photo ID Card Back Side (Aadhar/Driving License/Voter ID)*
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  component="label"
-                  sx={{ 
-                    width: '100%',
-                    height: '45px',
-                    borderColor: '#75A5A3',
-                    color: '#75A5A3',
-                    '&:hover': {
-                      borderColor: '#75A5A3',
-                      bgcolor: 'rgba(117, 165, 163, 0.04)'
-                    }
-                  }}
-                >
-                  ADD File
-                  <input type="file" hidden />
-                </Button>
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                  Upload 1 supported file. Max 10 MB.
-                </Typography>
-              </Box>
-
-              <TextField
-                fullWidth
-                label="Email-ID (Invoice will be sent)*"
-                variant="outlined"
-                sx={{ bgcolor: 'white' }}
-              />
-
-              <TextField
-                fullWidth
-                label="Mobile Number*"
-                variant="outlined"
-                sx={{ bgcolor: 'white' }}
-              />
-            </Box>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            {/* Right Section */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: 3,
-              pl: { xs: 0, md: 8 },
-              ml: { xs: 0, md: 12 }
-            }}>
-              <Box>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  Payment Proof*
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  component="label"
-                  sx={{ 
-                    width: '100%',
-                    height: '45px',
-                    borderColor: '#75A5A3',
-                    color: '#75A5A3',
-                    '&:hover': {
-                      borderColor: '#75A5A3',
-                      bgcolor: 'rgba(117, 165, 163, 0.04)'
-                    }
-                  }}
-                >
-                  ADD File
-                  <input type="file" hidden />
-                </Button>
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                  Upload 1 supported file. Max 10 MB.
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  Signing Authority Photo*
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  component="label"
-                  sx={{ 
-                    width: '100%',
-                    height: '45px',
-                    borderColor: '#75A5A3',
-                    color: '#75A5A3',
-                    '&:hover': {
-                      borderColor: '#75A5A3',
-                      bgcolor: 'rgba(117, 165, 163, 0.04)'
-                    }
-                  }}
-                >
-                  ADD File
-                  <input type="file" hidden />
-                </Button>
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                  Upload 1 supported file. Max 10 MB.
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  Signing Authority PAN*
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  component="label"
-                  sx={{ 
-                    width: '100%',
-                    height: '45px',
-                    borderColor: '#75A5A3',
-                    color: '#75A5A3',
-                    '&:hover': {
-                      borderColor: '#75A5A3',
-                      bgcolor: 'rgba(117, 165, 163, 0.04)'
-                    }
-                  }}
-                >
-                  ADD File
-                  <input type="file" hidden />
-                </Button>
-                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                  Upload 1 supported file. Max 10 MB.
-                </Typography>
-              </Box>
-
-              <Box sx={{ mt: 2 }}>
-                <img 
-                  src={KYCImage}
-                  alt="KYC Illustration" 
+                src={selectedOffice.image} 
+                alt={selectedOffice.title}
                   style={{ 
                     width: '100%',
                     maxWidth: '400px',
-                    height: 'auto'
+                  height: 'auto',
+                  borderRadius: '12px',
+                  objectFit: 'cover'
                   }} 
                 />
               </Box>
-            </Box>
-          </Grid>
-        </Grid>
 
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Thank you for Connecting with us.
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Note: By submitting this KYC form, you acknowledge and agree to abide by the rules of Cohopers Coworking as established in the agreement between your company and 9C Technology Labs Pvt. Ltd.
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            Team CoHopers
-          </Typography>
-          <Typography variant="body2">
-            9C Technology labs Pvt. Ltd.
-          </Typography>
-        </Box>
-
+            {/* Right Section - Content */}
         <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          mt: 4
-        }}>
-          <Button
-            variant="outlined"
-            onClick={handleBack}
-            sx={{ 
-              color: '#75A5A3',
-              borderColor: '#75A5A3',
-              px: 4,
-              '&:hover': {
-                borderColor: '#75A5A3',
-                bgcolor: 'rgba(117, 165, 163, 0.04)'
-              }
-            }}
-          >
-            Back
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ 
-              bgcolor: '#8BC34A',
-              color: 'white',
-              px: 4,
-              '&:hover': {
-                bgcolor: '#7CB342'
-              }
-            }}
-          >
-            SUBMIT
-          </Button>
-        </Box>
-      </DialogContent>
-    </Dialog>
-  );
-
-  const CompanyKYCDialog = () => (
-    <Dialog
-      open={showCompanyKYC}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          maxWidth: '1200px',
-          m: 2
-        }
-      }}
-    >
-      <DialogContent sx={{ p: 4, bgcolor: 'white' }}>
-        <Box sx={{ 
-          bgcolor: '#75A5A3', 
-          p: 2, 
-          borderRadius: 1,
-          mb: 4
-        }}>
-          <Typography variant="h5" sx={{ 
-            color: 'white', 
-            textAlign: 'center',
-            fontWeight: 500
-          }}>
-            COMPANY KYC
-          </Typography>
-        </Box>
-
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ 
+              flex: 1,
               display: 'flex', 
               flexDirection: 'column', 
-              gap: 3
-            }}>
-              <TextField
-                fullWidth
-                label="Company Name*"
-                variant="outlined"
-                value={companyData.companyName}
-                onChange={(e) => setCompanyData({...companyData, companyName: e.target.value})}
-                sx={{ width: '130%' }}
-              />
-              <TextField
-                fullWidth
-                label="Director's Name*"
-                variant="outlined"
-                value={companyData.directorName}
-                onChange={(e) => setCompanyData({...companyData, directorName: e.target.value})}
-                sx={{ width: '130%' }}
-              />
-              <TextField
-                fullWidth
-                label="DIN*"
-                variant="outlined"
-                value={companyData.din}
-                onChange={(e) => setCompanyData({...companyData, din: e.target.value})}
-                sx={{ width: '130%' }}
-              />
-            </Box>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: 3,
-              pl: { xs: 0, md: 12 },
-              ml: { xs: 0, md: 22 },
-              mb: 20
-            }}>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body1" sx={{ 
-                  mb: 2, 
-                  color: '#333',
-                  fontWeight: 400
-                }}>
-                  Who is the signing authority?*
-                </Typography>
-                <RadioGroup
-                  value={signingAuthority}
-                  onChange={handleRadioChange}
-                >
-                  <FormControlLabel 
-                    value="director" 
-                    control={
-                      <Radio 
-                        sx={{
-                          '&.Mui-checked': {
-                            color: '#9FE2DF',
-                          }
-                        }}
-                      />
-                    } 
-                    label="Director" 
-                  />
-                  <FormControlLabel 
-                    value="someone_else" 
-                    control={
-                      <Radio 
-                        sx={{
-                          '&.Mui-checked': {
-                            color: '#9FE2DF',
-                          }
-                        }}
-                      />
-                    } 
-                    label="Someone else" 
-                  />
-                </RadioGroup>
-              </Box>
-            </Box>
-          </Grid>
-        </Grid>
-
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          mt: 4 
+              justifyContent: 'space-between'
         }}>
-          <Button
-            variant="outlined"
-            sx={{ 
-              color: '#75A5A3',
-              borderColor: '#75A5A3',
-              '&:hover': {
-                borderColor: '#75A5A3',
-                bgcolor: 'rgba(117, 165, 163, 0.04)'
-              }
-            }}
-          >
-            Back
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleNextClick}
-            disabled={!signingAuthority}
-            sx={{ 
-              bgcolor: '#8BC34A',
-              color: 'white',
-              '&:hover': {
-                bgcolor: '#7CB342'
-              },
-              '&.Mui-disabled': {
-                bgcolor: 'rgba(139, 195, 74, 0.5)',
-                color: 'white'
-              }
-            }}
-          >
-            Next
-          </Button>
-        </Box>
-      </DialogContent>
-    </Dialog>
-  );
-
-  return (
-    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'white' }}>
-      {/* Title Section */}
-      <Box sx={{ 
-        px: { xs: 2, sm: 3, md: 4 },
-        pt: { xs: 2, sm: 3, md: 4 },
-        pb: 2
-      }}>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: { xs: 1, sm: 2 },
-          flexWrap: 'wrap'
-        }}>
-          <ArrowBackIcon sx={{ 
-            fontSize: { xs: 20, sm: 24 }, 
-            color: '#333' 
-          }} />
+              <Box>
           <Typography 
-            variant={isMobile ? "h6" : "h5"}
+                  variant="h4" 
             component="h2" 
             sx={{ 
+                    color: '#333',
               fontWeight: 'bold',
-              fontSize: { xs: '20px', sm: '24px' },
-              color: '#333'
+                    mb: 2,
+                    fontSize: { xs: '24px', sm: '32px' }
             }}
           >
-            PRIVATE OFFICES
+                  {selectedOffice.title}
           </Typography>
-        </Box>
-      </Box>
 
-      {/* Main Content Section */}
-      <Box sx={{ 
-        bgcolor: '#9FE2DF',
-        py: { xs: 3, sm: 4, md: 4 },
-        px: { xs: 2, sm: 3, md: 4 }
-      }}>
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ 
-              borderRadius: { xs: '16px', sm: '24px' },
-              overflow: 'hidden',
-              mb: { xs: 2, sm: 3 },
-              maxWidth: { xs: '100%', md: '500px' },
-              mx: { xs: 'auto', md: 0 }
-            }}>
-              <img 
-                src={privateOfficeImage} 
-                alt="Private Office" 
-                style={{
-                  width: '100%',
-                  height: isMobile ? '200px' : '300px',
-                  display: 'block',
-                  objectFit: 'cover'
-                }}
-              />
-            </Box>
             <Typography 
               variant="body1" 
               sx={{ 
-                color: 'white',
-                mb: { xs: 2, sm: 3 },
-                fontSize: { xs: '16px', sm: '18px' },
-                fontWeight: 300,
-                lineHeight: 1.6,
-                maxWidth: { xs: '100%', md: '500px' },
-                textAlign: { xs: 'center', md: 'left' }
+                    color: '#333',
+                mb: 3,
+                    fontSize: { xs: '16px', sm: '18px' },
+                    lineHeight: 1.6
               }}
             >
-              "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Typography 
-              variant={isMobile ? "h5" : "h4"}
-              component="h3"
-              sx={{ 
-                color: '#333',
-                mb: { xs: 2, sm: 4 },
-                fontWeight: 'bold',
-                borderBottom: '2px solid white',
-                pb: 2,
-                fontSize: { xs: '24px', sm: '32px' }
-              }}
-            >
-              Private Cabin ( 4 Seater )
+                  {selectedOffice.description}
             </Typography>
 
-            <List sx={{ 
-              mt: { xs: 1, sm: 2 },
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: { xs: 1, sm: 2 }
-            }}>
-              {[
-                'High-speed internet connectivity',
-                'Ergonomic furniture and setup',
-                'Access to meeting rooms',
-                'Dedicated storage space',
-                'Air conditioning and lighting',
-                'Cleaning and maintenance',
-                'Security and access control',
-                '24/7 access available'
-              ].map((feature, index) => (
+                <List sx={{ mb: 3 }}>
+                  {selectedOffice.features.map((feature, index) => (
                 <ListItem 
                   key={index} 
                   sx={{ 
-                    py: { xs: 0.5, sm: 1 },
+                    py: 0.5,
                     px: 0
                   }}
                 >
-                  <ListItemIcon sx={{ 
-                    minWidth: { xs: '24px', sm: '32px' }
-                  }}>
-                    <CheckIcon sx={{ 
-                      color: '#333',
-                      fontSize: { xs: 18, sm: 24 }
-                    }} />
+                  <ListItemIcon sx={{ minWidth: '32px' }}>
+                        <CheckIcon sx={{ 
+                          color: '#333',
+                          fontSize: 20
+                        }} />
                   </ListItemIcon>
                   <ListItemText 
                     primary={feature} 
                     sx={{ 
                       '& .MuiListItemText-primary': {
                         color: '#333',
-                        fontSize: { xs: '14px', sm: '16px' },
+                            fontSize: { xs: '14px', sm: '16px' },
                         fontWeight: 500
                       }
                     }}
@@ -1047,54 +357,68 @@ const Services = () => {
                 </ListItem>
               ))}
             </List>
+              </Box>
 
-            <Box sx={{ 
-              mt: { xs: 3, sm: 4 },
-              display: 'flex',
-              justifyContent: { xs: 'center', md: 'flex-start' }
-            }}>
-              <Typography 
-                variant={isMobile ? "h6" : "h5"}
-                component="div"
+              {/* Share Button */}
+              <Box sx={{ 
+                display: 'flex',
+                justifyContent: 'flex-end',
+                mb: 2
+              }}>
+                <IconButton
+                  onClick={() => handleShare(selectedOffice)}
                 sx={{ 
-                  display: 'inline-block',
-                  bgcolor: 'white',
-                  px: { xs: 2, sm: 3 },
-                  py: { xs: 1, sm: 1.5 },
-                  borderRadius: { xs: '6px', sm: '8px' },
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
                   color: '#333',
-                  fontWeight: 'bold',
-                  fontSize: { xs: '18px', sm: '24px' }
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.3)'
+                    }
                 }}
               >
-                ₹18k + GST Per Month
-              </Typography>
+                  <ShareIcon />
+                </IconButton>
             </Box>
-          </Grid>
-        </Grid>
+            </Box>
       </Box>
 
-      {/* Payment Button Section */}
+          {/* White Section - Price and Payment */}
       <Box sx={{ 
-        px: { xs: 2, sm: 3, md: 4 },
-        pt: 0,
-        pb: { xs: 2, sm: 3 },
+            bgcolor: 'white',
+            p: { xs: 3, sm: 4 },
         display: 'flex',
-        justifyContent: { xs: 'center', md: 'flex-start' },
-        marginTop: { xs: '-20px', sm: '-30px' }
-      }}>
+            flexDirection: { xs: 'column', sm: 'row' },
+            justifyContent: 'space-between',
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: { xs: 2, sm: 3 }
+          }}>
+            <Typography 
+              variant="h5" 
+              component="div"
+              sx={{ 
+                bgcolor: '#9FE2DF',
+                px: { xs: 2, sm: 3 },
+                py: { xs: 1, sm: 1.5 },
+                borderRadius: '8px',
+                color: '#333',
+                fontWeight: 'bold',
+                fontSize: { xs: '18px', sm: '24px' },
+                textAlign: 'center'
+              }}
+            >
+              {selectedOffice.price} Per Month
+            </Typography>
+
         <Button
           variant="contained"
-          onClick={handleOpenPaymentModal}
+              onClick={handleProceedToPayment}
           sx={{
             bgcolor: '#E53935',
             color: 'white',
-            px: { xs: 3, sm: 4 },
-            py: { xs: 1, sm: 1.5 },
-            borderRadius: { xs: '6px', sm: '8px' },
-            fontSize: { xs: '16px', sm: '18px' },
+                px: { xs: 3, sm: 4 },
+                py: { xs: 1, sm: 1.5 },
+            borderRadius: '8px',
+                fontSize: { xs: '16px', sm: '18px' },
             fontWeight: 'bold',
-            marginLeft: { xs: 0, md: '64px' },
             '&:hover': {
               bgcolor: '#C62828'
             }
@@ -1103,601 +427,190 @@ const Services = () => {
           PROCEED TO PAYMENT
         </Button>
       </Box>
+        </>
+      )}
+    </Dialog>
+  );
 
-      {/* Similar Search Section */}
-      <Box sx={{ 
-        bgcolor: 'white',
-        py: { xs: 4, sm: 6 },
-        px: { xs: 2, sm: 0 }
+  return (
+    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'white' }}>
+      {/* Banner Slider Section */}
+      <Box sx={{
+        position: 'relative',
+        width: '100%',
+        height: { xs: '70vh', sm: '80vh', md: '90vh' },
+        overflow: 'hidden',
+        backgroundColor: '#f5f5f5',
       }}>
-        <Box sx={{ 
-          px: { xs: 2, sm: 4 },
-          mb: { xs: 3, sm: 4 }
-        }}>
-          <Typography 
-            variant={isMobile ? "h6" : "h5"}
-            component="h2"
-            sx={{ 
-              fontWeight: 'bold',
-              color: '#333',
-              textAlign: { xs: 'center', sm: 'left' },
-              fontSize: { xs: '20px', sm: '24px' }
-            }}
-          >
-            Similar Search
-          </Typography>
-        </Box>
-
-        <Grid 
-          container 
-          spacing={{ xs: 2, sm: 3 }} 
+        {/* Navigation Buttons */}
+        <IconButton
+          onClick={handlePrevSlide}
           sx={{ 
-            marginLeft: { xs: 0, sm: '50px', md: '100px' },
-            width: { xs: '100%', sm: 'calc(100% - 50px)', md: 'calc(100% - 100px)' }
+            position: 'absolute',
+            left: { xs: 10, sm: 20 },
+            top: '50%',
+            transform: 'translateY(-50%)',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            color: '#333',
+            zIndex: 10,
+            '&:hover': {
+              bgcolor: 'rgba(255, 255, 255, 1)'
+            },
+            width: { xs: 40, sm: 50 },
+            height: { xs: 40, sm: 50 }
           }}
         >
-          {[
-            { image: spaceImage4 },
-            { image: spaceImage6 }
-          ].map((item, index) => (
-            <Grid item xs={12} sm={6} key={index}>
-              <Card sx={{ 
-                height: '100%', 
-                borderRadius: '0px',
-                boxShadow: 'none',
-                maxWidth: '100%'
+          <ChevronLeftIcon sx={{ fontSize: { xs: 24, sm: 30 } }} />
+        </IconButton>
+
+        <IconButton
+          onClick={handleNextSlide}
+          sx={{ 
+            position: 'absolute',
+            right: { xs: 10, sm: 20 },
+            top: '50%',
+            transform: 'translateY(-50%)',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            color: '#333',
+            zIndex: 10,
+            '&:hover': {
+              bgcolor: 'rgba(255, 255, 255, 1)'
+            },
+            width: { xs: 40, sm: 50 },
+            height: { xs: 40, sm: 50 }
+          }}
+        >
+          <ChevronRightIcon sx={{ fontSize: { xs: 24, sm: 30 } }} />
+        </IconButton>
+
+        {/* Slides Container with Page Turn Animation */}
+        <Box 
+          className="slider-container"
+          sx={{ 
+            display: 'flex',
+            width: `${privateOffices.length * 100}%`,
+            height: '100%',
+            transform: `translateX(-${(currentSlide * 100) / privateOffices.length}%)`,
+            transition: 'transform 0.5s ease, rotateY 0.3s ease',
+            position: 'relative',
+            transformStyle: 'preserve-3d',
+            perspective: '1000px'
+          }}
+        >
+          {privateOffices.map((office, index) => (
+            <Box
+              key={office.id}
+              sx={{
+                width: `${100 / privateOffices.length}%`,
+                height: '100%',
+                position: 'relative',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                overflow: 'hidden',
+                backfaceVisibility: 'hidden'
+              }}
+              onClick={() => handleOfficeClick(office)}
+            >
+              {/* Background Image */}
+              <Box
+                component="img"
+                src={privateOfficeJpg}
+                alt="office background"
+                sx={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  zIndex: 0
+                }}
+              />
+              {/* Dark Overlay */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  zIndex: 1
+                }}
+              />
+              {/* Content */}
+              <Box sx={{
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                zIndex: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                p: { xs: 3, sm: 4 }
               }}>
-                <CardMedia
-                  component="img"
-                  image={item.image}
-                  alt="Office Space"
+                <Typography
+                  variant="h3"
+                  component="h2"
                   sx={{ 
-                    height: { xs: 300, sm: 400, md: 600 },
-                    objectFit: 'cover',
-                    width: '100%'
+                    textAlign: 'center',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '28px', sm: '36px', md: '48px' },
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.7)',
+                    mb: 2
                   }}
-                />
-              </Card>
-            </Grid>
+                >
+                  {office.title}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  component="div"
+                  sx={{ 
+                    textAlign: 'center',
+                    color: '#FFD700',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '24px', sm: '32px', md: '40px' },
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
+                  }}
+                >
+                  {office.price}
+                </Typography>
+              </Box>
+            </Box>
           ))}
-        </Grid>
+        </Box>
+
+        {/* Slide Indicators */}
+        <Box sx={{
+          position: 'absolute',
+          bottom: { xs: 20, sm: 30 },
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: 1,
+          zIndex: 10
+        }}>
+          {privateOffices.map((_, index) => (
+            <Box
+              key={index}
+              sx={{ 
+                width: { xs: 8, sm: 12 },
+                height: { xs: 8, sm: 12 },
+                borderRadius: '50%',
+                bgcolor: index === currentSlide ? 'white' : 'rgba(255, 255, 255, 0.5)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onClick={() => setCurrentSlide(index)}
+            />
+          ))}
+        </Box>
       </Box>
 
-      {/* Payment Modal */}
-      <Dialog 
-        open={openPaymentModal} 
-        onClose={handleClosePaymentModal}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: { xs: '12px', sm: '20px' },
-            overflow: 'hidden',
-            margin: { xs: 2, sm: 4 },
-            maxWidth: { xs: '95%', sm: '600px', md: '900px' }
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          bgcolor: '#9FE2DF', 
-          color: '#333',
-          fontWeight: 'bold',
-          py: 2,
-          borderBottom: '1px solid rgba(0, 0, 0, 0.12)'
-        }}>
-          {paymentStep === 'select' ? 'Payment Gateway' : 'Upload Payment Details'}
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2, px: 4 }}>
-          {paymentStep === 'select' ? (
-            <Grid container spacing={4}>
-              <Grid item xs={12} md={5}>
-                <RadioGroup
-                  value={paymentMethod}
-                  onChange={handlePaymentMethodChange}
-                >
-                  <Paper 
-                    elevation={paymentMethod === 'upi' ? 3 : 0}
-                    sx={{ 
-                      p: 2, 
-                      mb: 2,
-                      borderRadius: '12px',
-                      transition: 'all 0.3s ease',
-                      cursor: 'pointer',
-                      border: paymentMethod === 'upi' ? '2px solid #9FE2DF' : '1px solid rgba(0, 0, 0, 0.12)',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: 3
-                      }
-                    }}
-                    onClick={() => setPaymentMethod('upi')}
-                  >
-                    <FormControlLabel 
-                      value="upi" 
-                      control={<Radio />} 
-                      label={
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          UPI Payment
-                        </Typography>
-                      }
-                    />
-                  </Paper>
-
-                  <Paper 
-                    elevation={paymentMethod === 'netbanking' ? 3 : 0}
-                    sx={{ 
-                      p: 2,
-                      borderRadius: '12px',
-                      transition: 'all 0.3s ease',
-                      cursor: 'pointer',
-                      border: paymentMethod === 'netbanking' ? '2px solid #9FE2DF' : '1px solid rgba(0, 0, 0, 0.12)',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: 3
-                      }
-                    }}
-                    onClick={() => setPaymentMethod('netbanking')}
-                  >
-                    <FormControlLabel 
-                      value="netbanking" 
-                      control={<Radio />} 
-                      label={
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          Net Banking
-                        </Typography>
-                      }
-                    />
-                  </Paper>
-                </RadioGroup>
-              </Grid>
-
-              <Grid item xs={12} md={7}>
-                <Fade in={true} timeout={500}>
-                  <Box>
-                    {paymentMethod === 'upi' ? (
-                      <Paper 
-                        elevation={3}
-                        sx={{ 
-                          p: 3,
-                          borderRadius: '12px',
-                          textAlign: 'center',
-                          bgcolor: '#f8f8f8',
-                          marginLeft: '250px'
-                        }}
-                      >
-                        <Box 
-                          sx={{
-                            width: '200px',
-                            height: '200px',
-                            margin: '0 auto',
-                            bgcolor: 'white',
-                            borderRadius: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1px solid rgba(0, 0, 0, 0.12)',
-                            mb: 2
-                          }}
-                        >
-                          <QrCodeIcon sx={{ fontSize: 150, color: '#333' }} />
-                        </Box>
-                        <Typography variant="body1" sx={{ fontWeight: 500, color: '#333', textAlign: 'center' }}>
-                          Scan QR Code to Pay
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#666', mt: 1, textAlign: 'center' }}>
-                          Please use any UPI app to scan and pay
-                        </Typography>
-                      </Paper>
-                    ) : (
-                      <Paper 
-                        elevation={3}
-                        sx={{ 
-                          p: 3,
-                          borderRadius: '12px',
-                          textAlign: 'center',
-                          bgcolor: '#f8f8f8',
-                          marginLeft: '250px'
-                        }}
-                      >
-                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#333' }}>
-                          Bank Account Details
-                        </Typography>
-                        <Box sx={{ 
-                          '& > *': { mb: 2 },
-                          p: 2,
-                          bgcolor: 'white',
-                          borderRadius: '8px'
-                        }}>
-                          <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontWeight: 500 }}>Name:</span>
-                            <span>9C tech Lab Private Limited</span>
-                          </Typography>
-                          <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontWeight: 500 }}>Account Number:</span>
-                            <span>XXXXXXXX1234</span>
-                          </Typography>
-                          <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontWeight: 500 }}>Bank Name:</span>
-                            <span>HDFC Bank</span>
-                          </Typography>
-                          <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontWeight: 500 }}>IFSC Code:</span>
-                            <span>HDFC0001234</span>
-                          </Typography>
-                          <Typography variant="body1" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontWeight: 500 }}>Branch Name:</span>
-                            <span>Bangalore Main Branch</span>
-                          </Typography>
-                        </Box>
-                      </Paper>
-                    )}
-                  </Box>
-                </Fade>
-              </Grid>
-            </Grid>
-          ) : (
-            <Box sx={{ py: 3 }}>
-              <Paper 
-                elevation={3}
-                sx={{ 
-                  p: 4,
-                  borderRadius: '12px',
-                  bgcolor: '#f8f8f8'
-                }}
-              >
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <Typography variant="h6" sx={{ 
-                    fontWeight: 'bold', 
-                    color: '#333', 
-                    borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-                    pb: 1
-                  }}>
-                    Payment Details
-                  </Typography>
-
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box>
-                      <Typography variant="body1" sx={{ color: '#666', mb: 1 }}>
-                        Payment Mode
-                      </Typography>
-                      <Typography variant="body1" sx={{ 
-                        fontWeight: 500, 
-                        color: '#333',
-                        bgcolor: 'white',
-                        p: 2,
-                        borderRadius: '8px',
-                        border: '1px solid rgba(0, 0, 0, 0.12)'
-                      }}>
-                        {paymentMethod === 'upi' ? 'UPI Payment' : 'Net Banking'}
-                      </Typography>
-                    </Box>
-
-                    <Box>
-                      <Typography variant="body1" sx={{ color: '#666', mb: 1 }}>
-                        Amount
-                      </Typography>
-                      <Typography variant="body1" sx={{ 
-                        fontWeight: 500, 
-                        color: '#333',
-                        bgcolor: 'white',
-                        p: 2,
-                        borderRadius: '8px',
-                        border: '1px solid rgba(0, 0, 0, 0.12)'
-                      }}>
-                        ₹18k + GST
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" sx={{ 
-                        color: '#666', 
-                        mb: 2,
-                        fontSize: '16px',
-                        fontWeight: 500
-                      }}>
-                        Upload Payment Screenshot
-                      </Typography>
-                      <Box
-                        sx={{
-                          p: 6,
-                          border: '2px dashed #9FE2DF',
-                          borderRadius: '12px',
-                          textAlign: 'center',
-                          bgcolor: 'white',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: '250px',
-                          '&:hover': {
-                            bgcolor: 'rgba(159, 226, 223, 0.1)',
-                            border: '2px dashed #7CABA8'
-                          }
-                        }}
-                        component="label"
-                      >
-                        <input
-                          type="file"
-                          accept="image/*"
-                          hidden
-                          onChange={handleFileSelect}
-                        />
-                        <Box sx={{
-                          width: '80px',
-                          height: '80px',
-                          bgcolor: 'rgba(159, 226, 223, 0.1)',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mb: 3
-                        }}>
-                          <CloudUploadIcon sx={{ 
-                            fontSize: 40, 
-                            color: '#9FE2DF'
-                          }} />
-                        </Box>
-                        <Typography variant="h6" sx={{ 
-                          fontWeight: 600, 
-                          color: '#333', 
-                          mb: 1,
-                          fontSize: '18px'
-                        }}>
-                          {selectedFile ? selectedFile.name : 'Click to upload screenshot'}
-                        </Typography>
-                        <Typography variant="body2" sx={{ 
-                          color: '#666',
-                          fontSize: '14px'
-                        }}>
-                          Supported formats: JPG, PNG, JPEG
-                        </Typography>
-                      </Box>
-                      {selectedFile && (
-                        <Box sx={{ 
-                          mt: 2,
-                          p: 2,
-                          bgcolor: 'rgba(159, 226, 223, 0.1)',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}>
-                          <Typography variant="body2" sx={{ 
-                            color: '#4CAF50',
-                            fontWeight: 500,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                          }}>
-                            ✓ File selected: {selectedFile.name}
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
-                </Box>
-              </Paper>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
-          <Button 
-            onClick={paymentStep === 'select' ? handleClosePaymentModal : () => setPaymentStep('select')}
-            variant="outlined"
-            sx={{ 
-              color: '#333',
-              borderColor: '#333',
-              mr: 1,
-              borderRadius: '8px',
-              px: 3,
-              '&:hover': {
-                borderColor: '#000',
-                bgcolor: 'rgba(0, 0, 0, 0.04)'
-              }
-            }}
-          >
-            {paymentStep === 'select' ? 'Cancel' : 'Back'}
-          </Button>
-          <Button 
-            variant="contained"
-            onClick={paymentStep === 'select' ? handleNextStep : handleOpenKYCForm}
-            disabled={paymentStep === 'upload' && !selectedFile}
-            sx={{
-              bgcolor: '#E53935',
-              color: 'white',
-              borderRadius: '8px',
-              px: 4,
-              '&:hover': {
-                bgcolor: '#C62828'
-              }
-            }}
-          >
-            Next
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* KYC Modal */}
-      <Dialog
-        open={openKYCModal}
-        onClose={handleCloseKYCModal}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: { xs: '12px', sm: '20px' },
-            overflow: 'hidden',
-            margin: { xs: 2, sm: 4 },
-            maxWidth: { xs: '95%', sm: '600px', md: '900px' }
-          }
-        }}
-      >
-        {!showCompanyForm ? (
-          <>
-            <DialogTitle sx={{ 
-              bgcolor: '#9FE2DF', 
-              color: '#333',
-              fontWeight: 'bold',
-              py: 2,
-              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-              textAlign: 'center'
-            }}>
-              KYC for Co-Working CoHopers 9C Technology Labs Pvt. Ltd.
-            </DialogTitle>
-            <DialogContent sx={{ p: 4 }}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ color: '#333', mb: 2 }}>
-                  Credential Needed:
-                </Typography>
-
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ color: '#333', mb: 2, fontWeight: 500 }}>
-                    1. For a Company:
-                  </Typography>
-                  <Box sx={{ pl: 3 }}>
-                    <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
-                    <Box sx={{ pl: 3 }}>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- Certificate of Incorporation (proof that your company is legally registered).</Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- PAN of the Company (for tax identification).</Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- ID Card and PAN Card of the Director or Signing Authority (for identification and authorization).</Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (if available): If you provide your GSTIN, a GST Invoice will be issued.</Typography>
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ color: '#333', mb: 2, fontWeight: 500 }}>
-                    2. For a Freelancer:
-                  </Typography>
-                  <Box sx={{ pl: 3 }}>
-                    <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
-                    <Box sx={{ pl: 3 }}>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- PAN Card (for tax identification).</Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- ID Card (for identity verification).</Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (Optional): You don't need to provide GSTIN if you're a freelancer, but if you have one, you may use it for invoicing.</Typography>
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ color: '#333', mb: 2, fontWeight: 500 }}>
-                    3. For Sole-Proprietorship or Partnership Firm:
-                  </Typography>
-                  <Box sx={{ pl: 3 }}>
-                    <Typography variant="body1" sx={{ mb: 1 }}>- Documents Required:</Typography>
-                    <Box sx={{ pl: 3 }}>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- Choose as Freelancer: For registration purposes, you may be asked to choose as a freelancer.</Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- PAN and ID Card of the Proprietor or Partner (for identification and tax purposes).</Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>- GSTIN (Optional): You're not required to provide GSTIN unless you have one.</Typography>
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Typography variant="body1" sx={{ color: '#666', mt: 2 }}>
-                  Let us know if you need further clarification! ( +91 97787 08100 ).
-                </Typography>
-              </Box>
-
-              <Divider sx={{ my: 4 }} />
-
-              <Box sx={{ mt: 4 }}>
-                <Typography variant="h5" sx={{ 
-                  color: '#333', 
-                  mb: 3, 
-                  textAlign: 'center',
-                  fontWeight: 500
-                }}>
-                  KYC for Co-Working
-                </Typography>
-
-                <Box sx={{ mt: 4 }}>
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    Company or Freelancer ?*
-                  </Typography>
-                  <RadioGroup
-                    value={kycType}
-                    onChange={handleKYCTypeChange}
-                    sx={{ ml: 2 }}
-                  >
-                    <FormControlLabel 
-                      value="company" 
-                      control={
-                        <Radio 
-                          sx={{
-                            '&.Mui-checked': {
-                              color: '#9FE2DF',
-                            }
-                          }}
-                        />
-                      } 
-                      label="Company" 
-                    />
-                    <FormControlLabel 
-                      value="freelancer" 
-                      control={
-                        <Radio 
-                          sx={{
-                            '&.Mui-checked': {
-                              color: '#9FE2DF',
-                            }
-                          }}
-                        />
-                      } 
-                      label="Freelancer" 
-                    />
-                  </RadioGroup>
-                </Box>
-              </Box>
-            </DialogContent>
-            <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
-              <Button 
-                onClick={handleCloseKYCModal}
-                variant="outlined"
-                sx={{ 
-                  color: '#333',
-                  borderColor: '#333',
-                  mr: 1,
-                  borderRadius: '8px',
-                  px: 3,
-                  '&:hover': {
-                    borderColor: '#000',
-                    bgcolor: 'rgba(0, 0, 0, 0.04)'
-                  }
-                }}
-              >
-                Back
-              </Button>
-              <Button 
-                variant="contained"
-                onClick={handleNextInKYC}
-                sx={{
-                  bgcolor: '#E53935',
-                  color: 'white',
-                  borderRadius: '8px',
-                  px: 4,
-                  '&:hover': {
-                    bgcolor: '#C62828'
-                  }
-                }}
-              >
-                Next
-              </Button>
-            </DialogActions>
-          </>
-        ) : (
-          <>
-            {/* Company KYC Dialog */}
-            <CompanyKYCDialog />
-
-            {/* Director KYC Dialog */}
-            <DirectorKYCDialog />
-
-            {/* Signing Authority KYC Dialog */}
-            <SigningAuthorityKYCDialog />
-          </>
-        )}
-      </Dialog>
+      {/* Office Modal */}
+      <OfficeModal />
     </Box>
   );
 };
