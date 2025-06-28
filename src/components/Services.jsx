@@ -37,6 +37,7 @@ const Services = () => {
       price: '₹16k + GST',
       image: privateOfficeJpg,
       description: '3 Seater including 1 Boss seat',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -50,6 +51,7 @@ const Services = () => {
       price: '₹18k + GST',
       image: privateOfficeJpg,
       description: '4 Seater including 1 Boss seat',
+      isAvailable: false,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -63,6 +65,7 @@ const Services = () => {
       price: '₹17k + GST',
       image: privateOfficeJpg,
       description: '4 Seater',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -76,6 +79,7 @@ const Services = () => {
       price: '₹20k + GST',
       image: privateOfficeJpg,
       description: '6 Seater',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -89,6 +93,7 @@ const Services = () => {
       price: '₹24k + GST',
       image: privateOfficeJpg,
       description: '8 Seater Luxury Space',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -102,6 +107,7 @@ const Services = () => {
       price: '₹28k + GST',
       image: privateOfficeJpg,
       description: '10 Seater Collaborative Space',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -115,6 +121,7 @@ const Services = () => {
       price: '₹32k + GST',
       image: privateOfficeJpg,
       description: '12 Seater Premium Suite',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -128,6 +135,7 @@ const Services = () => {
       price: '₹38k + GST',
       image: privateOfficeJpg,
       description: '15 Seater Corporate Environment',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -141,6 +149,7 @@ const Services = () => {
       price: '₹45k + GST',
       image: privateOfficeJpg,
       description: '20 Seater Business Center',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -154,6 +163,7 @@ const Services = () => {
       price: '₹52k + GST',
       image: privateOfficeJpg,
       description: '25 Seater Enterprise Solution',
+      isAvailable: true,
       features: [
         '24/7 access',
         'Conference room facility',
@@ -581,7 +591,7 @@ const Services = () => {
                 }
               }}
               onClick={(e) => {
-                e.stopPropagation(); // Prevent slide click
+                e.stopPropagation();
                 handleOfficeClick(office);
               }}
             >
@@ -621,6 +631,49 @@ const Services = () => {
                 justifyContent: 'space-between',
                 p: { xs: 3, sm: 4 }
               }}>
+                {/* Availability Label */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 20,
+                    left: 20,
+                    marginLeft: { xs: '5%', sm: '4%', md: '2%' },
+                    bgcolor: office.isAvailable ? '#4CAF50' : '#f44336',
+                    color: 'white',
+                    px: 2,
+                    py: 1,
+                    borderRadius: '0 20px 20px 0',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '14px', sm: '16px' },
+                    boxShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    transform: 'translateX(-5px)',
+                    transition: 'transform 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateX(0)',
+                    },
+                    zIndex: 3
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: 'white',
+                      animation: office.isAvailable ? 'pulse 2s infinite' : 'none',
+                      '@keyframes pulse': {
+                        '0%': { opacity: 1 },
+                        '50%': { opacity: 0.5 },
+                        '100%': { opacity: 1 }
+                      }
+                    }}
+                  />
+                  {office.isAvailable ? 'Available' : 'Already Booked'}
+                </Box>
+
                 <Typography
                   variant="h3"
                   component="h2"
@@ -657,7 +710,7 @@ const Services = () => {
                   <Button
                     variant="contained"
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent slide click
+                      e.stopPropagation();
                       handleOfficeClick(office);
                     }}
                     sx={{
