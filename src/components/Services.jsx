@@ -219,10 +219,29 @@ const Services = () => {
   const handleNextSlide = () => {
     setCurrentSlide((prev) => {
       const next = (prev + 1) % privateOffices.length;
-      document.querySelector('.slider-container').style.transform = 'rotateY(-180deg)';
+      const container = document.querySelector('.slider-container');
+      const currentPage = container.children[prev];
+      const nextPage = container.children[next];
+      
+      // Current page animation
+      currentPage.style.transform = 'rotateY(-180deg)';
+      currentPage.style.transformOrigin = 'right';
+      currentPage.style.zIndex = '2';
+      
+      // Next page animation
+      nextPage.style.transform = 'rotateY(0deg)';
+      nextPage.style.transformOrigin = 'left';
+      nextPage.style.zIndex = '1';
+      
+      // Reset after animation
       setTimeout(() => {
-        document.querySelector('.slider-container').style.transform = 'rotateY(0)';
-      }, 300);
+        currentPage.style.zIndex = '1';
+        Array.from(container.children).forEach(child => {
+          child.style.transform = '';
+          child.style.transformOrigin = '';
+        });
+      }, 800);
+      
       return next;
     });
   };
@@ -230,10 +249,29 @@ const Services = () => {
   const handlePrevSlide = () => {
     setCurrentSlide((prev) => {
       const next = (prev - 1 + privateOffices.length) % privateOffices.length;
-      document.querySelector('.slider-container').style.transform = 'rotateY(180deg)';
+      const container = document.querySelector('.slider-container');
+      const currentPage = container.children[prev];
+      const prevPage = container.children[next];
+      
+      // Current page animation
+      currentPage.style.transform = 'rotateY(180deg)';
+      currentPage.style.transformOrigin = 'left';
+      currentPage.style.zIndex = '2';
+      
+      // Previous page animation
+      prevPage.style.transform = 'rotateY(0deg)';
+      prevPage.style.transformOrigin = 'right';
+      prevPage.style.zIndex = '1';
+      
+      // Reset after animation
       setTimeout(() => {
-        document.querySelector('.slider-container').style.transform = 'rotateY(0)';
-      }, 300);
+        currentPage.style.zIndex = '1';
+        Array.from(container.children).forEach(child => {
+          child.style.transform = '';
+          child.style.transformOrigin = '';
+        });
+      }, 800);
+      
       return next;
     });
   };
@@ -491,10 +529,10 @@ const Services = () => {
             width: `${privateOffices.length * 100}%`,
             height: '100%',
             transform: `translateX(-${(currentSlide * 100) / privateOffices.length}%)`,
-            transition: 'transform 0.5s ease, rotateY 0.3s ease',
+            transition: 'all 0.8s cubic-bezier(0.645, 0.045, 0.355, 1)',
             position: 'relative',
             transformStyle: 'preserve-3d',
-            perspective: '1000px'
+            perspective: '2000px'
           }}
         >
           {privateOffices.map((office, index) => (
@@ -510,9 +548,42 @@ const Services = () => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 overflow: 'hidden',
-                backfaceVisibility: 'hidden'
+                backfaceVisibility: 'hidden',
+                transformOrigin: index > currentSlide ? 'left' : 'right',
+                transition: 'all 0.8s cubic-bezier(0.645, 0.045, 0.355, 1)',
+                transform: index === currentSlide 
+                  ? 'rotateY(0deg)' 
+                  : index < currentSlide 
+                    ? 'rotateY(-180deg)' 
+                    : 'rotateY(0deg)',
+                boxShadow: index === currentSlide 
+                  ? '0 4px 8px rgba(0,0,0,0.1)' 
+                  : 'none',
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  width: '40px',
+                  background: 'linear-gradient(to right, rgba(0,0,0,0.2), transparent)',
+                  left: 0,
+                  opacity: index === currentSlide ? 1 : 0
+                },
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  width: '40px',
+                  background: 'linear-gradient(to left, rgba(0,0,0,0.2), transparent)',
+                  right: 0,
+                  opacity: index === currentSlide ? 1 : 0
+                }
               }}
-              onClick={() => handleOfficeClick(office)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent slide click
+                handleOfficeClick(office);
+              }}
             >
               {/* Background Image */}
               <Box
@@ -564,47 +635,54 @@ const Services = () => {
                 >
                   {office.title}
                 </Typography>
-                <Typography
-                  variant="h4"
-                  component="div"
-                  sx={{ 
-                    textAlign: 'center',
-                    color: '#FFD700',
-                    fontWeight: 'bold',
-                    fontSize: { xs: '24px', sm: '32px', md: '40px' },
-                    textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
-                  }}
-                >
-                  {office.price}
-                </Typography>
+                <Box sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 3
+                }}>
+                  <Typography
+                    variant="h4"
+                    component="div"
+                    sx={{ 
+                      textAlign: 'center',
+                      color: '#FFD700',
+                      fontWeight: 'bold',
+                      fontSize: { xs: '24px', sm: '32px', md: '40px' },
+                      textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
+                    }}
+                  >
+                    {office.price}
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent slide click
+                      handleOfficeClick(office);
+                    }}
+                    sx={{
+                      background: 'linear-gradient(45deg, #00e5ff, #2196f3)',
+                      color: 'white',
+                      px: { xs: 4, sm: 6 },
+                      py: { xs: 1, sm: 1.5 },
+                      borderRadius: '50px',
+                      fontSize: { xs: '16px', sm: '20px' },
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #2196f3, #00e5ff)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 6px 10px rgba(0,0,0,0.3)',
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Book Now
+                  </Button>
+                </Box>
               </Box>
             </Box>
-          ))}
-        </Box>
-
-        {/* Slide Indicators */}
-        <Box sx={{
-          position: 'absolute',
-          bottom: { xs: 20, sm: 30 },
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: 1,
-          zIndex: 10
-        }}>
-          {privateOffices.map((_, index) => (
-            <Box
-              key={index}
-              sx={{ 
-                width: { xs: 8, sm: 12 },
-                height: { xs: 8, sm: 12 },
-                borderRadius: '50%',
-                bgcolor: index === currentSlide ? 'white' : 'rgba(255, 255, 255, 0.5)',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-              onClick={() => setCurrentSlide(index)}
-            />
           ))}
         </Box>
       </Box>
