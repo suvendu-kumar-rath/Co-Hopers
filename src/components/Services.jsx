@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery, IconButton } from '@mui/material';
+import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery, IconButton, Stepper, Step, StepLabel, Avatar } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
 import ShareIcon from '@mui/icons-material/Share';
@@ -15,6 +15,8 @@ import directorKYCImage from '../assets/images/KYC.png';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KYCImage from '../assets/images/KYC.png';
 import CloseIcon from '@mui/icons-material/Close';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 
 const Services = () => {
   const theme = useTheme();
@@ -28,6 +30,13 @@ const Services = () => {
   const [showOfficeModal, setShowOfficeModal] = useState(false);
   const [selectedOffice, setSelectedOffice] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Payment modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(0); // 0: payment options, 1: upload screenshot
+  const [paymentMethod, setPaymentMethod] = useState('scan'); // 'scan' or 'account'
+  const [uploadedScreenshot, setUploadedScreenshot] = useState(null);
+  const [screenshotPreview, setScreenshotPreview] = useState(null);
 
   // Private Office Data
   const privateOffices = [
@@ -215,15 +224,62 @@ const Services = () => {
   };
 
   const handleProceedToPayment = () => {
-    // Navigate to payment flow
-    navigate('/form');
-    handleCloseModal();
+    // Show payment modal first, keep selectedOffice for payment
+    setShowOfficeModal(false);
+    setShowPaymentModal(true);
+    setPaymentStep(0);
+    setPaymentMethod('scan');
+    setUploadedScreenshot(null);
+    setScreenshotPreview(null);
   };
 
   const handleShare = (office) => {
     const message = `Check out this amazing office space at CoHopers!\n\n${office.title}\nPrice: ${office.price}\n\nFeatures:\n${office.features.join('\n')}\n\nVisit: https://co-hopers.vercel.app/services`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  // Payment modal handlers
+  const handleClosePaymentModal = () => {
+    setShowPaymentModal(false);
+    setPaymentStep(0);
+    setPaymentMethod('scan');
+    setUploadedScreenshot(null);
+    setScreenshotPreview(null);
+    setSelectedOffice(null); // Clear selected office when payment modal closes
+  };
+
+  const handleNextPaymentStep = () => {
+    if (paymentStep === 0) {
+      setPaymentStep(1);
+    } else if (paymentStep === 1 && uploadedScreenshot) {
+      // Payment completed, navigate to form
+      setShowPaymentModal(false);
+      setPaymentStep(0);
+      setPaymentMethod('scan');
+      setUploadedScreenshot(null);
+      setScreenshotPreview(null);
+      setSelectedOffice(null);
+      navigate('/form');
+    }
+  };
+
+  const handleScreenshotUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setUploadedScreenshot(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setScreenshotPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const isNextButtonDisabled = () => {
+    if (paymentStep === 0) return false;
+    if (paymentStep === 1) return !uploadedScreenshot;
+    return false;
   };
 
   const handleNextSlide = () => {
@@ -477,6 +533,557 @@ const Services = () => {
       </Box>
         </>
       )}
+    </Dialog>
+  );
+
+  // Payment Modal Component
+  const PaymentModal = () => (
+    <Dialog 
+      open={showPaymentModal}
+      onClose={handleClosePaymentModal}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: { xs: 2, sm: 3 },
+          overflow: 'hidden',
+          margin: { xs: 2, sm: 4 },
+          maxWidth: { xs: '95%', sm: '700px' }
+        }
+      }}
+    >
+      <IconButton
+        onClick={handleClosePaymentModal}
+        sx={{ 
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          zIndex: 1000,
+          bgcolor: 'rgba(255,255,255,0.8)',
+          '&:hover': { bgcolor: 'rgba(255,255,255,1)' }
+        }}
+      >
+        <CloseIcon sx={{ color: '#333', fontSize: 28 }} />
+      </IconButton>
+
+      {/* Header */}
+      <Box sx={{ 
+        background: 'linear-gradient(135deg, #9FE2DF 0%, #7dd3d8 100%)',
+        p: { xs: 3, sm: 4 },
+        textAlign: 'center',
+        position: 'relative',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)'
+        }
+      }}>
+        <Typography 
+          variant="h3" 
+          component="h2" 
+          sx={{ 
+            color: '#333',
+            fontWeight: 'bold',
+            fontSize: { xs: '28px', sm: '32px' },
+            textShadow: '0 2px 4px rgba(255,255,255,0.3)',
+            mb: 1
+          }}
+        >
+          Complete Payment
+        </Typography>
+        {selectedOffice && (
+          <Box sx={{
+            bgcolor: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: '20px',
+            p: 2,
+            mt: 2,
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
+          }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: '#333',
+                fontSize: { xs: '18px', sm: '22px' },
+                fontWeight: '600'
+              }}
+            >
+              {selectedOffice.title}
+            </Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#2c5530',
+                mt: 0.5,
+                fontSize: { xs: '16px', sm: '18px' },
+                fontWeight: 'bold'
+              }}
+            >
+              {selectedOffice.price} Per Month
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
+      {/* Step Content */}
+      <DialogContent sx={{ p: 0 }}>
+        {paymentStep === 0 && (
+          <Box sx={{ p: { xs: 3, sm: 4 } }}>
+            <Typography variant="h6" sx={{ mb: 3, textAlign: 'center', color: '#333' }}>
+              Choose Payment Method
+            </Typography>
+            
+            {/* Two Column Layout */}
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', md: 'row' },
+              gap: { xs: 3, md: 3 },
+              minHeight: 'auto'
+            }}>
+              {/* Left Side - Payment Options */}
+              <Box sx={{ 
+                flex: { xs: 1, md: '0 0 30%' },
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5
+              }}>
+                <RadioGroup
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  {/* Scan and Pay Option */}
+                  <FormControlLabel
+                    value="scan"
+                    control={<Radio sx={{ color: '#9FE2DF', display: 'none' }} />}
+                    label={
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 2, 
+                        width: '100%',
+                        p: 2.5,
+                        border: paymentMethod === 'scan' ? '2px solid #9FE2DF' : '2px solid #e0e0e0',
+                        borderRadius: '16px',
+                        bgcolor: paymentMethod === 'scan' ? 'rgba(159, 226, 223, 0.15)' : 'white',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer',
+                        boxShadow: paymentMethod === 'scan' ? '0 4px 12px rgba(159, 226, 223, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
+                        position: 'relative',
+                        '&:hover': {
+                          borderColor: '#9FE2DF',
+                          bgcolor: 'rgba(159, 226, 223, 0.1)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 6px 16px rgba(159, 226, 223, 0.4)'
+                        }
+                      }}>
+                        <QrCodeIcon sx={{ 
+                          color: paymentMethod === 'scan' ? '#9FE2DF' : '#666', 
+                          fontSize: 28,
+                          transition: 'color 0.3s ease' 
+                        }} />
+                        <Typography variant="body1" sx={{ 
+                          fontWeight: paymentMethod === 'scan' ? 600 : 500,
+                          color: paymentMethod === 'scan' ? '#333' : '#666',
+                          fontSize: '16px'
+                        }}>
+                          Scan and Pay
+                        </Typography>
+                        {paymentMethod === 'scan' && (
+                          <CheckCircleIcon sx={{ 
+                            color: '#9FE2DF', 
+                            fontSize: 20, 
+                            ml: 'auto' 
+                          }} />
+                        )}
+                      </Box>
+                    }
+                    sx={{ 
+                      margin: 0,
+                      width: '100%',
+                      mb: 1.5
+                    }}
+                  />
+
+                  {/* Account Details Option */}
+                  <FormControlLabel
+                    value="account"
+                    control={<Radio sx={{ color: '#9FE2DF', display: 'none' }} />}
+                    label={
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 2, 
+                        width: '100%',
+                        p: 2.5,
+                        border: paymentMethod === 'account' ? '2px solid #9FE2DF' : '2px solid #e0e0e0',
+                        borderRadius: '16px',
+                        bgcolor: paymentMethod === 'account' ? 'rgba(159, 226, 223, 0.15)' : 'white',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer',
+                        boxShadow: paymentMethod === 'account' ? '0 4px 12px rgba(159, 226, 223, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
+                        position: 'relative',
+                        '&:hover': {
+                          borderColor: '#9FE2DF',
+                          bgcolor: 'rgba(159, 226, 223, 0.1)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 6px 16px rgba(159, 226, 223, 0.4)'
+                        }
+                      }}>
+                        <AccountBalanceIcon sx={{ 
+                          color: paymentMethod === 'account' ? '#9FE2DF' : '#666', 
+                          fontSize: 28,
+                          transition: 'color 0.3s ease' 
+                        }} />
+                        <Typography variant="body1" sx={{ 
+                          fontWeight: paymentMethod === 'account' ? 600 : 500,
+                          color: paymentMethod === 'account' ? '#333' : '#666',
+                          fontSize: '16px'
+                        }}>
+                          Account Details
+                        </Typography>
+                        {paymentMethod === 'account' && (
+                          <CheckCircleIcon sx={{ 
+                            color: '#9FE2DF', 
+                            fontSize: 20, 
+                            ml: 'auto' 
+                          }} />
+                        )}
+                      </Box>
+                    }
+                    sx={{ 
+                      margin: 0,
+                      width: '100%'
+                    }}
+                  />
+                </RadioGroup>
+              </Box>
+
+              {/* Right Side - Payment Method Content */}
+              <Box sx={{ 
+                flex: { xs: 1, md: '0 0 70%' },
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: { xs: 3, sm: 4 },
+                minHeight: { xs: '320px', md: '380px' },
+                overflow: 'auto'
+              }}>
+                {paymentMethod === 'scan' && (
+                  <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', mt: -32 }}>
+                    {/* QR Code Section */}
+                    <Box sx={{ 
+                      bgcolor: 'white',
+                      p: { xs: 1.5, sm: 2 },
+                      borderRadius: '12px',
+                      mb: 2,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      border: '1px solid #e0e0e0'
+                    }}>
+                      <QrCodeIcon sx={{ 
+                        fontSize: { xs: 60, sm: 70 }, 
+                        color: '#333', 
+                        mb: 1
+                      }} />
+                      <Typography variant="body2" sx={{ 
+                        color: '#666', 
+                        fontSize: { xs: '11px', sm: '12px' }
+                      }}>
+                        Scan this QR code with your UPI app
+                      </Typography>
+                    </Box>
+
+                    {/* UPI Details */}
+                    <Box sx={{ 
+                      bgcolor: 'rgba(159, 226, 223, 0.1)',
+                      p: 2,
+                      borderRadius: '12px',
+                      border: '1px solid rgba(159, 226, 223, 0.3)',
+                      width: '100%',
+                      maxWidth: '250px'
+                    }}>
+                      <Typography variant="h6" sx={{ 
+                        mb: 1, 
+                        color: '#333', 
+                        fontSize: { xs: '14px', sm: '16px' },
+                        fontWeight: 'bold'
+                      }}>
+                        UPI ID: cohopers@paytm
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {paymentMethod === 'account' && (
+                  <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', mt: -24 }}>
+                    <Typography variant="h6" sx={{ 
+                      mb: 1, 
+                      color: '#333', 
+                      textAlign: 'center', 
+                      fontSize: { xs: '18px', sm: '20px' },
+                      fontWeight: 'bold'
+                    }}>
+                      Bank Account Details
+                    </Typography>
+                    
+                    <Box sx={{ 
+                      width: '100%',
+                      maxWidth: '320px'
+                    }}>
+                      {/* Bank Icon */}
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        mb: 2 
+                      }}>
+                        <AccountBalanceIcon sx={{ 
+                          fontSize: { xs: 30, sm: 36 }, 
+                          color: '#9FE2DF'
+                        }} />
+                      </Box>
+
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography variant="body2" sx={{ 
+                              color: '#666', 
+                              fontWeight: 500, 
+                              mb: 0.5, 
+                              fontSize: { xs: '12px', sm: '13px' } 
+                            }}>
+                              Account Name:
+                            </Typography>
+                            <Typography variant="body1" sx={{ 
+                              color: '#333', 
+                              fontWeight: 600, 
+                              fontSize: { xs: '14px', sm: '15px' } 
+                            }}>
+                              CoHopers Private Limited
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography variant="body2" sx={{ 
+                              color: '#666', 
+                              fontWeight: 500, 
+                              mb: 0.5, 
+                              fontSize: { xs: '12px', sm: '13px' } 
+                            }}>
+                              Account Number:
+                            </Typography>
+                            <Typography variant="body1" sx={{ 
+                              color: '#333', 
+                              fontWeight: 600, 
+                              fontSize: { xs: '14px', sm: '15px' },
+                              letterSpacing: '1px'
+                            }}>
+                              123456789012
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography variant="body2" sx={{ 
+                              color: '#666', 
+                              fontWeight: 500, 
+                              mb: 0.5, 
+                              fontSize: { xs: '12px', sm: '13px' } 
+                            }}>
+                              IFSC Code:
+                            </Typography>
+                            <Typography variant="body1" sx={{ 
+                              color: '#333', 
+                              fontWeight: 600, 
+                              fontSize: { xs: '13px', sm: '14px' } 
+                            }}>
+                              HDFC0001234
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography variant="body2" sx={{ 
+                              color: '#666', 
+                              fontWeight: 500, 
+                              mb: 0.5, 
+                              fontSize: { xs: '12px', sm: '13px' } 
+                            }}>
+                              Bank Name:
+                            </Typography>
+                            <Typography variant="body1" sx={{ 
+                              color: '#333', 
+                              fontWeight: 600, 
+                              fontSize: { xs: '13px', sm: '14px' } 
+                            }}>
+                              HDFC Bank
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        )}
+
+        {paymentStep === 1 && (
+          <Box sx={{ p: { xs: 3, sm: 4 } }}>
+            <Typography variant="h6" sx={{ mb: 3, textAlign: 'center', color: '#333' }}>
+              Upload Payment Screenshot
+            </Typography>
+            
+            {selectedOffice && (
+              <Box sx={{ 
+                bgcolor: '#9FE2DF',
+                p: 2,
+                borderRadius: '8px',
+                mb: 3,
+                textAlign: 'center'
+              }}>
+                <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
+                  Amount: {selectedOffice.price}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#333' }}>
+                  Payment Method: {paymentMethod === 'scan' ? 'UPI/QR Code' : 'Bank Transfer'}
+                </Typography>
+              </Box>
+            )}
+
+            <Box sx={{ 
+              border: '2px dashed #9FE2DF',
+              borderRadius: '12px',
+              p: 4,
+              textAlign: 'center',
+              bgcolor: '#f8f9fa',
+              mb: 3
+            }}>
+              {screenshotPreview ? (
+                <Box>
+                  <img 
+                    src={screenshotPreview} 
+                    alt="Payment Screenshot" 
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '200px',
+                      borderRadius: '8px',
+                      marginBottom: '16px'
+                    }} 
+                  />
+                  <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 500 }}>
+                    Screenshot uploaded successfully!
+                  </Typography>
+                </Box>
+              ) : (
+                <Box>
+                  <CameraAltIcon sx={{ fontSize: 48, color: '#9FE2DF', mb: 2 }} />
+                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                    Upload Payment Screenshot
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#666', mb: 3 }}>
+                    Please upload a screenshot of your payment confirmation
+                  </Typography>
+                </Box>
+              )}
+              
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="screenshot-upload"
+                type="file"
+                onChange={handleScreenshotUpload}
+              />
+              <label htmlFor="screenshot-upload">
+                <Button
+                  variant="contained"
+                  component="span"
+                  startIcon={<CloudUploadIcon />}
+                  sx={{
+                    bgcolor: '#9FE2DF',
+                    color: '#333',
+                    '&:hover': {
+                      bgcolor: '#7dd3d8'
+                    }
+                  }}
+                >
+                  {screenshotPreview ? 'Change Screenshot' : 'Choose File'}
+                </Button>
+              </label>
+            </Box>
+          </Box>
+        )}
+      </DialogContent>
+
+      {/* Footer Buttons */}
+      <DialogActions sx={{ 
+        p: { xs: 3, sm: 4 },
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+        justifyContent: 'space-between',
+        borderTop: '1px solid #e0e0e0'
+      }}>
+        <Button
+          onClick={handleClosePaymentModal}
+          sx={{
+            color: '#666',
+            fontWeight: 'bold',
+            px: 3,
+            py: 1.5,
+            borderRadius: '12px',
+            fontSize: '16px',
+            textTransform: 'none',
+            '&:hover': {
+              bgcolor: 'rgba(102, 102, 102, 0.1)',
+              color: '#333'
+            }
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleNextPaymentStep}
+          disabled={isNextButtonDisabled()}
+          variant="contained"
+          sx={{
+            background: isNextButtonDisabled() 
+              ? 'linear-gradient(135deg, #ccc 0%, #999 100%)' 
+              : 'linear-gradient(135deg, #E53935 0%, #C62828 100%)',
+            color: 'white',
+            px: { xs: 3, sm: 5 },
+            py: 1.5,
+            fontWeight: 'bold',
+            fontSize: '16px',
+            borderRadius: '12px',
+            textTransform: 'none',
+            boxShadow: isNextButtonDisabled() 
+              ? 'none' 
+              : '0 4px 12px rgba(229, 57, 53, 0.3)',
+            '&:hover': {
+              background: isNextButtonDisabled() 
+                ? 'linear-gradient(135deg, #ccc 0%, #999 100%)' 
+                : 'linear-gradient(135deg, #C62828 0%, #B71C1C 100%)',
+              boxShadow: isNextButtonDisabled() 
+                ? 'none' 
+                : '0 6px 16px rgba(229, 57, 53, 0.4)',
+              transform: isNextButtonDisabled() ? 'none' : 'translateY(-2px)'
+            },
+            '&:disabled': {
+              background: 'linear-gradient(135deg, #ccc 0%, #999 100%)',
+              color: '#666'
+            },
+            transition: 'all 0.3s ease'
+          }}
+        >
+          {paymentStep === 0 ? 'Next' : 'Complete Payment'}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 
@@ -742,6 +1349,9 @@ const Services = () => {
 
       {/* Office Modal */}
       <OfficeModal />
+
+      {/* Payment Modal */}
+      <PaymentModal />
     </Box>
   );
 };
