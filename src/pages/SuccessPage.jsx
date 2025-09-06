@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import Header from './Header';
+import Header from '../components/layout/Header';
 
 const SuccessPage = () => {
   const theme = useTheme();

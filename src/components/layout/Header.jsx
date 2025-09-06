@@ -16,8 +16,10 @@ import {
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import MenuIcon from '@mui/icons-material/Menu';
-import Logo from '../assets/images/Logo.png';
+import Logo from '../../assets/images/Logo.png';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { NAV_ITEMS } from '../../constants/navigation';
+import { ROUTES } from '../../constants/routes';
 
 const Header = () => {
   const [activeLink, setActiveLink] = useState('SERVICES');
@@ -29,35 +31,28 @@ const Header = () => {
 
   // Set active link based on current route
   useEffect(() => {
-    if (location.pathname === '/services' || location.pathname === '/') {
+    if (location.pathname === ROUTES.SERVICES || location.pathname === ROUTES.HOME) {
       setActiveLink('SERVICES');
-    } else if (location.pathname === '/meeting-room') {
+    } else if (location.pathname === ROUTES.MEETING_ROOM) {
       setActiveLink('MEETING ROOM');
     }
   }, [location.pathname]);
 
   // Navigate to services page by default when component mounts
   useEffect(() => {
-    if (location.pathname === '/') {
-      navigate('/services');
+    if (location.pathname === ROUTES.HOME) {
+      navigate(ROUTES.SERVICES);
     }
   }, [navigate, location.pathname]);
 
-  const navItems = ['HOME', 'ABOUT US', 'SERVICES', 'MEETING ROOM', 'CONTACT US'];
-
   const handleNavigation = (item) => {
-    setActiveLink(item);
+    setActiveLink(item.label);
     setMobileMenuOpen(false);
-    if (item === 'HOME') {
-      window.location.href = 'https://co-hopers.vercel.app/index.html';
-    } else if (item === 'MEETING ROOM') {
-      navigate('/meeting-room');
-    } else if (item === 'SERVICES') {
-      navigate('/services');
-    } else if (item === 'ABOUT US') {
-      window.location.href = 'https://co-hopers.vercel.app/about.html';
-    } else if (item === 'CONTACT US') {
-      window.location.href = 'https://co-hopers.vercel.app/contactus.html';
+    
+    if (item.external) {
+      window.location.href = item.path;
+    } else {
+      navigate(item.path);
     }
   };
 
@@ -79,21 +74,21 @@ const Header = () => {
       }}
     >
       <List sx={{ pt: 2 }}>
-        {navItems.map((item) => (
+        {NAV_ITEMS.map((item) => (
           <ListItem 
-            key={item} 
+            key={item.label} 
             onClick={() => handleNavigation(item)}
             sx={{
               cursor: 'pointer',
               '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
-              ...(activeLink === item && { backgroundColor: 'rgba(255, 255, 255, 0.1)' })
+              ...(activeLink === item.label && { backgroundColor: 'rgba(255, 255, 255, 0.1)' })
             }}
           >
             <ListItemText 
-              primary={item} 
+              primary={item.label} 
               sx={{
-                color: activeLink === item ? 'white' : '#00e5ff',
-                fontWeight: activeLink === item ? 'bold' : 'normal'
+                color: activeLink === item.label ? 'white' : '#00e5ff',
+                fontWeight: activeLink === item.label ? 'bold' : 'normal'
               }}
             />
           </ListItem>
@@ -141,21 +136,21 @@ const Header = () => {
             justifyContent: 'center',
             flexGrow: 1
           }}>
-            {navItems.map((item) => (
+            {NAV_ITEMS.map((item) => (
               <Button 
-                key={item}
+                key={item.label}
                 color="inherit" 
                 onClick={() => handleNavigation(item)}
                 sx={{
                   transition: 'all 0.3s ease-in-out',
                   fontSize: { sm: '0.9rem', md: '1.1rem' },
                   whiteSpace: 'nowrap',
-                  ...(activeLink === item 
+                  ...(activeLink === item.label 
                     ? { color: 'white', fontWeight: 'bold' } 
                     : { color: '#00e5ff' })
                 }}
               >
-                {item}
+                {item.label}
               </Button>
             ))}
           </Box>

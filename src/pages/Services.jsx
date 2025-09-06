@@ -17,6 +17,10 @@ import KYCImage from '../assets/images/KYC.png';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import { PRIVATE_OFFICES } from '../constants/officeData';
+import { ROUTES } from '../constants/routes';
+import { shareToWhatsApp } from '../utils/helpers/shareUtils';
+import PaymentModal from '../components/modals/PaymentModal';
 
 const Services = () => {
   const theme = useTheme();
@@ -38,149 +42,8 @@ const Services = () => {
   const [uploadedScreenshot, setUploadedScreenshot] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
 
-  // Private Office Data
-  const privateOffices = [
-    {
-      id: 'executive-cabin-3',
-      title: 'Executive Cabin (3 Seater)',
-      price: '₹16k + GST',
-      image: privateOfficeJpg,
-      description: '3 Seater including 1 Boss seat',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'window-executive-4',
-      title: 'Window Side Executive Cabin (4 Seater)',
-      price: '₹18k + GST',
-      image: privateOfficeJpg,
-      description: '4 Seater including 1 Boss seat',
-      isAvailable: false,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'private-cabin-4',
-      title: 'Private Cabin (4 Seater)',
-      price: '₹17k + GST',
-      image: privateOfficeJpg,
-      description: '4 Seater',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'private-cabin-6',
-      title: 'Private Cabin (6 Seater)',
-      price: '₹20k + GST',
-      image: privateOfficeJpg,
-      description: '6 Seater',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'premium-cabin-8',
-      title: 'Premium Cabin (8 Seater)',
-      price: '₹24k + GST',
-      image: privateOfficeJpg,
-      description: '8 Seater Luxury Space',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'team-space-10',
-      title: 'Team Space (10 Seater)',
-      price: '₹28k + GST',
-      image: privateOfficeJpg,
-      description: '10 Seater Collaborative Space',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'executive-suite-12',
-      title: 'Executive Suite (12 Seater)',
-      price: '₹32k + GST',
-      image: privateOfficeJpg,
-      description: '12 Seater Premium Suite',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'corporate-space-15',
-      title: 'Corporate Space (15 Seater)',
-      price: '₹38k + GST',
-      image: privateOfficeJpg,
-      description: '15 Seater Corporate Environment',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'business-hub-20',
-      title: 'Business Hub (20 Seater)',
-      price: '₹45k + GST',
-      image: privateOfficeJpg,
-      description: '20 Seater Business Center',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    },
-    {
-      id: 'enterprise-space-25',
-      title: 'Enterprise Space (25 Seater)',
-      price: '₹52k + GST',
-      image: privateOfficeJpg,
-      description: '25 Seater Enterprise Solution',
-      isAvailable: true,
-      features: [
-        '24/7 access',
-        'Conference room facility',
-        '300 MBPS internet',
-        'Price includes electricity, AC, Office boy'
-      ]
-    }
-  ];
+  // Use office data from constants
+  const privateOffices = PRIVATE_OFFICES;
 
   // Virtual Office Data (commented out)
   // const virtualOffices = [
@@ -234,9 +97,7 @@ const Services = () => {
   };
 
   const handleShare = (office) => {
-    const message = `Check out this amazing office space at CoHopers!\n\n${office.title}\nPrice: ${office.price}\n\nFeatures:\n${office.features.join('\n')}\n\nVisit: https://co-hopers.vercel.app/services`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    shareToWhatsApp(office);
   };
 
   // Payment modal handlers
@@ -260,7 +121,7 @@ const Services = () => {
       setUploadedScreenshot(null);
       setScreenshotPreview(null);
       setSelectedOffice(null);
-      navigate('/form');
+      navigate(ROUTES.FORM);
     }
   };
 

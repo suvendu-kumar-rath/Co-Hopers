@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Container, Typography, Link, useTheme, useMediaQuery, Grid } from '@mui/material';
-import ServiceImage from '../assets/images/footer image.png';
+import ServiceImage from '../../assets/images/footer image.png';
 
 const Footer = () => {
   const theme = useTheme();

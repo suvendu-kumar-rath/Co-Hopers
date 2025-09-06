@@ -6,10 +6,12 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
-import KYCImage from '../assets/images/KYC.png';
-import FreelancerKYCImage from '../assets/images/freelancer.png';
+import KYCImage from '../../assets/images/KYC.png';
+import FreelancerKYCImage from '../../assets/images/freelancer.png';
+import { ROUTES } from '../../constants/routes';
+import FileUpload from '../common/FileUpload';
 
-const Form = () => {
+const KYCForm = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState('panel1');
   const [selectedOption, setSelectedOption] = useState('Director');
@@ -188,7 +190,7 @@ const Form = () => {
 
   const handleSubmit = () => {
     // Navigate to success page
-    navigate('/pending-review');
+    navigate(ROUTES.PENDING_REVIEW);
   };
 
   const FileUploadButton = ({ type, label }) => {
@@ -1384,4 +1386,4 @@ const Form = () => {
   );
 };
 
-export default Form; 
+export default KYCForm; 

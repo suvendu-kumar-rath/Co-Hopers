@@ -1001,6 +1001,11 @@ const handleHourlyMemberType = (memberType) => {
                     setBookingTypes(response.data.data);
                 } else {
                     console.error('Failed to fetch booking types. API returned:', response.data.message);
+                    // Set default booking types if API fails
+                    setBookingTypes([
+                        { id: 1, name: 'Hourly' },
+                        { id: 2, name: 'Whole Day' }
+                    ]);
                 }
             } catch (error) {
                 console.error('Error fetching booking types:', {
@@ -1008,6 +1013,11 @@ const handleHourlyMemberType = (memberType) => {
                     response: error.response?.data,
                     status: error.response?.status
                 });
+                // Set default booking types if API fails
+                setBookingTypes([
+                    { id: 1, name: 'Hourly' },
+                    { id: 2, name: 'Whole Day' }
+                ]);
             } finally {
                 setIsLoadingBookingTypes(false);
                 console.log('Finished loading booking types');
@@ -1034,6 +1044,11 @@ const handleHourlyMemberType = (memberType) => {
                     setMemberTypes(response.data.data);
                 } else {
                     console.error('Failed to fetch member types. API returned:', response.data.message);
+                    // Set default member types if API fails
+                    setMemberTypes([
+                        { id: 1, name: 'Member' },
+                        { id: 2, name: 'Non-Member' }
+                    ]);
                 }
             } catch (error) {
                 console.error('Error fetching member types:', {
@@ -1041,6 +1056,11 @@ const handleHourlyMemberType = (memberType) => {
                     response: error.response?.data,
                     status: error.response?.status
                 });
+                // Set default member types if API fails
+                setMemberTypes([
+                    { id: 1, name: 'Member' },
+                    { id: 2, name: 'Non-Member' }
+                ]);
             } finally {
                 setIsLoadingMemberTypes(false);
                 console.log('Finished loading member types');
@@ -1882,11 +1902,18 @@ const handleHourlyMemberType = (memberType) => {
                                 <MenuItem value="" disabled>
                                     Select Booking Type
                                 </MenuItem>
-                                {bookingTypes.map((type) => (
-                                    <MenuItem key={type.id} value={type.name}>
-                                        {type.name}
-                                    </MenuItem>
-                                ))}
+                                {bookingTypes && bookingTypes.length > 0 ? (
+                                    bookingTypes.map((type) => (
+                                        <MenuItem key={type.id} value={type.name}>
+                                            {type.name}
+                                        </MenuItem>
+                                    ))
+                                ) : (
+                                    <>
+                                        <MenuItem value="Hourly">Hourly</MenuItem>
+                                        <MenuItem value="Whole Day">Whole Day</MenuItem>
+                                    </>
+                                )}
                             </Select>
                         </FormControl>
 
@@ -1902,11 +1929,18 @@ const handleHourlyMemberType = (memberType) => {
                                     <MenuItem value="" disabled>
                                         Select Member Type
                                     </MenuItem>
-                                    {memberTypes.map((type) => (
-                                        <MenuItem key={type.id} value={type.name}>
-                                            {type.name}
-                                        </MenuItem>
-                                    ))}
+                                    {memberTypes && memberTypes.length > 0 ? (
+                                        memberTypes.map((type) => (
+                                            <MenuItem key={type.id} value={type.name}>
+                                                {type.name}
+                                            </MenuItem>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <MenuItem value="Member">Member</MenuItem>
+                                            <MenuItem value="Non-Member">Non-Member</MenuItem>
+                                        </>
+                                    )}
                                 </Select>
                             </FormControl>
                         )}
@@ -2475,4 +2509,5 @@ const handleHourlyMemberType = (memberType) => {
 };
 
 export default BookMeetingRoom;
+
     
