@@ -399,86 +399,459 @@ const BookMeetingRoom = () => {
             </Box>
 
             {isLoadingSlots ? (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography>Loading available slots...</Typography>
+                <Box sx={{ 
+                    textAlign: 'center', 
+                    py: 6,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2
+                }}>
+                    <Box sx={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: '50%',
+                        background: 'conic-gradient(from 0deg, #4CAF50, #81C784, #4CAF50)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        animation: 'spin 2s linear infinite',
+                        '@keyframes spin': {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' }
+                        }
+                    }}>
+                        <Box sx={{
+                            width: 45,
+                            height: 45,
+                            borderRadius: '50%',
+                            bgcolor: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            ⏰
+                        </Box>
+                    </Box>
+                    <Typography variant="h6" sx={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                        Finding Available Slots...
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#666', maxWidth: '300px' }}>
+                        We're checking the best time slots for your meeting
+                    </Typography>
                 </Box>
             ) : (
-                <Box sx={{ 
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                    gap: 2,
-                    mb: 3,
-                    px: 4
-                }}>
-                    {availableSlots.map((slot, index) => {
-                        const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                <>
+                    {/* Time Slots Header */}
+                    <Box sx={{ 
+                        mb: 3,
+                        p: 3,
+                        bgcolor: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(76, 175, 80, 0.2)'
+                    }}>
+                        <Typography variant="h6" sx={{ 
+                            color: '#2E7D32', 
+                            fontWeight: 'bold',
+                            mb: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                        }}>
+                            🕐 Available Time Slots
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4CAF50', mb: 2 }}>
+                            Select up to {getMaxAllowedSlots()} consecutive time slots for your meeting
+                        </Typography>
                         
-                        return (
-                            <Box
-                                key={index}
-                                onClick={() => handleTimeSlotSelection(slot)}
-                                sx={{
-                                    width: '100%',
-                                    aspectRatio: '1',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    border: isSelected ? '2px solid #4CAF50' : '1px solid #4CAF50',
-                                    borderRadius: '8px',
-                                    cursor: isSelected || selectedTimeSlots.length < getMaxAllowedSlots() ? 'pointer' : 'not-allowed',
-                                    bgcolor: isSelected 
-                                        ? 'rgba(76, 175, 80, 0.2)'
-                                        : selectedTimeSlots.length >= getMaxAllowedSlots() && !isSelected
-                                            ? 'rgba(255, 152, 0, 0.1)'
-                                            : 'rgba(76, 175, 80, 0.05)',
-                                    '&:hover': isSelected || selectedTimeSlots.length < getMaxAllowedSlots() ? {
-                                        bgcolor: 'rgba(76, 175, 80, 0.1)',
-                                        transform: 'scale(1.05)',
-                                    } : {},
-                                    transition: 'all 0.2s ease'
-                                }}
-                            >
-                                <Typography
+                        {/* Progress Bar */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Typography variant="caption" sx={{ 
+                                color: selectedTimeSlots.length === getMaxAllowedSlots() ? '#FF8F00' : '#666', 
+                                minWidth: 'fit-content',
+                                fontWeight: selectedTimeSlots.length === getMaxAllowedSlots() ? 'bold' : 'normal',
+                                transition: 'all 0.3s ease'
+                            }}>
+                                {selectedTimeSlots.length}/{getMaxAllowedSlots()} selected
+                            </Typography>
+                            <Box sx={{ 
+                                flex: 1, 
+                                height: 8, 
+                                bgcolor: 'rgba(76, 175, 80, 0.1)', 
+                                borderRadius: '4px',
+                                overflow: 'hidden',
+                                border: selectedTimeSlots.length === getMaxAllowedSlots() ? '1px solid #FFA726' : 'none',
+                                transition: 'border 0.3s ease'
+                            }}>
+                                <Box sx={{
+                                    width: `${(selectedTimeSlots.length / getMaxAllowedSlots()) * 100}%`,
+                                    height: '100%',
+                                    background: selectedTimeSlots.length === getMaxAllowedSlots() 
+                                        ? 'linear-gradient(90deg, #FFA726 0%, #FF8F00 100%)'
+                                        : 'linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%)',
+                                    transition: 'all 0.3s ease',
+                                    borderRadius: '4px',
+                                    animation: selectedTimeSlots.length === getMaxAllowedSlots() ? 'glow 1.5s ease-in-out infinite alternate' : 'none',
+                                    '@keyframes glow': {
+                                        '0%': { boxShadow: '0 0 5px rgba(255, 167, 38, 0.5)' },
+                                        '100%': { boxShadow: '0 0 15px rgba(255, 167, 38, 0.8)' }
+                                    }
+                                }} />
+                            </Box>
+                            {selectedTimeSlots.length === getMaxAllowedSlots() && (
+                                <Typography variant="caption" sx={{ 
+                                    color: '#FF8F00',
+                                    fontWeight: 'bold',
+                                    animation: 'fadeIn 0.5s ease',
+                                    '@keyframes fadeIn': {
+                                        '0%': { opacity: 0, transform: 'translateX(10px)' },
+                                        '100%': { opacity: 1, transform: 'translateX(0)' }
+                                    }
+                                }}>
+                                    MAX REACHED
+                                </Typography>
+                            )}
+                        </Box>
+                    </Box>
+
+                    {/* Enhanced Time Slots Grid */}
+                    <Box sx={{ 
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                        gap: 3,
+                        mb: 4,
+                        px: 2
+                    }}>
+                        {availableSlots.map((slot, index) => {
+                            const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                            const isDisabled = selectedTimeSlots.length >= getMaxAllowedSlots() && !isSelected;
+                            const canSelect = !isDisabled;
+                            
+                            return (
+                                <Box
+                                    key={index}
+                                    onClick={() => canSelect && handleTimeSlotSelection(slot)}
                                     sx={{
-                                        fontSize: '0.85rem',
-                                        fontWeight: 'medium',
-                                        color: '#4CAF50',
-                                        textAlign: 'center'
+                                        position: 'relative',
+                                        width: '100%',
+                                        minHeight: '120px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: isSelected 
+                                            ? 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)'
+                                            : isDisabled
+                                                ? 'linear-gradient(135deg, #FFECB3 0%, #FFE082 100%)'
+                                                : 'linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)',
+                                        border: isSelected 
+                                            ? '2px solid #2E7D32' 
+                                            : isDisabled
+                                                ? '2px solid #FFA726'
+                                                : '2px solid transparent',
+                                        borderRadius: '16px',
+                                        cursor: canSelect ? 'pointer' : 'not-allowed',
+                                        boxShadow: isSelected 
+                                            ? '0 8px 25px rgba(76, 175, 80, 0.3)'
+                                            : isDisabled
+                                                ? '0 4px 15px rgba(255, 167, 38, 0.2)'
+                                                : '0 4px 15px rgba(0, 0, 0, 0.1)',
+                                        transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                                        '&:hover': canSelect ? {
+                                            transform: 'scale(1.08) translateY(-4px)',
+                                            boxShadow: isSelected 
+                                                ? '0 12px 35px rgba(76, 175, 80, 0.4)'
+                                                : '0 8px 25px rgba(76, 175, 80, 0.2)',
+                                            background: isSelected 
+                                                ? 'linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%)'
+                                                : 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
+                                        } : {},
+                                        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                        p: 2,
+                                        overflow: 'hidden',
+                                        
+                                        // Animated background pattern
+                                        '&::before': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            background: isSelected 
+                                                ? 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 50%)'
+                                                : 'radial-gradient(circle at 70% 70%, rgba(76, 175, 80, 0.1) 0%, transparent 50%)',
+                                            opacity: 0.8,
+                                            transition: 'opacity 0.3s ease'
+                                        }
                                     }}
                                 >
-                                    {slot.display}
-                                </Typography>
-                                {isSelected && (
+                                    {/* Time Display */}
                                     <Typography
                                         sx={{
-                                            fontSize: '0.75rem',
-                                            color: '#4CAF50',
-                                            mt: 1
+                                            fontSize: '1rem',
+                                            fontWeight: 'bold',
+                                            color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
+                                            textAlign: 'center',
+                                            mb: 1,
+                                            position: 'relative',
+                                            zIndex: 1,
+                                            textShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                                            letterSpacing: '0.5px'
                                         }}
                                     >
-                                        Selected
+                                        {slot.display}
                                     </Typography>
-                                )}
-                            </Box>
-                        );
-                    })}
-                </Box>
+                                    
+                                    {/* Duration Badge */}
+                                    <Box sx={{
+                                        bgcolor: isSelected ? 'rgba(255,255,255,0.2)' : isDisabled ? 'rgba(255, 143, 0, 0.2)' : 'rgba(76, 175, 80, 0.2)',
+                                        color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
+                                        px: 2,
+                                        py: 0.5,
+                                        borderRadius: '20px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'medium',
+                                        position: 'relative',
+                                        zIndex: 1,
+                                        border: `1px solid ${isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
+                                        backdropFilter: 'blur(10px)'
+                                    }}>
+                                        {slot.duration}
+                                    </Box>
+
+                                    {/* Status Icon */}
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: 12,
+                                        right: 12,
+                                        width: 24,
+                                        height: 24,
+                                        borderRadius: '50%',
+                                        bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '12px',
+                                        animation: isSelected ? 'pulse 2s infinite' : 'none',
+                                        '@keyframes pulse': {
+                                            '0%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.7)' },
+                                            '70%': { boxShadow: '0 0 0 10px rgba(255, 255, 255, 0)' },
+                                            '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' }
+                                        }
+                                    }}>
+                                        {isSelected ? '✓' : isDisabled ? '⚠' : '○'}
+                                    </Box>
+
+                                    {/* Ripple Effect on Click */}
+                                    {isSelected && (
+                                        <Box sx={{
+                                            position: 'absolute',
+                                            top: '50%',
+                                            left: '50%',
+                                            width: '20px',
+                                            height: '20px',
+                                            borderRadius: '50%',
+                                            background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%)',
+                                            transform: 'translate(-50%, -50%)',
+                                            animation: 'ripple 1.5s infinite',
+                                            '@keyframes ripple': {
+                                                '0%': { 
+                                                    width: '20px', 
+                                                    height: '20px', 
+                                                    opacity: 1 
+                                                },
+                                                '100%': { 
+                                                    width: '100px', 
+                                                    height: '100px', 
+                                                    opacity: 0 
+                                                }
+                                            }
+                                        }} />
+                                    )}
+                                </Box>
+                            );
+                        })}
+                    </Box>
+                </>
             )}
 
             {selectedTimeSlots.length > 0 && (
-                <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5ff', borderRadius: 1, border: '1px solid #e0e0e0' }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                        Selected Time Slots: ({selectedTimeSlots.length}/{getMaxAllowedSlots()})
-                    </Typography>
-                    {selectedTimeSlots.map((slot, index) => (
-                        <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
-                            {slot.display} ({slot.duration})
+                <Box sx={{ 
+                    mt: 4, 
+                    p: 4, 
+                    background: 'linear-gradient(135deg, #E8F5E8 0%, #F1F8E9 100%)',
+                    borderRadius: '20px', 
+                    border: '2px solid #4CAF50',
+                    boxShadow: '0 8px 25px rgba(76, 175, 80, 0.15)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    
+                    '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'radial-gradient(circle at 20% 80%, rgba(76, 175, 80, 0.1) 0%, transparent 50%)',
+                        pointerEvents: 'none'
+                    }
+                }}>
+                    {/* Header */}
+                    <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        mb: 3,
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <Typography variant="h6" sx={{ 
+                            color: '#2E7D32', 
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                        }}>
+                            ✨ Selected Time Slots
                         </Typography>
-                    ))}
-                    <Typography variant="subtitle2" sx={{ mt: 2 }}>
-                        Total Price: ₹{Math.ceil(calculatedPrice.total)}/- (Including GST)
-                    </Typography>
+                        <Box sx={{
+                            bgcolor: '#4CAF50',
+                            color: 'white',
+                            px: 2,
+                            py: 0.5,
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
+                        }}>
+                            {selectedTimeSlots.length}/{getMaxAllowedSlots()} Selected
+                        </Box>
+                    </Box>
+
+                    {/* Selected Slots List */}
+                    <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: 2, 
+                        mb: 3,
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        {selectedTimeSlots.map((slot, index) => (
+                            <Box key={index} sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                p: 2,
+                                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(76, 175, 80, 0.2)',
+                                backdropFilter: 'blur(10px)',
+                                animation: `slideIn 0.5s ease ${index * 0.1}s both`,
+                                '@keyframes slideIn': {
+                                    '0%': { 
+                                        opacity: 0, 
+                                        transform: 'translateX(-20px)' 
+                                    },
+                                    '100%': { 
+                                        opacity: 1, 
+                                        transform: 'translateX(0)' 
+                                    }
+                                }
+                            }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Box sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        bgcolor: '#4CAF50',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
+                                    }}>
+                                        {index + 1}
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="body1" sx={{ 
+                                            fontWeight: 'bold', 
+                                            color: '#2E7D32',
+                                            fontSize: '0.95rem'
+                                        }}>
+                                            {slot.display}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ 
+                                            color: '#4CAF50',
+                                            fontSize: '0.75rem'
+                                        }}>
+                                            Duration: {slot.duration}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                <Box sx={{
+                                    bgcolor: 'rgba(76, 175, 80, 0.1)',
+                                    p: 1,
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <Typography sx={{ 
+                                        color: '#4CAF50', 
+                                        fontSize: '1.2rem' 
+                                    }}>
+                                        ✓
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        ))}
+                    </Box>
+
+                    {/* Price Summary */}
+                    <Box sx={{
+                        p: 3,
+                        bgcolor: 'rgba(76, 175, 80, 0.1)',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(76, 175, 80, 0.3)',
+                        position: 'relative',
+                        zIndex: 1,
+                        backgroundImage: 'linear-gradient(45deg, rgba(76, 175, 80, 0.05) 25%, transparent 25%), linear-gradient(-45deg, rgba(76, 175, 80, 0.05) 25%, transparent 25%)',
+                        backgroundSize: '20px 20px',
+                        backgroundPosition: '0 0, 10px 10px'
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="h6" sx={{ 
+                                color: '#2E7D32', 
+                                fontWeight: 'bold',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                            }}>
+                                💰 Total Amount
+                            </Typography>
+                            <Typography variant="h5" sx={{ 
+                                color: '#2E7D32', 
+                                fontWeight: 'bold',
+                                fontSize: '1.5rem',
+                                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}>
+                                ₹{Math.ceil(calculatedPrice.total)}/-
+                            </Typography>
+                        </Box>
+                        <Typography variant="caption" sx={{ 
+                            color: '#4CAF50',
+                            fontStyle: 'italic',
+                            mt: 1,
+                            display: 'block'
+                        }}>
+                            *Including GST and all charges
+                        </Typography>
+                    </Box>
                 </Box>
             )}
 
@@ -604,7 +977,7 @@ const BookMeetingRoom = () => {
                         };
 
                         console.log('=== Booking Request Details ===');
-                        console.log('API Endpoint:', 'https://api.boldtribe.in/api/meeting-rooms/book');
+                        console.log('API Endpoint:', 'https://api.boldtribe.in/api/meetingrooms/book');
                         console.log('Request Headers:', {
                             // 'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -614,7 +987,7 @@ const BookMeetingRoom = () => {
                         // Make the API call
                         console.log('Making API call...');
                         const response = await axios.post(
-                            'https://api.boldtribe.in/api/meeting-rooms/book',
+                            'https://api.boldtribe.in/api/meetingrooms/book',
                             bookingData,
                             {
                                 headers: {
@@ -754,7 +1127,7 @@ const BookMeetingRoom = () => {
         setIsLoadingRoomTypes(true);
         console.log('Fetching room types...');
         try {
-            const response = await axios.get('https://api.boldtribe.in/api/meeting-rooms/room-types');
+            const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/room-types');
             console.log('Room Types API Response:', response.data);
             
             if (response.data.success) {
@@ -993,7 +1366,7 @@ const handleHourlyMemberType = (memberType) => {
             setIsLoadingBookingTypes(true);
             console.log('Fetching booking types...');
             try {
-                const response = await axios.get('https://api.boldtribe.in/api/meeting-rooms/booking-types');
+                const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/booking-types');
                 console.log('API Response:', response.data);
                 
                 if (response.data.success) {
@@ -1036,7 +1409,7 @@ const handleHourlyMemberType = (memberType) => {
             setIsLoadingMemberTypes(true);
             console.log('Fetching member types...');
             try {
-                const response = await axios.get('https://api.boldtribe.in/api/meeting-rooms/member-types');
+                const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/member-types');
                 console.log('Member Types API Response:', response.data);
                 
                 if (response.data.success) {
@@ -1086,7 +1459,7 @@ const handleHourlyMemberType = (memberType) => {
             };
             
             console.log('Fetching pricing with params:', params);
-            const response = await axios.get('https://api.boldtribe.in/api/meeting-rooms/pricing', { params });
+            const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/pricing', { params });
             console.log('Pricing API Response:', response.data);
             
             if (response.data.success) {
@@ -1161,7 +1534,7 @@ const handleHourlyMemberType = (memberType) => {
         console.log('Fetching available slots...');
         try {
             const formattedDate = format(date, 'yyyy-MM-dd');
-            const response = await axios.get(`https://api.boldtribe.in/api/meeting-rooms/available-slots`, {
+            const response = await axios.get(`https://api.boldtribe.in/api/meetingrooms/available-slots`, {
                 params: {
                     date: formattedDate,
                     capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
@@ -1346,7 +1719,7 @@ const handleHourlyMemberType = (memberType) => {
 
             // Log the request data
             console.log('=== Booking Request Data ===');
-            console.log('API Endpoint:', 'https://api.boldtribe.in/api/meeting-rooms/book');
+            console.log('API Endpoint:', 'https://api.boldtribe.in/api/meetingrooms/book');
             console.log('Request Headers:', {
                 'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
@@ -1356,7 +1729,7 @@ const handleHourlyMemberType = (memberType) => {
 
             // Make the API call with auth token
             const response = await axios.post(
-                'https://api.boldtribe.in/api/meeting-rooms/book',
+                'https://api.boldtribe.in/api/meetingrooms/book',
                 bookingData,
                 {
                     headers: {
@@ -1497,7 +1870,7 @@ const handleHourlyMemberType = (memberType) => {
                             }}
                         >
                             Proceed to Book
-                        </Button>
+                        </Button>   
                     </Box>
                 </Box>
             </Fade>
@@ -2311,73 +2684,216 @@ const handleHourlyMemberType = (memberType) => {
                         </Box>
 
                         {isLoadingSlots ? (
-                            <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 4 } }}>
-                                <Typography sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-                                    Loading available slots...
+                            <Box sx={{ 
+                                textAlign: 'center', 
+                                py: { xs: 4, sm: 6 },
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 2
+                            }}>
+                                <Box sx={{
+                                    width: { xs: 50, sm: 60 },
+                                    height: { xs: 50, sm: 60 },
+                                    borderRadius: '50%',
+                                    background: 'conic-gradient(from 0deg, #4CAF50, #81C784, #4CAF50)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    animation: 'spin 2s linear infinite',
+                                    '@keyframes spin': {
+                                        '0%': { transform: 'rotate(0deg)' },
+                                        '100%': { transform: 'rotate(360deg)' }
+                                    }
+                                }}>
+                                    <Box sx={{
+                                        width: { xs: 38, sm: 45 },
+                                        height: { xs: 38, sm: 45 },
+                                        borderRadius: '50%',
+                                        bgcolor: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: { xs: '1.2rem', sm: '1.5rem' }
+                                    }}>
+                                        ⏰
+                                    </Box>
+                                </Box>
+                                <Typography variant="h6" sx={{ 
+                                    color: '#4CAF50', 
+                                    fontWeight: 'bold',
+                                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                                }}>
+                                    Finding Available Slots...
+                                </Typography>
+                                <Typography variant="body2" sx={{ 
+                                    color: '#666', 
+                                    maxWidth: '280px',
+                                    fontSize: { xs: '0.85rem', sm: '0.9rem' }
+                                }}>
+                                    We're checking the best time slots for your meeting
                                 </Typography>
                             </Box>
                         ) : (
                             <Box sx={{ 
                                 display: 'grid',
                                 gridTemplateColumns: {
-                                    xs: 'repeat(auto-fill, minmax(140px, 1fr))',
-                                    sm: 'repeat(auto-fill, minmax(180px, 1fr))',
-                                    md: 'repeat(auto-fill, minmax(200px, 1fr))'
+                                    xs: 'repeat(auto-fill, minmax(160px, 1fr))',
+                                    sm: 'repeat(auto-fill, minmax(200px, 1fr))',
+                                    md: 'repeat(auto-fill, minmax(220px, 1fr))'
                                 },
-                                gap: { xs: 1, sm: 2 },
-                                mb: { xs: 2, sm: 3 },
-                                px: { xs: 2, sm: 4 }
+                                gap: { xs: 2, sm: 3 },
+                                mb: { xs: 3, sm: 4 },
+                                px: { xs: 1, sm: 2 }
                             }}>
                                 {availableSlots.map((slot, index) => {
                                     const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                                    const isDisabled = selectedTimeSlots.length >= getMaxAllowedSlots() && !isSelected;
+                                    const canSelect = !isDisabled;
                                     
                                     return (
                                         <Box
                                             key={index}
-                                            onClick={() => handleTimeSlotSelection(slot)}
+                                            onClick={() => canSelect && handleTimeSlotSelection(slot)}
                                             sx={{
+                                                position: 'relative',
                                                 width: '100%',
-                                                aspectRatio: '1',
+                                                minHeight: { xs: '100px', sm: '120px' },
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                border: isSelected ? '2px solid #4CAF50' : '1px solid #4CAF50',
-                                                borderRadius: { xs: '6px', sm: '8px' },
-                                                cursor: isSelected || selectedTimeSlots.length < getMaxAllowedSlots() ? 'pointer' : 'not-allowed',
-                                                bgcolor: isSelected 
-                                                    ? 'rgba(76, 175, 80, 0.2)'
-                                                    : selectedTimeSlots.length >= getMaxAllowedSlots() && !isSelected
-                                                        ? 'rgba(255, 152, 0, 0.1)'
-                                                        : 'rgba(76, 175, 80, 0.05)',
-                                                '&:hover': isSelected || selectedTimeSlots.length < getMaxAllowedSlots() ? {
-                                                    bgcolor: 'rgba(76, 175, 80, 0.1)',
-                                                    transform: 'scale(1.05)',
+                                                background: isSelected 
+                                                    ? 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)'
+                                                    : isDisabled
+                                                        ? 'linear-gradient(135deg, #FFECB3 0%, #FFE082 100%)'
+                                                        : 'linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)',
+                                                border: isSelected 
+                                                    ? '2px solid #2E7D32' 
+                                                    : isDisabled
+                                                        ? '2px solid #FFA726'
+                                                        : '2px solid transparent',
+                                                borderRadius: { xs: '12px', sm: '16px' },
+                                                cursor: canSelect ? 'pointer' : 'not-allowed',
+                                                boxShadow: isSelected 
+                                                    ? '0 6px 20px rgba(76, 175, 80, 0.3)'
+                                                    : isDisabled
+                                                        ? '0 4px 15px rgba(255, 167, 38, 0.2)'
+                                                        : '0 4px 15px rgba(0, 0, 0, 0.1)',
+                                                transform: isSelected ? 'scale(1.03)' : 'scale(1)',
+                                                '&:hover': canSelect ? {
+                                                    transform: 'scale(1.05) translateY(-2px)',
+                                                    boxShadow: isSelected 
+                                                        ? '0 10px 30px rgba(76, 175, 80, 0.4)'
+                                                        : '0 6px 20px rgba(76, 175, 80, 0.2)',
+                                                    background: isSelected 
+                                                        ? 'linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%)'
+                                                        : 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
                                                 } : {},
-                                                transition: 'all 0.2s ease',
-                                                p: { xs: 1, sm: 2 }
+                                                transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                                p: { xs: 1.5, sm: 2 },
+                                                overflow: 'hidden',
+                                                
+                                                // Animated background pattern
+                                                '&::before': {
+                                                    content: '""',
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    background: isSelected 
+                                                        ? 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 50%)'
+                                                        : 'radial-gradient(circle at 70% 70%, rgba(76, 175, 80, 0.1) 0%, transparent 50%)',
+                                                    opacity: 0.8,
+                                                    transition: 'opacity 0.3s ease'
+                                                }
                                             }}
                                         >
+                                            {/* Time Display */}
                                             <Typography
                                                 sx={{
-                                                    fontSize: { xs: '0.75rem', sm: '0.85rem' },
-                                                    fontWeight: 'medium',
-                                                    color: '#4CAF50',
-                                                    textAlign: 'center'
+                                                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                                                    fontWeight: 'bold',
+                                                    color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
+                                                    textAlign: 'center',
+                                                    mb: 1,
+                                                    position: 'relative',
+                                                    zIndex: 1,
+                                                    textShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                                                    letterSpacing: '0.3px'
                                                 }}
                                             >
                                                 {slot.display}
                                             </Typography>
+                                            
+                                            {/* Duration Badge */}
+                                            {slot.duration && (
+                                                <Box sx={{
+                                                    bgcolor: isSelected ? 'rgba(255,255,255,0.2)' : isDisabled ? 'rgba(255, 143, 0, 0.2)' : 'rgba(76, 175, 80, 0.2)',
+                                                    color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
+                                                    px: { xs: 1.5, sm: 2 },
+                                                    py: 0.5,
+                                                    borderRadius: '20px',
+                                                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                                                    fontWeight: 'medium',
+                                                    position: 'relative',
+                                                    zIndex: 1,
+                                                    border: `1px solid ${isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
+                                                    backdropFilter: 'blur(10px)'
+                                                }}>
+                                                    {slot.duration}
+                                                </Box>
+                                            )}
+
+                                            {/* Status Icon */}
+                                            <Box sx={{
+                                                position: 'absolute',
+                                                top: { xs: 8, sm: 12 },
+                                                right: { xs: 8, sm: 12 },
+                                                width: { xs: 20, sm: 24 },
+                                                height: { xs: 20, sm: 24 },
+                                                borderRadius: '50%',
+                                                bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: { xs: '10px', sm: '12px' },
+                                                animation: isSelected ? 'pulse 2s infinite' : 'none',
+                                                '@keyframes pulse': {
+                                                    '0%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.7)' },
+                                                    '70%': { boxShadow: '0 0 0 10px rgba(255, 255, 255, 0)' },
+                                                    '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' }
+                                                }
+                                            }}>
+                                                {isSelected ? '✓' : isDisabled ? '⚠' : '○'}
+                                            </Box>
+
+                                            {/* Ripple Effect for Selected */}
                                             {isSelected && (
-                                                <Typography
-                                                    sx={{
-                                                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                                                        color: '#4CAF50',
-                                                        mt: { xs: 0.5, sm: 1 }
-                                                    }}
-                                                >
-                                                    Selected
-                                                </Typography>
+                                                <Box sx={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    left: '50%',
+                                                    width: '15px',
+                                                    height: '15px',
+                                                    borderRadius: '50%',
+                                                    background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%)',
+                                                    transform: 'translate(-50%, -50%)',
+                                                    animation: 'ripple 1.5s infinite',
+                                                    '@keyframes ripple': {
+                                                        '0%': { 
+                                                            width: '15px', 
+                                                            height: '15px', 
+                                                            opacity: 1 
+                                                        },
+                                                        '100%': { 
+                                                            width: '80px', 
+                                                            height: '80px', 
+                                                            opacity: 0 
+                                                        }
+                                                    }
+                                                }} />
                                             )}
                                         </Box>
                                     );
