@@ -103,7 +103,106 @@ const BookMeetingRoom = () => {
         };
     };
 
-    // Update time slot selection handler for multiple slots with limits based on member type
+    // Function to get consecutive slots based on selected duration
+    const getConsecutiveSlots = (startSlot, totalDuration) => {
+        const slots = [];
+        let currentTime = startSlot.start;
+        let remainingDuration = totalDuration;
+        
+        // Find all available 30-minute slots
+        const allSlots = availableSlots.filter(slot => slot.duration === '30 minutes');
+        
+        // Sort slots by start time
+        const sortedSlots = allSlots.sort((a, b) => a.start.localeCompare(b.start));
+        
+        // Find the starting slot
+        const startIndex = sortedSlots.findIndex(slot => 
+            slot.start === startSlot.start && slot.end === startSlot.end
+        );
+        
+        if (startIndex === -1) return [];
+        
+        // Collect consecutive slots
+        for (let i = startIndex; i < sortedSlots.length && remainingDuration > 0; i++) {
+            const slot = sortedSlots[i];
+            slots.push(slot);
+            remainingDuration -= 30; // Each slot is 30 minutes
+            
+            // Check if next slot is consecutive
+            if (i < sortedSlots.length - 1) {
+                const nextSlot = sortedSlots[i + 1];
+                if (slot.end !== nextSlot.start) {
+                    break; // Not consecutive
+                }
+            }
+        }
+        
+        // Return only if we have enough slots for the total duration
+        return remainingDuration <= 0 ? slots : [];
+    };
+
+    // Update time slot selection handler for duration-based booking
+    const handleTimeSlotSelectionWithDuration = (slot) => {
+        if (isRoomAvailable('time1', selectedDate, slot.start, slot.end)) {
+            // Handle whole day booking
+            if (selectedBookingDuration === 'wholeday') {
+                // Book all available slots for the day
+                const allDaySlots = availableSlots.filter(availableSlot => 
+                    isRoomAvailable('time1', selectedDate, availableSlot.start, availableSlot.end)
+                );
+                
+                if (allDaySlots.length === 0) {
+                    alert('No slots available for whole day booking');
+                    return;
+                }
+                
+                setSelectedTimeSlots(allDaySlots);
+                
+                // Calculate total price for all day slots
+                const totalPriceDetails = calculateTotalPrice(allDaySlots);
+                setCalculatedPrice(totalPriceDetails);
+                
+                // Set the first and last slot times
+                setSelectedTime(allDaySlots[0].start);
+                setSelectedEndTime(allDaySlots[allDaySlots.length - 1].end);
+                return;
+            }
+            
+            // Get consecutive slots based on selected booking duration
+            const consecutiveSlots = getConsecutiveSlots(slot, selectedBookingDuration);
+            
+            if (consecutiveSlots.length === 0) {
+                alert(`Cannot find ${selectedBookingDuration} minutes of consecutive slots starting from ${slot.display}`);
+                return;
+            }
+            
+            // Check if we already have slots selected
+            const isAlreadySelected = selectedTimeSlots.some(s => 
+                s.start === slot.start && s.end === slot.end
+            );
+            
+            if (isAlreadySelected) {
+                // Remove all selected slots
+                setSelectedTimeSlots([]);
+                setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
+                setSelectedTime('');
+                setSelectedEndTime('');
+            } else {
+                // Set the new consecutive slots
+                setSelectedTimeSlots(consecutiveSlots);
+                
+                // Calculate total price for all selected slots
+                const totalPriceDetails = calculateTotalPrice(consecutiveSlots);
+                setCalculatedPrice(totalPriceDetails);
+                
+                // Set the first selected slot's time as the main selected time
+                setSelectedTime(consecutiveSlots[0].start);
+                setSelectedEndTime(consecutiveSlots[consecutiveSlots.length - 1].end);
+            }
+        }
+    };
+
+    // Legacy time slot selection handler (keeping for backward compatibility)
     const handleTimeSlotSelection = (slot) => {
         if (isRoomAvailable('time1', selectedDate, slot.start, slot.end)) {
             // Check if this slot is already selected
@@ -178,6 +277,23 @@ const BookMeetingRoom = () => {
         return maxSlots - selectedTimeSlots.length;
     };
     
+    // Get duration options based on member type
+    const getDurationOptions = () => {
+        const commonOptions = [
+            { id: 30, label: '30 min', slots: 1 },
+            { id: 60, label: '1 hr', slots: 2 },
+            { id: 120, label: '2 hr', slots: 4 },
+            { id: 180, label: '3 hr', slots: 6 },
+            { id: 240, label: '4 hr', slots: 8 },
+            { id: 300, label: '5 hr', slots: 10 },
+            { id: 360, label: '6 hr', slots: 12 },
+            { id: 420, label: '7 hr', slots: 14 },
+            { id: 'wholeday', label: 'Book Whole Day', slots: 'all' }
+        ];
+        
+        return commonOptions;
+    };
+    
     // Calculate total price for all selected time slots
     const calculateTotalPrice = (slots) => {
         if (!slots || slots.length === 0) {
@@ -202,8 +318,13 @@ const BookMeetingRoom = () => {
     const [selectedEndTime, setSelectedEndTime] = useState('');
     const [calculatedPrice, setCalculatedPrice] = useState({ subtotal: 0, gst: 0, total: 0, duration: 0 });
     const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
+    const [selectedBookingDuration, setSelectedBookingDuration] = useState(30); // Default to 30 minutes
     // Add a new state to track the date window start
     const [dateWindowStart, setDateWindowStart] = useState(new Date());
+    // Add state for total duration selection
+    const [selectedTotalDuration, setSelectedTotalDuration] = useState(30);
+    // Add state for hover preview
+    const [hoveredSlot, setHoveredSlot] = useState(null);
 
     // Update timeSlots to include 30-minute and 1-hour intervals
     const timeSlots = Array.from({ length: 19 }, (_, i) => {
@@ -442,37 +563,119 @@ const BookMeetingRoom = () => {
                 </Box>
             ) : (
                 <>
-                    {/* Time Slots Header */}
-                    <Box sx={{ 
-                        mb: 3,
-                        p: 3,
-                        bgcolor: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(76, 175, 80, 0.2)'
-                    }}>
-                        <Typography variant="h6" sx={{ 
-                            color: '#2E7D32', 
-                            fontWeight: 'bold',
-                            mb: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
+                        {/* Time Slots Header */}
+                <Box sx={{ 
+                    mb: 3,
+                            p: 3,
+                            bgcolor: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
+                            borderRadius: '16px',
+                            border: '1px solid rgba(76, 175, 80, 0.2)'
                         }}>
-                            🕐 Available Time Slots
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4CAF50', mb: 2 }}>
-                            Select up to {getMaxAllowedSlots()} consecutive time slots for your meeting
-                        </Typography>
+                            <Typography variant="h6" sx={{ 
+                                color: '#2E7D32', 
+                                fontWeight: 'bold',
+                                mb: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                            }}>
+                                🕐 Available Time Slots
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#4CAF50', mb: 2 }}>
+                                Select your total meeting duration, then click any time slot to auto-book consecutive slots
+                            </Typography>
+
+                            {/* Duration Selector */}
+                            <Box sx={{ 
+                                mb: 3,
+                                p: 3,
+                                bgcolor: 'rgba(102, 126, 234, 0.05)',
+                                borderRadius: '16px',
+                                border: '1px solid rgba(102, 126, 234, 0.15)'
+                            }}>
+                                <Typography variant="subtitle1" sx={{ 
+                                    color: '#667eea', 
+                                    fontWeight: 'bold',
+                                    mb: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1
+                                }}>
+                                    ⏱️ Choose Meeting Duration
+                                </Typography>
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    gap: 2, 
+                                    flexWrap: 'wrap',
+                                    alignItems: 'center'
+                                }}>
+                                    {[30, 60, 90, 120, 150, 180].map((minutes) => {
+                                        const hours = Math.floor(minutes / 60);
+                                        const remainingMinutes = minutes % 60;
+                                        const displayText = hours > 0 
+                                            ? `${hours}hr${remainingMinutes > 0 ? ` ${remainingMinutes}min` : ''}`
+                                            : `${minutes}min`;
+                                        
+                                        return (
+                                            <Button
+                                                key={minutes}
+                                                variant={selectedTotalDuration === minutes ? "contained" : "outlined"}
+                                                onClick={() => setSelectedTotalDuration(minutes)}
+                                                sx={{
+                                                    minWidth: '80px',
+                                                    height: '40px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 'bold',
+                                                    background: selectedTotalDuration === minutes 
+                                                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                        : 'rgba(255, 255, 255, 0.8)',
+                                                    color: selectedTotalDuration === minutes ? 'white' : '#667eea',
+                                                    border: selectedTotalDuration === minutes 
+                                                        ? 'none' 
+                                                        : '2px solid rgba(102, 126, 234, 0.3)',
+                                                    boxShadow: selectedTotalDuration === minutes 
+                                                        ? '0 4px 15px rgba(102, 126, 234, 0.3)'
+                                                        : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    '&:hover': {
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: selectedTotalDuration === minutes 
+                                                            ? '0 6px 20px rgba(102, 126, 234, 0.4)'
+                                                            : '0 4px 15px rgba(102, 126, 234, 0.2)',
+                                                        background: selectedTotalDuration === minutes 
+                                                            ? 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)'
+                                                            : 'rgba(102, 126, 234, 0.1)'
+                                                    }
+                                                }}
+                                            >
+                                                {displayText}
+                                            </Button>
+                                        );
+                                    })}
+                                </Box>
+                                <Typography variant="caption" sx={{ 
+                                    color: '#667eea',
+                                    fontStyle: 'italic',
+                                    mt: 1,
+                                    display: 'block'
+                                }}>
+                                    💡 Click any available time slot and we'll automatically book {selectedTotalDuration} minutes of consecutive slots
+                                </Typography>
+                            </Box>
                         
                         {/* Progress Bar */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <Typography variant="caption" sx={{ 
-                                color: selectedTimeSlots.length === getMaxAllowedSlots() ? '#FF8F00' : '#666', 
+                                color: selectedTimeSlots.length > 0 ? '#4CAF50' : '#666', 
                                 minWidth: 'fit-content',
-                                fontWeight: selectedTimeSlots.length === getMaxAllowedSlots() ? 'bold' : 'normal',
+                                fontWeight: selectedTimeSlots.length > 0 ? 'bold' : 'normal',
                                 transition: 'all 0.3s ease'
                             }}>
-                                {selectedTimeSlots.length}/{getMaxAllowedSlots()} selected
+                                {selectedTimeSlots.length > 0 
+                                    ? `${selectedTimeSlots.length} slots (${selectedTotalDuration}min) selected`
+                                    : 'No slots selected'
+                                }
                             </Typography>
                             <Box sx={{ 
                                 flex: 1, 
@@ -480,37 +683,22 @@ const BookMeetingRoom = () => {
                                 bgcolor: 'rgba(76, 175, 80, 0.1)', 
                                 borderRadius: '4px',
                                 overflow: 'hidden',
-                                border: selectedTimeSlots.length === getMaxAllowedSlots() ? '1px solid #FFA726' : 'none',
+                                border: selectedTimeSlots.length > 0 ? '1px solid #4CAF50' : 'none',
                                 transition: 'border 0.3s ease'
                             }}>
                                 <Box sx={{
-                                    width: `${(selectedTimeSlots.length / getMaxAllowedSlots()) * 100}%`,
+                                    width: selectedTimeSlots.length > 0 ? '100%' : '0%',
                                     height: '100%',
-                                    background: selectedTimeSlots.length === getMaxAllowedSlots() 
-                                        ? 'linear-gradient(90deg, #FFA726 0%, #FF8F00 100%)'
-                                        : 'linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%)',
+                                    background: 'linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%)',
                                     transition: 'all 0.3s ease',
                                     borderRadius: '4px',
-                                    animation: selectedTimeSlots.length === getMaxAllowedSlots() ? 'glow 1.5s ease-in-out infinite alternate' : 'none',
+                                    animation: selectedTimeSlots.length > 0 ? 'glow 1.5s ease-in-out infinite alternate' : 'none',
                                     '@keyframes glow': {
-                                        '0%': { boxShadow: '0 0 5px rgba(255, 167, 38, 0.5)' },
-                                        '100%': { boxShadow: '0 0 15px rgba(255, 167, 38, 0.8)' }
+                                        '0%': { boxShadow: '0 0 5px rgba(76, 175, 80, 0.5)' },
+                                        '100%': { boxShadow: '0 0 15px rgba(76, 175, 80, 0.8)' }
                                     }
                                 }} />
                             </Box>
-                            {selectedTimeSlots.length === getMaxAllowedSlots() && (
-                                <Typography variant="caption" sx={{ 
-                                    color: '#FF8F00',
-                                    fontWeight: 'bold',
-                                    animation: 'fadeIn 0.5s ease',
-                                    '@keyframes fadeIn': {
-                                        '0%': { opacity: 0, transform: 'translateX(10px)' },
-                                        '100%': { opacity: 1, transform: 'translateX(0)' }
-                                    }
-                                }}>
-                                    MAX REACHED
-                                </Typography>
-                            )}
                         </Box>
                     </Box>
 
@@ -521,51 +709,59 @@ const BookMeetingRoom = () => {
                         gap: 3,
                         mb: 4,
                         px: 2
-                    }}>
-                        {availableSlots.map((slot, index) => {
-                            const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
-                            const isDisabled = selectedTimeSlots.length >= getMaxAllowedSlots() && !isSelected;
-                            const canSelect = !isDisabled;
-                            
-                            return (
-                                <Box
-                                    key={index}
-                                    onClick={() => canSelect && handleTimeSlotSelection(slot)}
-                                    sx={{
+                }}>
+                    {availableSlots.map((slot, index) => {
+                        const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                            const isInPreview = hoveredSlot && getConsecutiveSlots(slot, selectedTotalDuration).some(s => 
+                                s.start === slot.start && s.end === slot.end
+                            );
+                            const canSelect = true; // Always allow selection with duration-based booking
+                        
+                        return (
+                            <Box
+                                key={index}
+                                    onClick={() => canSelect && handleTimeSlotSelectionWithDuration(slot)}
+                                    onMouseEnter={() => setHoveredSlot(slot)}
+                                    onMouseLeave={() => setHoveredSlot(null)}
+                                sx={{
                                         position: 'relative',
-                                        width: '100%',
+                                    width: '100%',
                                         minHeight: '120px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                         background: isSelected 
                                             ? 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)'
-                                            : isDisabled
-                                                ? 'linear-gradient(135deg, #FFECB3 0%, #FFE082 100%)'
+                                            : isInPreview
+                                                ? 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
                                                 : 'linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)',
                                         border: isSelected 
                                             ? '2px solid #2E7D32' 
-                                            : isDisabled
-                                                ? '2px solid #FFA726'
+                                            : isInPreview
+                                                ? '2px solid #1976D2'
                                                 : '2px solid transparent',
                                         borderRadius: '16px',
                                         cursor: canSelect ? 'pointer' : 'not-allowed',
                                         boxShadow: isSelected 
                                             ? '0 8px 25px rgba(76, 175, 80, 0.3)'
-                                            : isDisabled
-                                                ? '0 4px 15px rgba(255, 167, 38, 0.2)'
+                                            : isInPreview
+                                                ? '0 8px 25px rgba(33, 150, 243, 0.3)'
                                                 : '0 4px 15px rgba(0, 0, 0, 0.1)',
-                                        transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                                        transform: isSelected ? 'scale(1.05)' : isInPreview ? 'scale(1.03)' : 'scale(1)',
                                         '&:hover': canSelect ? {
                                             transform: 'scale(1.08) translateY(-4px)',
                                             boxShadow: isSelected 
                                                 ? '0 12px 35px rgba(76, 175, 80, 0.4)'
-                                                : '0 8px 25px rgba(76, 175, 80, 0.2)',
+                                                : isInPreview
+                                                    ? '0 12px 35px rgba(33, 150, 243, 0.4)'
+                                                    : '0 8px 25px rgba(76, 175, 80, 0.2)',
                                             background: isSelected 
                                                 ? 'linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%)'
-                                                : 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
-                                        } : {},
+                                                : isInPreview
+                                                    ? 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)'
+                                                    : 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
+                                    } : {},
                                         transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                                         p: 2,
                                         overflow: 'hidden',
@@ -587,34 +783,34 @@ const BookMeetingRoom = () => {
                                     }}
                                 >
                                     {/* Time Display */}
-                                    <Typography
-                                        sx={{
+                                <Typography
+                                    sx={{
                                             fontSize: '1rem',
                                             fontWeight: 'bold',
-                                            color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
+                                            color: isSelected ? 'white' : isInPreview ? 'white' : '#2E7D32',
                                             textAlign: 'center',
                                             mb: 1,
                                             position: 'relative',
                                             zIndex: 1,
-                                            textShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                                            textShadow: (isSelected || isInPreview) ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                                             letterSpacing: '0.5px'
-                                        }}
-                                    >
-                                        {slot.display}
-                                    </Typography>
+                                    }}
+                                >
+                                    {slot.display}
+                                </Typography>
                                     
                                     {/* Duration Badge */}
                                     <Box sx={{
-                                        bgcolor: isSelected ? 'rgba(255,255,255,0.2)' : isDisabled ? 'rgba(255, 143, 0, 0.2)' : 'rgba(76, 175, 80, 0.2)',
-                                        color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
+                                        bgcolor: isSelected ? 'rgba(255,255,255,0.2)' : isInPreview ? 'rgba(255,255,255,0.2)' : 'rgba(76, 175, 80, 0.2)',
+                                        color: isSelected ? 'white' : isInPreview ? 'white' : '#2E7D32',
                                         px: 2,
                                         py: 0.5,
                                         borderRadius: '20px',
-                                        fontSize: '0.75rem',
+                                            fontSize: '0.75rem',
                                         fontWeight: 'medium',
                                         position: 'relative',
                                         zIndex: 1,
-                                        border: `1px solid ${isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
+                                        border: `1px solid ${isSelected ? 'rgba(255,255,255,0.3)' : isInPreview ? 'rgba(255,255,255,0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
                                         backdropFilter: 'blur(10px)'
                                     }}>
                                         {slot.duration}
@@ -628,19 +824,19 @@ const BookMeetingRoom = () => {
                                         width: 24,
                                         height: 24,
                                         borderRadius: '50%',
-                                        bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)',
+                                        bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : isInPreview ? 'rgba(255,255,255,0.3)' : 'rgba(76, 175, 80, 0.3)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         fontSize: '12px',
-                                        animation: isSelected ? 'pulse 2s infinite' : 'none',
+                                        animation: (isSelected || isInPreview) ? 'pulse 2s infinite' : 'none',
                                         '@keyframes pulse': {
                                             '0%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.7)' },
                                             '70%': { boxShadow: '0 0 0 10px rgba(255, 255, 255, 0)' },
                                             '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' }
                                         }
                                     }}>
-                                        {isSelected ? '✓' : isDisabled ? '⚠' : '○'}
+                                        {isSelected ? '✓' : isInPreview ? '👁' : '○'}
                                     </Box>
 
                                     {/* Ripple Effect on Click */}
@@ -668,11 +864,11 @@ const BookMeetingRoom = () => {
                                                 }
                                             }
                                         }} />
-                                    )}
-                                </Box>
-                            );
-                        })}
-                    </Box>
+                                )}
+                            </Box>
+                        );
+                    })}
+                </Box>
                 </>
             )}
 
@@ -715,7 +911,7 @@ const BookMeetingRoom = () => {
                             gap: 1
                         }}>
                             ✨ Selected Time Slots
-                        </Typography>
+                    </Typography>
                         <Box sx={{
                             bgcolor: '#4CAF50',
                             color: 'white',
@@ -739,7 +935,7 @@ const BookMeetingRoom = () => {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        {selectedTimeSlots.map((slot, index) => (
+                    {selectedTimeSlots.map((slot, index) => (
                             <Box key={index} sx={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -784,7 +980,7 @@ const BookMeetingRoom = () => {
                                             fontSize: '0.95rem'
                                         }}>
                                             {slot.display}
-                                        </Typography>
+                        </Typography>
                                         <Typography variant="caption" sx={{ 
                                             color: '#4CAF50',
                                             fontSize: '0.75rem'
@@ -841,7 +1037,7 @@ const BookMeetingRoom = () => {
                                 textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                             }}>
                                 ₹{Math.ceil(calculatedPrice.total)}/-
-                            </Typography>
+                    </Typography>
                         </Box>
                         <Typography variant="caption" sx={{ 
                             color: '#4CAF50',
@@ -1506,6 +1702,9 @@ const handleHourlyMemberType = (memberType) => {
         setSelectedSeating('');
         setSelectedTimeSlots([]);
         setAvailableTimeSlots([]);
+        
+        // Set default duration (30 minutes for all users)
+        setSelectedBookingDuration(30);
 
         // Fetch pricing data when member type changes if booking type is already selected
         if (selectedMemberType && bookingType) {
@@ -1870,7 +2069,7 @@ const handleHourlyMemberType = (memberType) => {
                             }}
                         >
                             Proceed to Book
-                        </Button>   
+                        </Button>
                     </Box>
                 </Box>
             </Fade>
@@ -2084,238 +2283,599 @@ const handleHourlyMemberType = (memberType) => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     mb: { xs: 1, sm: 2 },
                     pb: { xs: 0.5, sm: 1 },
+                    overflow: 'hidden',
                     '&::before': {
                         content: '""',
                         position: 'absolute',
-                        top: { xs: -50, sm: -100 },
+                        top: 0,
                         left: 0,
                         right: 0,
                         bottom: 0,
                         backgroundImage: `url(${bookMeetingRoomImg})`,
                         backgroundSize: 'cover',
-                        backgroundPosition: 'top',
-                        filter: 'brightness(0.7)',
-                        animation: 'zoomInOut 20s infinite alternate',
-                        zIndex: -1
+                        backgroundPosition: 'center',
+                        filter: 'brightness(0.4) blur(2px)',
+                        animation: 'slowFloat 20s ease-in-out infinite',
+                        zIndex: 0
                     },
                     '&::after': {
                         content: '""',
                         position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: { xs: '200px', sm: '250px', md: '300px' },
-                        height: { xs: '200px', sm: '250px', md: '300px' },
-                        backgroundImage: `url(${logo})`,
-                        backgroundSize: 'contain',
-                        backgroundPosition: 'center',
-                        backgroundRepeat: 'no-repeat',
-                        opacity: 0.3,
-                        animation: 'zoomInOut 20s infinite alternate',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'radial-gradient(circle at 30% 40%, rgba(102, 126, 234, 0.4) 0%, rgba(118, 75, 162, 0.6) 100%)',
                         zIndex: 1
                     },
-                    '@keyframes zoomInOut': {
-                        '0%': { transform: 'scale(1)' },
-                        '100%': { transform: 'scale(1.1)' },
+                    '@keyframes slowFloat': {
+                        '0%, 100%': { transform: 'scale(1) translateY(0px)' },
+                        '33%': { transform: 'scale(1.05) translateY(-10px)' },
+                        '66%': { transform: 'scale(1.02) translateY(5px)' },
                     },
                 }}
             >
+                {/* Floating Animation Elements */}
+                <Box sx={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 1,
+                    overflow: 'hidden',
+                    pointerEvents: 'none'
+                }}>
+                    {/* Floating particles */}
+                    {[...Array(12)].map((_, i) => (
+                        <Box
+                            key={i}
+                    sx={{
+                                position: 'absolute',
+                                width: '4px',
+                                height: '4px',
+                                background: 'rgba(255, 255, 255, 0.6)',
+                                borderRadius: '50%',
+                                left: `${Math.random() * 100}%`,
+                                top: `${Math.random() * 100}%`,
+                                animation: `float${i % 3} ${8 + Math.random() * 6}s ease-in-out infinite`,
+                                '@keyframes float0': {
+                                    '0%, 100%': { transform: 'translateY(0px) translateX(0px)', opacity: 0.6 },
+                                    '50%': { transform: 'translateY(-30px) translateX(15px)', opacity: 1 },
+                                },
+                                '@keyframes float1': {
+                                    '0%, 100%': { transform: 'translateY(0px) translateX(0px)', opacity: 0.4 },
+                                    '50%': { transform: 'translateY(25px) translateX(-10px)', opacity: 0.8 },
+                                },
+                                '@keyframes float2': {
+                                    '0%, 100%': { transform: 'translateY(0px) translateX(0px)', opacity: 0.5 },
+                                    '50%': { transform: 'translateY(-20px) translateX(20px)', opacity: 0.9 },
+                                },
+                            }}
+                        />
+                    ))}
+                </Box>
+                {/* Modern Logo Section */}
                 <Box
                     sx={{
-                        mb: { xs: 2, sm: 3, md: 4 },
+                        mb: { xs: 3, sm: 4, md: 5 },
                         position: 'relative',
-                        zIndex: 2,
+                        zIndex: 3,
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
+                        flexDirection: 'column',
                         width: '100%',
-                        marginTop: { xs: '2px', sm: '5px' },
-                        '& img': {
-                            width: { xs: '100px', sm: '120px', md: '150px' },
-                            height: 'auto',
-                            animation: 'zoomInOut 20s infinite alternate',
-                        },
-                        '@keyframes zoomInOut': {
-                            '0%': { transform: 'scale(1)' },
-                            '100%': { transform: 'scale(1.1)' },
+                        marginTop: { xs: '2rem', sm: '3rem' },
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mb: 2,
+                            '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                width: '120%',
+                                height: '120%',
+                                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+                                borderRadius: '50%',
+                                animation: 'logoGlow 3s ease-in-out infinite alternate',
+                                zIndex: -1
+                            },
+                            '@keyframes logoGlow': {
+                                '0%': { transform: 'scale(1)', opacity: 0.5 },
+                                '100%': { transform: 'scale(1.1)', opacity: 0.8 },
                         },
                     }}
                 >
-                    <img style={{
-                        height: { xs: "100px", sm: "120px", md: "150px" },
-                        width: { xs: "100px", sm: "120px", md: "150px" },
-                        marginBottom: { xs: "-30px", sm: "-45px", md: "-60px" }
-                    }} src={logo} alt="Logo" />
+                        <img 
+                            src={logo} 
+                            alt="Logo" 
+                            style={{
+                                height: '120px',
+                                width: 'auto',
+                                filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))',
+                                animation: 'logoFloat 4s ease-in-out infinite'
+                            }}
+                        />
+                    </Box>
+                    <Typography
+                        variant="h3"
+                        sx={{
+                            color: 'white',
+                            fontWeight: 300,
+                            textAlign: 'center',
+                            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
+                            letterSpacing: '2px',
+                            textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                            animation: 'textGlow 2s ease-in-out infinite alternate',
+                            '@keyframes textGlow': {
+                                '0%': { textShadow: '0 2px 10px rgba(0,0,0,0.3)' },
+                                '100%': { textShadow: '0 5px 20px rgba(255,255,255,0.5)' },
+                            },
+                        }}
+                    >
+                        CO-HOPERS
+                    </Typography>
                 </Box>
 
-                <Paper
-                    elevation={6}
+                {/* Modern Glass Card */}
+                <Box
                     sx={{
-                        p: { xs: 2, sm: 3, md: 4 },
-                        maxWidth: { xs: '90%', sm: 400 },
+                        position: 'relative',
+                        zIndex: 3,
+                        background: 'rgba(255, 255, 255, 0.15)',
+                        backdropFilter: 'blur(20px)',
+                        borderRadius: '24px',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        p: { xs: 3, sm: 4, md: 5 },
+                        maxWidth: { xs: '90%', sm: '480px', md: '520px' },
                         width: { xs: '90%', sm: 'auto' },
                         textAlign: 'center',
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,240,255,0.9) 100%)',
-                        borderRadius: 2,
-                        animation: 'fadeIn 1s ease-out',
-                        '@keyframes fadeIn': {
-                            from: { opacity: 0, transform: 'translateY(20px)' },
-                            to: { opacity: 1, transform: 'translateY(0)' }
-                        },
+                        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+                        animation: 'cardFloat 6s ease-in-out infinite',
+                        '&::before': {
+                            content: '""',
                         position: 'absolute',
-                        top: { xs: '70%', sm: '75%' },
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        marginTop: { xs: '1rem', sm: '2rem' },
-                        zIndex: 2
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                            borderRadius: '24px',
+                            zIndex: -1
+                        },
+                        '@keyframes cardFloat': {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        '@keyframes logoFloat': {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-5px) rotate(2deg)' },
+                        },
                     }}
                 >
                     <Typography 
-                        variant="h4" 
+                        variant="h2" 
                         component="h1" 
                         gutterBottom
                         sx={{ 
-                            color: '#7B68EE',
-                            fontWeight: 'bold',
+                            background: 'linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%)',
+                            backgroundClip: 'text',
+                            WebkitBackgroundClip: 'text',
+                            color: 'transparent',
+                            fontWeight: 600,
                             mb: { xs: 2, sm: 3 },
-                            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' }
+                            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                            letterSpacing: '1px',
+                            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            animation: 'titleGlow 3s ease-in-out infinite alternate',
+                            '@keyframes titleGlow': {
+                                '0%': { filter: 'brightness(1)' },
+                                '100%': { filter: 'brightness(1.2)' },
+                            },
                         }}
                     >
                         Book Meeting Room
                     </Typography>
-                    <Typography 
-                        variant="body1" 
+                    
+                    <Box
                         sx={{ 
+                            width: '80px',
+                            height: '4px',
+                            background: 'linear-gradient(90deg, #ffffff 0%, #f0f8ff 100%)',
+                            borderRadius: '2px',
+                            margin: '0 auto',
                             mb: { xs: 3, sm: 4 },
-                            fontSize: { xs: '0.875rem', sm: '1rem' }
+                            animation: 'dividerPulse 2s ease-in-out infinite',
+                            '@keyframes dividerPulse': {
+                                '0%, 100%': { opacity: 0.6, transform: 'scaleX(1)' },
+                                '50%': { opacity: 1, transform: 'scaleX(1.2)' },
+                            },
+                        }}
+                    />
+                    
+                    <Typography 
+                        variant="h6" 
+                        sx={{ 
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            mb: { xs: 4, sm: 5 },
+                            fontSize: { xs: '1rem', sm: '1.2rem' },
+                            lineHeight: 1.6,
+                            fontWeight: 300,
+                            letterSpacing: '0.5px'
                         }}
                     >
-                        Book our professional meeting room for your important discussions and presentations.
+                        Reserve our premium meeting spaces for productive discussions, presentations, and collaborative sessions.
                     </Typography>
+                    
                     <Button
                         variant="contained"
                         size="large"
                         onClick={handleBookNowClick}
                         sx={{
-                            bgcolor: '#7B68EE',
-                            '&:hover': { bgcolor: '#6A5ACD' },
-                            animation: 'pulse 2s infinite',
-                            '@keyframes pulse': {
-                                '0%': { transform: 'scale(1)' },
-                                '50%': { transform: 'scale(1.05)' },
-                                '100%': { transform: 'scale(1)' },
+                            background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                            color: 'white',
+                            fontSize: { xs: '1rem', sm: '1.1rem' },
+                            fontWeight: 600,
+                            padding: { xs: '12px 32px', sm: '16px 40px' },
+                            borderRadius: '50px',
+                            border: '2px solid rgba(255, 255, 255, 0.2)',
+                            textTransform: 'none',
+                            letterSpacing: '1px',
+                            boxShadow: '0 10px 30px rgba(255, 107, 107, 0.4)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                top: 0,
+                                left: '-100%',
+                                width: '100%',
+                                height: '100%',
+                                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                                transition: 'left 0.5s ease',
                             },
-                            fontSize: { xs: '0.875rem', sm: '1rem' },
-                            padding: { xs: '8px 16px', sm: '10px 24px' }
+                            '&:hover': {
+                                background: 'linear-gradient(135deg, #ff5252 0%, #e53935 100%)',
+                                transform: 'translateY(-3px) scale(1.05)',
+                                boxShadow: '0 15px 40px rgba(255, 107, 107, 0.6)',
+                                '&::before': {
+                                    left: '100%',
+                                }
+                            },
+                            '&:active': {
+                                transform: 'translateY(-1px) scale(1.02)',
+                            },
+                            animation: 'buttonPulse 4s ease-in-out infinite',
+                            '@keyframes buttonPulse': {
+                                '0%, 100%': { transform: 'scale(1)' },
+                                '50%': { transform: 'scale(1.02)' },
+                            },
                         }}
                     >
-                        Book Now
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            📅
+                            <span>Book Now</span>
+                        </Box>
                     </Button>
-                </Paper>
+                </Box>
             </Box>
 
-            {/* Booking Type Modal */}
-            <Modal open={showBookingModal} onClose={() => setShowBookingModal(false)} closeAfterTransition>
+            {/* Modern Booking Type Modal */}
+            <Modal 
+                open={showBookingModal} 
+                onClose={() => setShowBookingModal(false)} 
+                closeAfterTransition
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(10px)',
+                }}
+            >
                 <Fade in={showBookingModal}>
                     <Box sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: { xs: '90%', sm: 360 },
-                        maxHeight: { xs: '90vh', sm: 'auto' },
+                        position: 'relative',
+                        width: { xs: '90%', sm: '420px', md: '480px' },
+                        maxHeight: '90vh',
                         overflow: 'auto',
-                        bgcolor: 'background.paper',
-                        borderRadius: 2,
-                        boxShadow: 24,
-                        p: { xs: 2, sm: 3 },
-                        background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        borderRadius: '24px',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+                        p: { xs: 3, sm: 4 },
+                        animation: 'modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                            borderRadius: '24px',
+                            zIndex: -1
+                        },
+                        '@keyframes modalSlideIn': {
+                            '0%': { 
+                                opacity: 0, 
+                                transform: 'scale(0.8) translateY(20px)' 
+                            },
+                            '100%': { 
+                                opacity: 1, 
+                                transform: 'scale(1) translateY(0)' 
+                            }
+                        },
+                        '&::-webkit-scrollbar': {
+                            width: '6px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            background: 'rgba(0,0,0,0.1)',
+                            borderRadius: '3px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: 'rgba(102, 126, 234, 0.5)',
+                            borderRadius: '3px',
+                            '&:hover': {
+                                background: 'rgba(102, 126, 234, 0.7)'
+                            }
+                        }
                     }}>
                         <IconButton
                             onClick={() => setShowBookingModal(false)}
                             sx={{
                                 position: 'absolute',
-                                right: 8,
-                                top: 8,
-                                color: 'gray'
+                                right: 12,
+                                top: 12,
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                backdropFilter: 'blur(10px)',
+                                color: '#666',
+                                '&:hover': {
+                                    background: 'rgba(255, 255, 255, 0.9)',
+                                    color: '#333',
+                                    transform: 'scale(1.1)'
+                                },
+                                transition: 'all 0.3s ease'
                             }}
                         >
                             <CloseIcon />
                         </IconButton>
+                        {/* Modern Header */}
+                        <Box sx={{ 
+                            textAlign: 'center', 
+                            mb: 4,
+                            pt: 2
+                        }}>
                         <Box
                             sx={{
-                                width: '100%',
-                                display: 'flex',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
                                 justifyContent: 'center',
+                                    width: '80px',
+                                    height: '80px',
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 mb: 2,
-                                '& img': {
-                                    width: '150px',
-                                    height: 'auto',
-                                    animation: 'zoomInOut 20s infinite alternate',
-                                },
-                                '@keyframes zoomInOut': {
-                                    '0%': { transform: 'scale(1)' },
-                                    '100%': { transform: 'scale(1.1)' },
+                                    boxShadow: '0 10px 25px rgba(102, 126, 234, 0.3)',
+                                    animation: 'iconFloat 3s ease-in-out infinite',
+                                    '@keyframes iconFloat': {
+                                        '0%, 100%': { transform: 'translateY(0px)' },
+                                        '50%': { transform: 'translateY(-8px)' },
                                 },
                             }}
                         >
-                            <img src={logo} alt="Logo" />
+                                <Typography sx={{ fontSize: '2rem' }}>🏢</Typography>
+                            </Box>
+                            <Typography 
+                                variant="h4" 
+                                sx={{ 
+                                    color: '#333',
+                                    fontWeight: 600,
+                                    mb: 1,
+                                    fontSize: { xs: '1.5rem', sm: '1.8rem' }
+                                }}
+                            >
+                                Room Booking
+                            </Typography>
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                    color: '#666',
+                                    fontSize: '0.95rem'
+                                }}
+                            >
+                                Select your booking preferences
+                            </Typography>
                         </Box>
 
-                        <FormControl fullWidth sx={{ mb: 2 }}>
+                        <FormControl 
+                            fullWidth 
+                            sx={{ 
+                                mb: 3,
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '16px',
+                                    background: 'rgba(255, 255, 255, 0.8)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(102, 126, 234, 0.2)',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        borderColor: 'rgba(102, 126, 234, 0.4)',
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.15)'
+                                    },
+                                    '&.Mui-focused': {
+                                        borderColor: '#667eea',
+                                        boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)'
+                                    }
+                                },
+                                '& .MuiInputLabel-root': {
+                                    color: '#667eea',
+                                    fontWeight: 500
+                                }
+                            }}
+                        >
                             <InputLabel>Booking Type</InputLabel>
                             <Select
                                 value={bookingType}
                                 onChange={handleBookingTypeChange}
                                 label="Booking Type"
                                 disabled={isLoadingBookingTypes}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        padding: '16px',
+                                        fontSize: '1rem'
+                                    }
+                                }}
                             >
                                 <MenuItem value="" disabled>
+                                    <Typography sx={{ color: '#999', fontStyle: 'italic' }}>
                                     Select Booking Type
+                                    </Typography>
                                 </MenuItem>
                                 {bookingTypes && bookingTypes.length > 0 ? (
                                     bookingTypes.map((type) => (
-                                        <MenuItem key={type.id} value={type.name}>
+                                        <MenuItem 
+                                            key={type.id} 
+                                            value={type.name}
+                                            sx={{
+                                                '&:hover': {
+                                                    background: 'rgba(102, 126, 234, 0.1)'
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Box sx={{
+                                                    width: '8px',
+                                                    height: '8px',
+                                                    borderRadius: '50%',
+                                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                }} />
                                             {type.name}
+                                            </Box>
                                         </MenuItem>
                                     ))
                                 ) : (
                                     <>
-                                        <MenuItem value="Hourly">Hourly</MenuItem>
-                                        <MenuItem value="Whole Day">Whole Day</MenuItem>
+                                        <MenuItem value="Hourly">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Typography sx={{ fontSize: '1.2rem' }}>⏰</Typography>
+                                                Hourly
+                                            </Box>
+                                        </MenuItem>
+                                        <MenuItem value="Whole Day">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Typography sx={{ fontSize: '1.2rem' }}>📅</Typography>
+                                                Whole Day
+                                            </Box>
+                                        </MenuItem>
                                     </>
                                 )}
                             </Select>
                         </FormControl>
 
                         {bookingType && (
-                            <FormControl fullWidth sx={{ mb: 2 }}>
+                            <Box sx={{
+                                animation: 'slideDown 0.3s ease-out',
+                                '@keyframes slideDown': {
+                                    '0%': { opacity: 0, transform: 'translateY(-10px)' },
+                                    '100%': { opacity: 1, transform: 'translateY(0)' }
+                                }
+                            }}>
+                                <FormControl 
+                                    fullWidth 
+                                    sx={{ 
+                                        mb: 3,
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: '16px',
+                                            background: 'rgba(255, 255, 255, 0.8)',
+                                            backdropFilter: 'blur(10px)',
+                                            border: '1px solid rgba(102, 126, 234, 0.2)',
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                borderColor: 'rgba(102, 126, 234, 0.4)',
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.15)'
+                                            },
+                                            '&.Mui-focused': {
+                                                borderColor: '#667eea',
+                                                boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            color: '#667eea',
+                                            fontWeight: 500
+                                        }
+                                    }}
+                                >
                                 <InputLabel>Member Type</InputLabel>
                                 <Select
                                     value={memberType}
                                     onChange={handleMemberTypeChange}
                                     label="Member Type"
                                     disabled={isLoadingMemberTypes}
+                                        sx={{
+                                            '& .MuiSelect-select': {
+                                                padding: '16px',
+                                                fontSize: '1rem'
+                                            }
+                                        }}
                                 >
                                     <MenuItem value="" disabled>
+                                            <Typography sx={{ color: '#999', fontStyle: 'italic' }}>
                                         Select Member Type
+                                            </Typography>
                                     </MenuItem>
                                     {memberTypes && memberTypes.length > 0 ? (
                                         memberTypes.map((type) => (
-                                            <MenuItem key={type.id} value={type.name}>
+                                                <MenuItem 
+                                                    key={type.id} 
+                                                    value={type.name}
+                                                    sx={{
+                                                        '&:hover': {
+                                                            background: 'rgba(102, 126, 234, 0.1)'
+                                                        }
+                                                    }}
+                                                >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Box sx={{
+                                                            width: '8px',
+                                                            height: '8px',
+                                                            borderRadius: '50%',
+                                                            background: type.name === 'Member' 
+                                                                ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
+                                                                : 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
+                                                        }} />
                                                 {type.name}
+                                                    </Box>
                                             </MenuItem>
                                         ))
                                     ) : (
                                         <>
-                                            <MenuItem value="Member">Member</MenuItem>
-                                            <MenuItem value="Non-Member">Non-Member</MenuItem>
+                                                <MenuItem value="Member">
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Typography sx={{ fontSize: '1.2rem' }}>👤</Typography>
+                                                        Member
+                                                    </Box>
+                                                </MenuItem>
+                                                <MenuItem value="Non-Member">
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Typography sx={{ fontSize: '1.2rem' }}>👥</Typography>
+                                                        Non-Member
+                                                    </Box>
+                                                </MenuItem>
                                         </>
                                     )}
                                 </Select>
                             </FormControl>
+                            </Box>
                         )}
 
                         {bookingType && memberType && (
@@ -2535,63 +3095,131 @@ const handleHourlyMemberType = (memberType) => {
                             </FormControl>
                         )}
 
+                        {bookingType && memberType && (
+                            <Box sx={{
+                                mt: 4,
+                                animation: 'slideUp 0.4s ease-out',
+                                '@keyframes slideUp': {
+                                    '0%': { opacity: 0, transform: 'translateY(20px)' },
+                                    '100%': { opacity: 1, transform: 'translateY(0)' }
+                                }
+                            }}>
                         <Button
                             fullWidth
                             variant="contained"
                             onClick={handleBookingSubmit}
-                            disabled={!selectedDate || !selectedSeating}
+                                    disabled={!bookingType || !memberType}
                             sx={{
-                                background: 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)',
-                                height: { xs: '40px', sm: '45px' },
-                                fontSize: { xs: '0.9rem', sm: '1rem' },
-                                fontWeight: 'bold',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        height: '56px',
+                                        fontSize: '1.1rem',
+                                        fontWeight: 600,
+                                        borderRadius: '16px',
+                                        textTransform: 'none',
+                                        letterSpacing: '0.5px',
+                                        boxShadow: '0 10px 25px rgba(102, 126, 234, 0.3)',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                        '&::before': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: '-100%',
+                                            width: '100%',
+                                            height: '100%',
+                                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                                            transition: 'left 0.5s ease',
+                                        },
                                 '&:hover': {
-                                    background: 'linear-gradient(135deg, #6A5ACD 0%, #5B4ACE 100%)'
+                                            background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: '0 15px 35px rgba(102, 126, 234, 0.4)',
+                                            '&::before': {
+                                                left: '100%',
+                                            }
+                                        },
+                                        '&:active': {
+                                            transform: 'translateY(0px)',
                                 },
                                 '&:disabled': {
-                                    background: '#ccc'
+                                            background: 'linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)',
+                                            color: '#999',
+                                            boxShadow: 'none',
+                                            transform: 'none'
                                 }
                             }}
                         >
-                            Next
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <span>Continue</span>
+                                        <Typography sx={{ fontSize: '1.2rem' }}>→</Typography>
+                                    </Box>
                         </Button>
+                            </Box>
+                        )}
                     </Box>
                 </Fade>
             </Modal>
 
-            {/* Time Slots Modal */}
+            {/* Modern Room Selection & Time Slots Modal */}
             <Modal
                 open={showRoomSelectionModal}
                 onClose={() => setShowRoomSelectionModal(false)}
                 closeAfterTransition
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(10px)',
+                }}
             >
                 <Fade in={showRoomSelectionModal}>
                     <Box sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: { xs: '95%', sm: '90%', md: '80%' },
-                        maxWidth: 900,
+                        position: 'relative',
+                        width: { xs: '95%', sm: '90%', md: '85%' },
+                        maxWidth: 1000,
                         maxHeight: '90vh',
                         overflow: 'auto',
-                        bgcolor: 'background.paper',
-                        borderRadius: { xs: 2, sm: 3 },
-                        boxShadow: 24,
-                        p: { xs: 2, sm: 3, md: 4 },
-                        background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        borderRadius: '24px',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+                        p: { xs: 3, sm: 4, md: 5 },
+                        animation: 'modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+                            borderRadius: '24px',
+                            zIndex: -1
+                        },
+                        '@keyframes modalSlideIn': {
+                            '0%': { 
+                                opacity: 0, 
+                                transform: 'scale(0.9) translateY(20px)' 
+                            },
+                            '100%': { 
+                                opacity: 1, 
+                                transform: 'scale(1) translateY(0)' 
+                            }
+                        },
                         '&::-webkit-scrollbar': {
-                            width: '8px'
+                            width: '6px'
                         },
                         '&::-webkit-scrollbar-track': {
-                            background: '#f1f1f1',
-                            borderRadius: '4px'
+                            background: 'rgba(0,0,0,0.1)',
+                            borderRadius: '3px'
                         },
                         '&::-webkit-scrollbar-thumb': {
-                            background: '#888',
-                            borderRadius: '4px',
+                            background: 'rgba(102, 126, 234, 0.5)',
+                            borderRadius: '3px',
                             '&:hover': {
-                                background: '#555'
+                                background: 'rgba(102, 126, 234, 0.7)'
                             }
                         }
                     }}>
@@ -2599,52 +3227,113 @@ const handleHourlyMemberType = (memberType) => {
                             onClick={() => setShowRoomSelectionModal(false)}
                             sx={{
                                 position: 'absolute',
-                                right: { xs: 4, sm: 8 },
-                                top: { xs: 4, sm: 8 },
-                                color: 'gray'
+                                right: 16,
+                                top: 16,
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                backdropFilter: 'blur(10px)',
+                                color: '#666',
+                                zIndex: 10,
+                                '&:hover': {
+                                    background: 'rgba(255, 255, 255, 0.9)',
+                                    color: '#333',
+                                    transform: 'scale(1.1)'
+                                },
+                                transition: 'all 0.3s ease'
                             }}
                         >
                             <CloseIcon />
                         </IconButton>
                         
+                        {/* Modern Header */}
+                        <Box sx={{ 
+                            textAlign: 'center', 
+                            mb: 5,
+                            pt: 2
+                        }}>
+                            <Box
+                                sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '80px',
+                                    height: '80px',
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                                    mb: 2,
+                                    boxShadow: '0 10px 25px rgba(76, 175, 80, 0.3)',
+                                    animation: 'iconFloat 3s ease-in-out infinite',
+                                    '@keyframes iconFloat': {
+                                        '0%, 100%': { transform: 'translateY(0px)' },
+                                        '50%': { transform: 'translateY(-8px)' },
+                                    },
+                                }}
+                            >
+                                <Typography sx={{ fontSize: '2rem' }}>⏰</Typography>
+                            </Box>
                         <Typography 
-                            variant="h6" 
-                            gutterBottom
+                                variant="h4" 
                             sx={{
-                                fontSize: { xs: '1.2rem', sm: '1.5rem' },
-                                mb: { xs: 2, sm: 3 },
-                                fontWeight: 'bold',
-                                textAlign: 'center'
+                                    color: '#333',
+                                    fontWeight: 600,
+                                    mb: 1,
+                                    fontSize: { xs: '1.5rem', sm: '1.8rem' }
                             }}
                         >
                             Select Time Slot
                         </Typography>
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                    color: '#666',
+                                    fontSize: '0.95rem'
+                                }}
+                            >
+                                Choose your preferred date and time
+                            </Typography>
+                        </Box>
 
-                        {/* Date Selection Tabs with Navigation */}
+                        {/* Clean International Date Navigation */}
                         <Box sx={{ 
                             display: 'flex', 
-                            flexDirection: { xs: 'column', sm: 'row' },
-                            gap: { xs: 1, sm: 2 }, 
-                            mb: { xs: 3, sm: 4 },
-                            justifyContent: 'center',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            mb: 5,
+                            p: 3,
+                            backgroundColor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid #e9ecef',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                         }}>
                             <Button
                                 onClick={goToPreviousDates}
                                 variant="outlined"
                                 sx={{ 
-                                    minWidth: { xs: '35px', sm: '40px' }, 
-                                    borderRadius: '50%',
-                                    p: { xs: 0.5, sm: 1 }
+                                    minWidth: '48px',
+                                    height: '48px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e9ecef',
+                                    color: '#6c757d',
+                                    backgroundColor: '#ffffff',
+                                    fontSize: '1.2rem',
+                                    fontWeight: 'bold',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        backgroundColor: '#3498db',
+                                        borderColor: '#3498db',
+                                        color: 'white',
+                                        transform: 'translateX(-2px)'
+                                    }
                                 }}
                             >
-                                &lt;
+                                ←
                             </Button>
                             
                             <Box sx={{
                                 display: 'flex',
-                                flexDirection: { xs: 'column', sm: 'row' },
-                                gap: { xs: 1, sm: 2 }
+                                gap: 1.5,
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                justifyContent: 'center'
                             }}>
                                 {getAvailableDates().map((date) => (
                                     <Button
@@ -2658,14 +3347,49 @@ const handleHourlyMemberType = (memberType) => {
                                             fetchAvailableSlots(date);
                                         }}
                                         sx={{
-                                            minWidth: { xs: '100%', sm: '120px' },
-                                            fontSize: { xs: '0.9rem', sm: '1rem' },
-                                            background: selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-                                                ? 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)'
-                                                : 'transparent'
+                                            minWidth: '100px',
+                                            height: '56px',
+                                            borderRadius: '12px',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 500,
+                                            textTransform: 'none',
+                                            fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif',
+                                            backgroundColor: selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                                                ? '#3498db'
+                                                : '#ffffff',
+                                            color: selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                                                ? 'white'
+                                                : '#2c3e50',
+                                            border: `1px solid ${selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') ? '#3498db' : '#e9ecef'}`,
+                                            boxShadow: selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                                                ? '0 4px 12px rgba(52, 152, 219, 0.3)'
+                                                : 'none',
+                                            transition: 'all 0.2s ease',
+                                            '&:hover': {
+                                                backgroundColor: selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
+                                                    ? '#2980b9'
+                                                    : '#f8f9fa',
+                                                borderColor: '#3498db',
+                                                transform: 'translateY(-1px)'
+                                            }
                                         }}
                                     >
-                                        {format(date, 'dd MMM yyyy')}
+                                        <Box sx={{ textAlign: 'center' }}>
+                                            <Typography sx={{ 
+                                                fontSize: '0.85rem', 
+                                                fontWeight: 600,
+                                                lineHeight: 1.2
+                                            }}>
+                                                {format(date, 'dd MMM')}
+                                            </Typography>
+                                            <Typography sx={{ 
+                                                fontSize: '0.7rem', 
+                                                opacity: 0.7,
+                                                fontWeight: 400
+                                            }}>
+                                                {format(date, 'yyyy')}
+                                            </Typography>
+                                        </Box>
                                     </Button>
                                 ))}
                             </Box>
@@ -2674,12 +3398,24 @@ const handleHourlyMemberType = (memberType) => {
                                 onClick={goToNextDates}
                                 variant="outlined"
                                 sx={{ 
-                                    minWidth: { xs: '35px', sm: '40px' }, 
-                                    borderRadius: '50%',
-                                    p: { xs: 0.5, sm: 1 }
+                                    minWidth: '48px',
+                                    height: '48px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e9ecef',
+                                    color: '#6c757d',
+                                    backgroundColor: '#ffffff',
+                                    fontSize: '1.2rem',
+                                    fontWeight: 'bold',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        backgroundColor: '#3498db',
+                                        borderColor: '#3498db',
+                                        color: 'white',
+                                        transform: 'translateX(2px)'
+                                    }
                                 }}
                             >
-                                &gt;
+                                →
                             </Button>
                         </Box>
 
@@ -2736,92 +3472,254 @@ const handleHourlyMemberType = (memberType) => {
                             </Box>
                         ) : (
                             <Box sx={{ 
-                                display: 'grid',
-                                gridTemplateColumns: {
-                                    xs: 'repeat(auto-fill, minmax(160px, 1fr))',
-                                    sm: 'repeat(auto-fill, minmax(200px, 1fr))',
-                                    md: 'repeat(auto-fill, minmax(220px, 1fr))'
-                                },
-                                gap: { xs: 2, sm: 3 },
-                                mb: { xs: 3, sm: 4 },
-                                px: { xs: 1, sm: 2 }
+                                width: '100%',
+                                maxWidth: '100%',
+                                mb: { xs: 4, sm: 5 }
                             }}>
+                                {/* Duration Selection Section */}
+                                <Box sx={{
+                                    mb: 4,
+                                    p: 3,
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '16px',
+                                    border: '1px solid #e9ecef'
+                                }}>
+                                    <Typography variant="h6" sx={{
+                                        fontWeight: 600,
+                                        color: '#2c3e50',
+                                        fontSize: '1.1rem',
+                                        mb: 2,
+                                        fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
+                                    }}>
+                                        Select Duration
+                                    </Typography>
+                                    
+                                    <Box sx={{
+                                        display: 'grid',
+                                        gridTemplateColumns: {
+                                            xs: 'repeat(3, 1fr)',
+                                            sm: 'repeat(4, 1fr)',
+                                            md: 'repeat(5, 1fr)'
+                                        },
+                                        gap: 1.5,
+                                        mb: 2
+                                    }}>
+                                        {getDurationOptions().slice(0, -1).map((duration) => (
+                                            <Button
+                                                key={duration.id}
+                                                variant={selectedBookingDuration === duration.id ? "contained" : "outlined"}
+                                                onClick={() => {
+                                                    setSelectedBookingDuration(duration.id);
+                                                    setSelectedTimeSlots([]); // Clear previous selections
+                                                }}
+                                                sx={{
+                                                    height: '48px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 500,
+                                                    textTransform: 'none',
+                                                    fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif',
+                                                    backgroundColor: selectedBookingDuration === duration.id
+                                                        ? '#3498db'
+                                                        : '#ffffff',
+                                                    color: selectedBookingDuration === duration.id
+                                                        ? 'white'
+                                                        : '#2c3e50',
+                                                    border: `1px solid ${selectedBookingDuration === duration.id ? '#3498db' : '#e9ecef'}`,
+                                                    boxShadow: selectedBookingDuration === duration.id
+                                                        ? '0 4px 12px rgba(52, 152, 219, 0.3)'
+                                                        : 'none',
+                                                    transition: 'all 0.2s ease',
+                                                    '&:hover': {
+                                                        backgroundColor: selectedBookingDuration === duration.id
+                                                            ? '#2980b9'
+                                                            : '#f8f9fa',
+                                                        borderColor: '#3498db',
+                                                        transform: 'translateY(-1px)',
+                                                        boxShadow: '0 4px 12px rgba(52, 152, 219, 0.2)'
+                                                    }
+                                                }}
+                                            >
+                                                {duration.label}
+                                            </Button>
+                                        ))}
+                                    </Box>
+                                    
+                                    {/* Whole Day Option - Separate and Prominent */}
+                                    <Box sx={{ mb: 2 }}>
+                                        <Button
+                                            variant={selectedBookingDuration === 'wholeday' ? "contained" : "outlined"}
+                                            onClick={() => {
+                                                setSelectedBookingDuration('wholeday');
+                                                setSelectedTimeSlots([]); // Clear previous selections
+                                            }}
+                                            sx={{
+                                                width: '100%',
+                                                height: '56px',
+                                                borderRadius: '12px',
+                                                fontSize: '1rem',
+                                                fontWeight: 600,
+                                                textTransform: 'none',
+                                                fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif',
+                                                backgroundColor: selectedBookingDuration === 'wholeday'
+                                                    ? '#e74c3c'
+                                                    : '#ffffff',
+                                                color: selectedBookingDuration === 'wholeday'
+                                                    ? 'white'
+                                                    : '#e74c3c',
+                                                border: `2px solid ${selectedBookingDuration === 'wholeday' ? '#e74c3c' : '#e74c3c'}`,
+                                                boxShadow: selectedBookingDuration === 'wholeday'
+                                                    ? '0 6px 16px rgba(231, 76, 60, 0.3)'
+                                                    : 'none',
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    backgroundColor: selectedBookingDuration === 'wholeday'
+                                                        ? '#c0392b'
+                                                        : 'rgba(231, 76, 60, 0.1)',
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: '0 8px 20px rgba(231, 76, 60, 0.25)'
+                                                }
+                                            }}
+                                        >
+                                            🏢 Book Whole Day (7+ hours)
+                                        </Button>
+                                    </Box>
+                                    
+                                    {selectedBookingDuration && (
+                                        <Box sx={{
+                                            mt: 2,
+                                            p: 2,
+                                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(52, 152, 219, 0.2)'
+                                        }}>
+                                            <Typography variant="body2" sx={{
+                                                color: '#3498db',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 500
+                                            }}>
+                                                {selectedBookingDuration === 'wholeday' 
+                                                    ? '🏢 Click any slot to book the entire day (all available slots)'
+                                                    : '💡 Select any time slot below and we\'ll automatically book consecutive slots for your selected duration'
+                                                }
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+
+                                {/* Time Slots Header */}
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    mb: 3,
+                                    pb: 2,
+                                    borderBottom: '2px solid rgba(0, 0, 0, 0.05)'
+                                }}>
+                                    <Typography variant="h6" sx={{
+                                        fontWeight: 600,
+                                        color: '#2c3e50',
+                                        fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                                        fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
+                                    }}>
+                                        Available Time Slots
+                                    </Typography>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        px: 2,
+                                        py: 0.5,
+                                        borderRadius: '20px',
+                                        bgcolor: 'rgba(52, 152, 219, 0.1)',
+                                        border: '1px solid rgba(52, 152, 219, 0.2)'
+                                    }}>
+                                        <Box sx={{
+                                            width: 8,
+                                            height: 8,
+                                            borderRadius: '50%',
+                                            bgcolor: '#3498db'
+                                        }} />
+                                        <Typography variant="caption" sx={{
+                                            color: '#3498db',
+                                            fontWeight: 500,
+                                            fontSize: '0.75rem'
+                                        }}>
+                                            {availableSlots.length} slots available
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                
+                                {/* Time Slots Grid - International Layout */}
+                                <Box sx={{ 
+                                    display: 'grid',
+                                    gridTemplateColumns: {
+                                        xs: 'repeat(2, 1fr)',
+                                        sm: 'repeat(3, 1fr)',
+                                        md: 'repeat(4, 1fr)',
+                                        lg: 'repeat(6, 1fr)'
+                                    },
+                                    gap: { xs: 1.5, sm: 2, md: 2 },
+                                    width: '100%'
+                                }}>
                                 {availableSlots.map((slot, index) => {
                                     const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
-                                    const isDisabled = selectedTimeSlots.length >= getMaxAllowedSlots() && !isSelected;
-                                    const canSelect = !isDisabled;
+                                    const isInPreview = hoveredSlot && getConsecutiveSlots(slot, selectedBookingDuration).some(s => 
+                                        s.start === slot.start && s.end === slot.end
+                                    );
+                                    const canSelect = true;
                                     
                                     return (
                                         <Box
                                             key={index}
-                                            onClick={() => canSelect && handleTimeSlotSelection(slot)}
+                                            onClick={() => canSelect && handleTimeSlotSelectionWithDuration(slot)}
+                                            onMouseEnter={() => setHoveredSlot(slot)}
+                                            onMouseLeave={() => setHoveredSlot(null)}
                                             sx={{
                                                 position: 'relative',
-                                                width: '100%',
-                                                minHeight: { xs: '100px', sm: '120px' },
+                                                minHeight: { xs: '70px', sm: '80px' },
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                background: isSelected 
-                                                    ? 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)'
-                                                    : isDisabled
-                                                        ? 'linear-gradient(135deg, #FFECB3 0%, #FFE082 100%)'
-                                                        : 'linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)',
-                                                border: isSelected 
-                                                    ? '2px solid #2E7D32' 
-                                                    : isDisabled
-                                                        ? '2px solid #FFA726'
-                                                        : '2px solid transparent',
-                                                borderRadius: { xs: '12px', sm: '16px' },
                                                 cursor: canSelect ? 'pointer' : 'not-allowed',
+                                                border: '2px solid transparent',
+                                                borderRadius: '12px',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                backgroundColor: isSelected 
+                                                    ? '#3498db'
+                                                    : isInPreview 
+                                                        ? '#e8f4fd'
+                                                        : '#ffffff',
+                                                borderColor: isSelected 
+                                                    ? '#3498db'
+                                                    : isInPreview 
+                                                        ? '#3498db'
+                                                        : '#e9ecef',
                                                 boxShadow: isSelected 
-                                                    ? '0 6px 20px rgba(76, 175, 80, 0.3)'
-                                                    : isDisabled
-                                                        ? '0 4px 15px rgba(255, 167, 38, 0.2)'
-                                                        : '0 4px 15px rgba(0, 0, 0, 0.1)',
-                                                transform: isSelected ? 'scale(1.03)' : 'scale(1)',
+                                                    ? '0 4px 12px rgba(52, 152, 219, 0.3)'
+                                                    : isInPreview
+                                                        ? '0 2px 8px rgba(52, 152, 219, 0.2)'
+                                                        : '0 1px 3px rgba(0, 0, 0, 0.1)',
                                                 '&:hover': canSelect ? {
-                                                    transform: 'scale(1.05) translateY(-2px)',
-                                                    boxShadow: isSelected 
-                                                        ? '0 10px 30px rgba(76, 175, 80, 0.4)'
-                                                        : '0 6px 20px rgba(76, 175, 80, 0.2)',
-                                                    background: isSelected 
-                                                        ? 'linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%)'
-                                                        : 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
+                                                    borderColor: '#3498db',
+                                                    backgroundColor: isSelected ? '#2980b9' : '#f8fcff',
+                                                    boxShadow: '0 4px 12px rgba(52, 152, 219, 0.25)',
+                                                    transform: 'translateY(-2px)'
                                                 } : {},
-                                                transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                                                p: { xs: 1.5, sm: 2 },
-                                                overflow: 'hidden',
-                                                
-                                                // Animated background pattern
-                                                '&::before': {
-                                                    content: '""',
-                                                    position: 'absolute',
-                                                    top: 0,
-                                                    left: 0,
-                                                    right: 0,
-                                                    bottom: 0,
-                                                    background: isSelected 
-                                                        ? 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 50%)'
-                                                        : 'radial-gradient(circle at 70% 70%, rgba(76, 175, 80, 0.1) 0%, transparent 50%)',
-                                                    opacity: 0.8,
-                                                    transition: 'opacity 0.3s ease'
-                                                }
+                                                p: { xs: 1.5, sm: 2 }
                                             }}
                                         >
                                             {/* Time Display */}
                                             <Typography
+                                                variant="body1"
                                                 sx={{
+                                                    fontWeight: 600,
                                                     fontSize: { xs: '0.9rem', sm: '1rem' },
-                                                    fontWeight: 'bold',
-                                                    color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
+                                                    color: isSelected ? '#ffffff' : '#2c3e50',
                                                     textAlign: 'center',
-                                                    mb: 1,
-                                                    position: 'relative',
-                                                    zIndex: 1,
-                                                    textShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                                                    letterSpacing: '0.3px'
+                                                    lineHeight: 1.2,
+                                                    fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
                                                 }}
                                             >
                                                 {slot.display}
@@ -2829,114 +3727,153 @@ const handleHourlyMemberType = (memberType) => {
                                             
                                             {/* Duration Badge */}
                                             {slot.duration && (
-                                                <Box sx={{
-                                                    bgcolor: isSelected ? 'rgba(255,255,255,0.2)' : isDisabled ? 'rgba(255, 143, 0, 0.2)' : 'rgba(76, 175, 80, 0.2)',
-                                                    color: isSelected ? 'white' : isDisabled ? '#FF8F00' : '#2E7D32',
-                                                    px: { xs: 1.5, sm: 2 },
-                                                    py: 0.5,
-                                                    borderRadius: '20px',
-                                                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                                                    fontWeight: 'medium',
-                                                    position: 'relative',
-                                                    zIndex: 1,
-                                                    border: `1px solid ${isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
-                                                    backdropFilter: 'blur(10px)'
-                                                }}>
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{
+                                                        mt: 0.5,
+                                                        px: 1,
+                                                        py: 0.25,
+                                                        borderRadius: '10px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 500,
+                                                        backgroundColor: isSelected 
+                                                            ? 'rgba(255, 255, 255, 0.2)'
+                                                            : 'rgba(52, 152, 219, 0.1)',
+                                                        color: isSelected ? '#ffffff' : '#3498db',
+                                                        border: `1px solid ${isSelected ? 'rgba(255, 255, 255, 0.3)' : 'rgba(52, 152, 219, 0.2)'}`
+                                                    }}
+                                                >
                                                     {slot.duration}
-                                                </Box>
+                                                </Typography>
                                             )}
 
-                                            {/* Status Icon */}
-                                            <Box sx={{
-                                                position: 'absolute',
-                                                top: { xs: 8, sm: 12 },
-                                                right: { xs: 8, sm: 12 },
-                                                width: { xs: 20, sm: 24 },
-                                                height: { xs: 20, sm: 24 },
-                                                borderRadius: '50%',
-                                                bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : isDisabled ? 'rgba(255, 143, 0, 0.3)' : 'rgba(76, 175, 80, 0.3)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: { xs: '10px', sm: '12px' },
-                                                animation: isSelected ? 'pulse 2s infinite' : 'none',
-                                                '@keyframes pulse': {
-                                                    '0%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.7)' },
-                                                    '70%': { boxShadow: '0 0 0 10px rgba(255, 255, 255, 0)' },
-                                                    '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' }
-                                                }
-                                            }}>
-                                                {isSelected ? '✓' : isDisabled ? '⚠' : '○'}
-                                            </Box>
-
-                                            {/* Ripple Effect for Selected */}
+                                            {/* Selection Indicator */}
                                             {isSelected && (
-                                                <Box sx={{
-                                                    position: 'absolute',
-                                                    top: '50%',
-                                                    left: '50%',
-                                                    width: '15px',
-                                                    height: '15px',
-                                                    borderRadius: '50%',
-                                                    background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%)',
-                                                    transform: 'translate(-50%, -50%)',
-                                                    animation: 'ripple 1.5s infinite',
-                                                    '@keyframes ripple': {
-                                                        '0%': { 
-                                                            width: '15px', 
-                                                            height: '15px', 
-                                                            opacity: 1 
-                                                        },
-                                                        '100%': { 
-                                                            width: '80px', 
-                                                            height: '80px', 
-                                                            opacity: 0 
-                                                        }
-                                                    }
-                                                }} />
+                                                <Box
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: 8,
+                                                        right: 8,
+                                                        width: 20,
+                                                        height: 20,
+                                                        borderRadius: '50%',
+                                                        backgroundColor: '#ffffff',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                                                    }}
+                                                >
+                                                    <Typography sx={{ 
+                                                        color: '#3498db', 
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        ✓
+                                                    </Typography>
+                                                </Box>
                                             )}
                                         </Box>
                                     );
                                 })}
+                                </Box>
                             </Box>
                         )}
 
                         {selectedTimeSlots.length > 0 && (
                             <Box sx={{ 
-                                mt: { xs: 2, sm: 3 }, 
-                                p: { xs: 1.5, sm: 2 }, 
-                                bgcolor: '#f5f5ff', 
-                                borderRadius: { xs: 1, sm: 2 }, 
-                                border: '1px solid #e0e0e0' 
+                                mt: 4,
+                                p: 3,
+                                backgroundColor: '#f8f9fa',
+                                borderRadius: '16px',
+                                border: '1px solid #e9ecef',
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                             }}>
-                                <Typography 
-                                    variant="subtitle2" 
-                                    gutterBottom
-                                    sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
-                                >
-                                    Selected Time Slots: ({selectedTimeSlots.length}/{getMaxAllowedSlots()})
-                                </Typography>
-                                {selectedTimeSlots.map((slot, index) => (
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    mb: 2,
+                                    gap: 1.5
+                                }}>
+                                    <Box sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '8px',
+                                        backgroundColor: '#3498db',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontSize: '14px',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {selectedTimeSlots.length}
+                                    </Box>
                                     <Typography 
-                                        key={index} 
-                                        variant="body2" 
+                                        variant="h6" 
                                         sx={{ 
-                                            mb: 0.5,
-                                            fontSize: { xs: '0.8rem', sm: '0.9rem' }
+                                            fontSize: '1.1rem',
+                                            fontWeight: 600,
+                                            color: '#2c3e50',
+                                            fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
                                         }}
                                     >
-                                        {slot.display} ({slot.duration})
+                                        Selected Time Slots ({selectedTimeSlots.length}/{getMaxAllowedSlots()})
                                     </Typography>
-                                ))}
-                                <Typography 
-                                    variant="subtitle2" 
-                                    sx={{ 
-                                        mt: { xs: 1.5, sm: 2 },
-                                        fontSize: { xs: '0.9rem', sm: '1rem' }
-                                    }}
-                                >
-                                    Total Price: ₹{Math.ceil(calculatedPrice.total)}/- (Including GST)
-                                </Typography>
+                                </Box>
+                                
+                                <Box sx={{ 
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: 1,
+                                    mb: 3
+                                }}>
+                                    {selectedTimeSlots.map((slot, index) => (
+                                        <Box 
+                                            key={index}
+                                            sx={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 1,
+                                                px: 2,
+                                                py: 1,
+                                                backgroundColor: '#ffffff',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e1e8ed',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 500,
+                                                color: '#2c3e50'
+                                            }}
+                                        >
+                                            <Box sx={{
+                                                width: 6,
+                                                height: 6,
+                                                borderRadius: '50%',
+                                                backgroundColor: '#3498db'
+                                            }} />
+                                            {slot.display} ({slot.duration})
+                                        </Box>
+                                    ))}
+                                </Box>
+                                
+                                <Box sx={{
+                                    p: 2.5,
+                                    backgroundColor: '#3498db',
+                                    borderRadius: '12px',
+                                    textAlign: 'center'
+                                }}>
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
+                                            color: 'white',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 600,
+                                            fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
+                                        }}
+                                    >
+                                        Total: ₹{Math.ceil(calculatedPrice.total)} (Including GST)
+                                    </Typography>
+                                </Box>
                             </Box>
                         )}
 
