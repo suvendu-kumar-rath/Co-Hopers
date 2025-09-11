@@ -104,101 +104,163 @@ const BookMeetingRoom = () => {
     };
 
     // Function to get consecutive slots based on selected duration
-    const getConsecutiveSlots = (startSlot, totalDuration) => {
+    const getConsecutiveSlots = (startSlot, totalDurationMinutes) => {
+        console.log('getConsecutiveSlots called with:', {
+            startSlot,
+            totalDurationMinutes,
+            availableSlots: availableSlots.length
+        });
+        
         const slots = [];
-        let currentTime = startSlot.start;
-        let remainingDuration = totalDuration;
+        let remainingDuration = totalDurationMinutes;
         
-        // Find all available 30-minute slots
-        const allSlots = availableSlots.filter(slot => slot.duration === '30 minutes');
-        
-        // Sort slots by start time
-        const sortedSlots = allSlots.sort((a, b) => a.start.localeCompare(b.start));
+        // Use all available slots
+        const sortedSlots = availableSlots.sort((a, b) => a.start.localeCompare(b.start));
         
         // Find the starting slot
         const startIndex = sortedSlots.findIndex(slot => 
             slot.start === startSlot.start && slot.end === startSlot.end
         );
         
+        console.log('Found start index:', startIndex);
+        
         if (startIndex === -1) return [];
+        
+        // Get slot duration from API data (60 minutes for non-members, 30 for members typically)
+        let slotDuration = 30; // default
+        if (startSlot.duration) {
+            const match = startSlot.duration.match(/(\d+)/);
+            slotDuration = match ? parseInt(match[1]) : 30;
+        }
+        
+        console.log('Slot duration detected:', slotDuration);
         
         // Collect consecutive slots
         for (let i = startIndex; i < sortedSlots.length && remainingDuration > 0; i++) {
             const slot = sortedSlots[i];
-            slots.push(slot);
-            remainingDuration -= 30; // Each slot is 30 minutes
             
-            // Check if next slot is consecutive
-            if (i < sortedSlots.length - 1) {
+            // Check if this slot is available
+            if (!isRoomAvailable('time1', selectedDate, slot.start, slot.end)) {
+                console.log('Slot not available:', slot);
+                break;
+            }
+            
+            slots.push(slot);
+            remainingDuration -= slotDuration;
+            
+            console.log('Added slot:', slot, 'Remaining duration:', remainingDuration);
+            
+            // Break if we have enough duration
+            if (remainingDuration <= 0) break;
+            
+            // Check if next slot exists and is consecutive
+            if (i + 1 < sortedSlots.length) {
                 const nextSlot = sortedSlots[i + 1];
                 if (slot.end !== nextSlot.start) {
+                    console.log('Next slot not consecutive:', slot.end, '!=', nextSlot.start);
                     break; // Not consecutive
                 }
             }
         }
         
-        // Return only if we have enough slots for the total duration
-        return remainingDuration <= 0 ? slots : [];
+        // Return slots only if we have enough for the requested duration
+        const totalMinutes = slots.length * slotDuration;
+        console.log('Final result:', {
+            slotsCount: slots.length,
+            totalMinutes,
+            requiredMinutes: totalDurationMinutes,
+            success: totalMinutes >= totalDurationMinutes
+        });
+        return totalMinutes >= totalDurationMinutes ? slots : [];
     };
 
     // Update time slot selection handler for duration-based booking
-    const handleTimeSlotSelectionWithDuration = (slot) => {
-        if (isRoomAvailable('time1', selectedDate, slot.start, slot.end)) {
-            // Handle whole day booking
-            if (selectedBookingDuration === 'wholeday') {
-                // Book all available slots for the day
-                const allDaySlots = availableSlots.filter(availableSlot => 
-                    isRoomAvailable('time1', selectedDate, availableSlot.start, availableSlot.end)
-                );
-                
-                if (allDaySlots.length === 0) {
-                    alert('No slots available for whole day booking');
-                    return;
-                }
-                
-                setSelectedTimeSlots(allDaySlots);
-                
-                // Calculate total price for all day slots
-                const totalPriceDetails = calculateTotalPrice(allDaySlots);
-                setCalculatedPrice(totalPriceDetails);
-                
-                // Set the first and last slot times
-                setSelectedTime(allDaySlots[0].start);
-                setSelectedEndTime(allDaySlots[allDaySlots.length - 1].end);
+    const handleTimeSlotSelectionUnified = (slot) => {
+        if (!isRoomAvailable('time1', selectedDate, slot.start, slot.end)) {
+            return;
+        }
+
+        // Check if this slot is already selected
+        const isAlreadySelected = selectedTimeSlots.some(s => 
+            s.start === slot.start && s.end === slot.end
+        );
+
+        // Handle duration-based consecutive booking (30min - 7hr)
+        if (selectedBookingDuration && selectedBookingDuration !== 'manual') {
+            if (isAlreadySelected) {
+                // If clicking on already selected slot, clear all selections
+                setSelectedTimeSlots([]);
+                setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
+                setSelectedTime('');
+                setSelectedEndTime('');
                 return;
             }
-            
+
             // Get consecutive slots based on selected booking duration
             const consecutiveSlots = getConsecutiveSlots(slot, selectedBookingDuration);
+            
+            console.log('Debug consecutive slots:', {
+                selectedBookingDuration,
+                startSlot: slot,
+                foundSlots: consecutiveSlots.length,
+                slots: consecutiveSlots
+            });
             
             if (consecutiveSlots.length === 0) {
                 alert(`Cannot find ${selectedBookingDuration} minutes of consecutive slots starting from ${slot.display}`);
                 return;
             }
+
+            // Set the new consecutive slots
+            setSelectedTimeSlots(consecutiveSlots);
             
-            // Check if we already have slots selected
-            const isAlreadySelected = selectedTimeSlots.some(s => 
-                s.start === slot.start && s.end === slot.end
+            // Calculate total price for all selected slots
+            const totalPriceDetails = calculateTotalPrice(consecutiveSlots);
+            setCalculatedPrice(totalPriceDetails);
+            
+            // Set the first selected slot's time as the main selected time
+            setSelectedTime(consecutiveSlots[0].start);
+            setSelectedEndTime(consecutiveSlots[consecutiveSlots.length - 1].end);
+            return;
+        }
+
+        // Handle manual individual slot selection
+        let newSelectedSlots;
+        if (isAlreadySelected) {
+            // Remove the slot if already selected
+            newSelectedSlots = selectedTimeSlots.filter(s => 
+                !(s.start === slot.start && s.end === slot.end)
             );
+        } else {
+            // Check if adding this slot would exceed the maximum allowed slots
+            const maxSlots = memberType === 'Member' ? 3 : 4;
             
-            if (isAlreadySelected) {
-                // Remove all selected slots
-                setSelectedTimeSlots([]);
-                setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
-                setSelectedTime('');
-                setSelectedEndTime('');
-            } else {
-                // Set the new consecutive slots
-                setSelectedTimeSlots(consecutiveSlots);
-                
-                // Calculate total price for all selected slots
-                const totalPriceDetails = calculateTotalPrice(consecutiveSlots);
-                setCalculatedPrice(totalPriceDetails);
-                
-                // Set the first selected slot's time as the main selected time
-                setSelectedTime(consecutiveSlots[0].start);
-                setSelectedEndTime(consecutiveSlots[consecutiveSlots.length - 1].end);
+            if (selectedTimeSlots.length >= maxSlots) {
+                alert(`Maximum ${maxSlots} slots allowed for ${memberType}`);
+                return;
             }
+
+            // Add the new slot
+            newSelectedSlots = [...selectedTimeSlots, slot];
+        }
+
+        // Update selected slots
+        setSelectedTimeSlots(newSelectedSlots);
+
+        // Calculate total price
+        const totalPriceDetails = calculateTotalPrice(newSelectedSlots);
+        setCalculatedPrice(totalPriceDetails);
+
+        // Set start and end times
+        if (newSelectedSlots.length > 0) {
+            const sortedSlots = [...newSelectedSlots].sort((a, b) => 
+                a.start.localeCompare(b.start)
+            );
+            setSelectedTime(sortedSlots[0].start);
+            setSelectedEndTime(sortedSlots[sortedSlots.length - 1].end);
+        } else {
+            setSelectedTime('');
+            setSelectedEndTime('');
         }
     };
 
@@ -279,19 +341,41 @@ const BookMeetingRoom = () => {
     
     // Get duration options based on member type
     const getDurationOptions = () => {
-        const commonOptions = [
-            { id: 30, label: '30 min', slots: 1 },
-            { id: 60, label: '1 hr', slots: 2 },
-            { id: 120, label: '2 hr', slots: 4 },
-            { id: 180, label: '3 hr', slots: 6 },
-            { id: 240, label: '4 hr', slots: 8 },
-            { id: 300, label: '5 hr', slots: 10 },
-            { id: 360, label: '6 hr', slots: 12 },
-            { id: 420, label: '7 hr', slots: 14 },
-            { id: 'wholeday', label: 'Book Whole Day', slots: 'all' }
+        // Base options for manual selection
+        const baseOptions = [
+            { id: 'manual', label: 'Manual Selection', slots: 'custom' }
         ];
-        
-        return commonOptions;
+
+        // Member-specific duration options
+        if (memberType === 'Member') {
+            // Members get 30min option plus all hourly options (no whole day)
+            return [
+                ...baseOptions,
+                { id: 30, label: '30 min', slots: 1 },
+                { id: 60, label: '1 hr', slots: 2 },
+                { id: 120, label: '2 hr', slots: 4 },
+                { id: 180, label: '3 hr', slots: 6 },
+                { id: 240, label: '4 hr', slots: 8 },
+                { id: 300, label: '5 hr', slots: 10 },
+                { id: 360, label: '6 hr', slots: 12 },
+                { id: 420, label: '7 hr', slots: 14 }
+            ];
+        } else if (memberType === 'Non-Member') {
+            // Non-members get only hourly options (no 30min, no whole day)
+            return [
+                ...baseOptions,
+                { id: 60, label: '1 hr', slots: 2 },
+                { id: 120, label: '2 hr', slots: 4 },
+                { id: 180, label: '3 hr', slots: 6 },
+                { id: 240, label: '4 hr', slots: 8 },
+                { id: 300, label: '5 hr', slots: 10 },
+                { id: 360, label: '6 hr', slots: 12 },
+                { id: 420, label: '7 hr', slots: 14 }
+            ];
+        }
+
+        // Default fallback (shouldn't happen if memberType is properly set)
+        return baseOptions;
     };
     
     // Calculate total price for all selected time slots
@@ -318,7 +402,7 @@ const BookMeetingRoom = () => {
     const [selectedEndTime, setSelectedEndTime] = useState('');
     const [calculatedPrice, setCalculatedPrice] = useState({ subtotal: 0, gst: 0, total: 0, duration: 0 });
     const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
-    const [selectedBookingDuration, setSelectedBookingDuration] = useState(30); // Default to 30 minutes
+    const [selectedBookingDuration, setSelectedBookingDuration] = useState('manual'); // Default to manual selection
     // Add a new state to track the date window start
     const [dateWindowStart, setDateWindowStart] = useState(new Date());
     // Add state for total duration selection
@@ -492,8 +576,13 @@ const BookMeetingRoom = () => {
                             : "outlined"
                         }
                         onClick={() => {
+                            console.log('Date selected:', {
+                                date: format(date, 'yyyy-MM-dd'),
+                                memberType,
+                                selectedSeating
+                            });
                             setSelectedDate(date);
-                            fetchAvailableSlots(date);
+                            // fetchAvailableSlots will be called by useEffect
                         }}
                         sx={{
                             minWidth: 120,
@@ -582,7 +671,7 @@ const BookMeetingRoom = () => {
                                 🕐 Available Time Slots
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#4CAF50', mb: 2 }}>
-                                Select your total meeting duration, then click any time slot to auto-book consecutive slots
+                                Choose "Manual Selection" to pick individual slots, or select a duration ({memberType === 'Member' ? '30min-7hr' : '1hr-7hr'}) for automatic consecutive booking
                             </Typography>
 
                             {/* Duration Selector */}
@@ -720,7 +809,7 @@ const BookMeetingRoom = () => {
                         return (
                             <Box
                                 key={index}
-                                    onClick={() => canSelect && handleTimeSlotSelectionWithDuration(slot)}
+                                    onClick={() => canSelect && handleTimeSlotSelectionUnified(slot)}
                                     onMouseEnter={() => setHoveredSlot(slot)}
                                     onMouseLeave={() => setHoveredSlot(null)}
                                 sx={{
@@ -1639,6 +1728,27 @@ const handleHourlyMemberType = (memberType) => {
         fetchMemberTypes();
     }, []);
 
+    // Add useEffect to re-fetch available slots when memberType, selectedSeating, or selectedDate changes
+    useEffect(() => {
+        if (selectedDate && memberType && selectedSeating) {
+            console.log('Dependencies changed, re-fetching available slots:', {
+                selectedDate: format(selectedDate, 'yyyy-MM-dd'),
+                memberType,
+                selectedSeating
+            });
+            fetchAvailableSlots(selectedDate);
+        }
+    }, [memberType, selectedSeating, selectedDate]);
+
+    // Add useEffect to reset duration if it's incompatible with member type
+    useEffect(() => {
+        if (memberType === 'Non-Member' && selectedBookingDuration === 30) {
+            // Non-members can't select 30min, reset to manual
+            setSelectedBookingDuration('manual');
+            setSelectedTimeSlots([]);
+        }
+    }, [memberType, selectedBookingDuration]);
+
     const [pricingData, setPricingData] = useState(null);
     const [isLoadingPricing, setIsLoadingPricing] = useState(false);
 
@@ -1703,8 +1813,8 @@ const handleHourlyMemberType = (memberType) => {
         setSelectedTimeSlots([]);
         setAvailableTimeSlots([]);
         
-        // Set default duration (30 minutes for all users)
-        setSelectedBookingDuration(30);
+        // Set default duration (manual selection for all users)
+        setSelectedBookingDuration('manual');
 
         // Fetch pricing data when member type changes if booking type is already selected
         if (selectedMemberType && bookingType) {
@@ -1729,17 +1839,29 @@ const handleHourlyMemberType = (memberType) => {
 
     // Update the fetchAvailableSlots function
     const fetchAvailableSlots = async (date) => {
+        // Validate required parameters
+        if (!memberType || !selectedSeating) {
+            console.log('Missing required parameters for fetchAvailableSlots:', {
+                memberType,
+                selectedSeating
+            });
+            return;
+        }
+
         setIsLoadingSlots(true);
         console.log('Fetching available slots...');
+        
+        const params = {
+            date: format(date, 'yyyy-MM-dd'),
+            capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
+            memberType: memberType === 'Member' ? 'member' : 'non-member'
+        };
+        
+        console.log('API Parameters:', params);
+        
         try {
-            const formattedDate = format(date, 'yyyy-MM-dd');
             const response = await axios.get(`https://api.boldtribe.in/api/meetingrooms/available-slots`, {
-                params: {
-                    date: formattedDate,
-                    capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
-                    bookingType: bookingType === 'hourly' ? 'Hourly' : 'Whole Day',
-                    memberType: memberType === 'member' ? 'Member' : 'Non-Member'
-                }
+                params
             });
             console.log('Available Slots API Response:', response.data);
             
@@ -1751,7 +1873,7 @@ const handleHourlyMemberType = (memberType) => {
                     return {
                         start,
                         end,
-                        duration: response.data.data.duration,
+                        duration: response.data.data.slotDuration || '30 minutes',
                         display: slot
                     };
                 });
@@ -3343,8 +3465,13 @@ const handleHourlyMemberType = (memberType) => {
                                             : "outlined"
                                         }
                                         onClick={() => {
+                                            console.log('Date selected (second location):', {
+                                                date: format(date, 'yyyy-MM-dd'),
+                                                memberType,
+                                                selectedSeating
+                                            });
                                             setSelectedDate(date);
-                                            fetchAvailableSlots(date);
+                                            // fetchAvailableSlots will be called by useEffect
                                         }}
                                         sx={{
                                             minWidth: '100px',
@@ -3494,6 +3621,33 @@ const handleHourlyMemberType = (memberType) => {
                                         Select Duration
                                     </Typography>
                                     
+                                    {/* Advertisement for Whole Day Option */}
+                                    <Box sx={{
+                                        mb: 3,
+                                        p: 2.5,
+                                        background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+                                        borderRadius: '12px',
+                                        border: '1px solid rgba(255, 152, 0, 0.3)',
+                                        textAlign: 'center'
+                                    }}>
+                                        <Typography sx={{
+                                            color: 'white',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 600,
+                                            mb: 1,
+                                            textShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                        }}>
+                                            💡 Need more than 7 hours?
+                                        </Typography>
+                                        <Typography sx={{
+                                            color: 'rgba(255,255,255,0.95)',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 400
+                                        }}>
+                                            Explore our "Whole Day" booking type for extended meetings!
+                                        </Typography>
+                                    </Box>
+                                    
                                     <Box sx={{
                                         display: 'grid',
                                         gridTemplateColumns: {
@@ -3504,7 +3658,7 @@ const handleHourlyMemberType = (memberType) => {
                                         gap: 1.5,
                                         mb: 2
                                     }}>
-                                        {getDurationOptions().slice(0, -1).map((duration) => (
+                                        {getDurationOptions().map((duration) => (
                                             <Button
                                                 key={duration.id}
                                                 variant={selectedBookingDuration === duration.id ? "contained" : "outlined"}
@@ -3650,6 +3804,15 @@ const handleHourlyMemberType = (memberType) => {
                                     </Box>
                                 </Box>
                                 
+                                <Typography variant="body2" sx={{ 
+                                    color: '#4CAF50', 
+                                    mb: 2, 
+                                    textAlign: 'center',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    Choose "Manual Selection" to pick individual slots, or select a duration ({memberType === 'Member' ? '30min-7hr' : '1hr-7hr'}) for automatic consecutive booking
+                                </Typography>
+                                
                                 {/* Time Slots Grid - International Layout */}
                                 <Box sx={{ 
                                     display: 'grid',
@@ -3672,7 +3835,7 @@ const handleHourlyMemberType = (memberType) => {
                                     return (
                                         <Box
                                             key={index}
-                                            onClick={() => canSelect && handleTimeSlotSelectionWithDuration(slot)}
+                                            onClick={() => canSelect && handleTimeSlotSelectionUnified(slot)}
                                             onMouseEnter={() => setHoveredSlot(slot)}
                                             onMouseLeave={() => setHoveredSlot(null)}
                                             sx={{
