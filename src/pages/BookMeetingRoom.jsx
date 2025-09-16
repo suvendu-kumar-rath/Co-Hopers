@@ -35,14 +35,22 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import axios from 'axios';
 import PendingIcon from '@mui/icons-material/Pending';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import LoginModal from '../components/modals/LoginModal';
 
 const BookMeetingRoom = () => {
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+    
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
     const [showRoomSelectionModal, setShowRoomSelectionModal] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [bookingType, setBookingType] = useState('');
     const [memberType, setMemberType] = useState('');
+    
+    // Login related states
+    const [showLoginModal, setShowLoginModal] = useState(false);
     
     const [selectedSeating, setSelectedSeating] = useState('');
     const [showTimeSlotGridModal, setShowTimeSlotGridModal] = useState(false);
@@ -1478,6 +1486,20 @@ const BookMeetingRoom = () => {
         }
     };
 
+    // Handle successful login for members
+    const handleLoginSuccess = (userData) => {
+        console.log('Member login successful:', userData);
+        setShowLoginModal(false);
+        
+        // After successful login, open the time slot selection modal
+        setShowTimeSlotModal(true);
+    };
+
+    // Handle login modal close
+    const handleLoginClose = () => {
+        setShowLoginModal(false);
+    };
+
     const handleBookingTypeChange = (e) => {
         const newBookingType = e.target.value;
         setBookingType(newBookingType);
@@ -1806,6 +1828,7 @@ const handleHourlyMemberType = (memberType) => {
     const handleMemberTypeChange = (e) => {
         const selectedMemberType = e.target.value;  // Keep the exact case from the API
         setMemberType(selectedMemberType);
+        console.log('Selected Member Type:', selectedMemberType);
         
         // Reset date and seating when member type changes
         setSelectedDate(null);
@@ -1999,8 +2022,6 @@ const handleHourlyMemberType = (memberType) => {
             </Fade>
         </Modal>
     );
-
-    const navigate = useNavigate();
 
     // New state variables for payment flow
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -3051,7 +3072,14 @@ const handleHourlyMemberType = (memberType) => {
                                     <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                                         <Button
                                             variant="contained"
-                                            onClick={() => setShowTimeSlotModal(true)}
+                                            onClick={() => {
+                                                // Check if user is member and not authenticated
+                                                if (memberType === 'Member' && !isAuthenticated) {
+                                                    setShowLoginModal(true);
+                                                } else {
+                                                    setShowTimeSlotModal(true);
+                                                }
+                                            }}
                                             disabled={!pricingData}
                                             sx={{
                                                 bgcolor: 'white',
@@ -3064,7 +3092,7 @@ const handleHourlyMemberType = (memberType) => {
                                                 }
                                             }}
                                         >
-                                            Book Now
+                                            Book Nowwwwwwwwwwwwwwwwww
                                         </Button>
                                     </Box>
                                 </CardContent>
@@ -3225,7 +3253,7 @@ const handleHourlyMemberType = (memberType) => {
                                     '0%': { opacity: 0, transform: 'translateY(20px)' },
                                     '100%': { opacity: 1, transform: 'translateY(0)' }
                                 }
-                            }}>
+                            }}>-
                         <Button
                             fullWidth
                             variant="contained"
@@ -4120,6 +4148,13 @@ const handleHourlyMemberType = (memberType) => {
             
             {/* Pending Modal */}
             <PendingModal />
+            
+            {/* Login Modal for Members */}
+            <LoginModal
+                open={showLoginModal}
+                onClose={handleLoginClose}
+                onLoginSuccess={handleLoginSuccess}
+            />
         </>
     );
 };
