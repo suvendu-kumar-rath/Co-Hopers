@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Box,
-    Button,
-    Typography,
+import { 
+    Box, 
+    Button, 
+    Typography, 
     Modal,
     TextField,
     Paper,
@@ -41,23 +41,26 @@ import LoginModal from '../components/modals/LoginModal';
 const BookMeetingRoom = () => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
-
+    
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
     const [showRoomSelectionModal, setShowRoomSelectionModal] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [bookingType, setBookingType] = useState('');
     const [memberType, setMemberType] = useState('');
-
+    
     // Login related states
     const [showLoginModal, setShowLoginModal] = useState(false);
-
+    
+    // Whole day booking states
+    const [showWholeDaySummaryModal, setShowWholeDaySummaryModal] = useState(false);
+    
     const [selectedSeating, setSelectedSeating] = useState('');
     const [showTimeSlotGridModal, setShowTimeSlotGridModal] = useState(false);
-
+    
     const seatingOptions = [
-        { id: 'C1', name: '4-6 Seater', capacity: 4 - 6 },
-        { id: 'C2', name: '10-12 Seater', capacity: 10 - 12 }
+        { id: 'C1', name: '4-6 Seater', capacity: 4-6 },
+        { id: 'C2', name: '10-12 Seater', capacity:10-12}
     ];
 
     // Modify rooms data to include seating capacity
@@ -94,15 +97,15 @@ const BookMeetingRoom = () => {
 
         const [startHour, startMinute] = start.split(':').map(Number);
         const [endHour, endMinute] = end.split(':').map(Number);
-
-        const duration = (endHour + endMinute / 60) - (startHour + startMinute / 60);
-
+        
+        const duration = (endHour + endMinute/60) - (startHour + startMinute/60);
+        
         // Use the getBasePrice function for consistent pricing
         const basePrice = getBasePrice();
-
+        
         const subtotal = Math.ceil(duration * basePrice);
         // const gst = subtotal * 0.18;
-
+        
         return {
             duration,
             subtotal,
@@ -118,49 +121,49 @@ const BookMeetingRoom = () => {
             totalDurationMinutes,
             availableSlots: availableSlots.length
         });
-
+        
         const slots = [];
         let remainingDuration = totalDurationMinutes;
-
+        
         // Use all available slots
         const sortedSlots = availableSlots.sort((a, b) => a.start.localeCompare(b.start));
-
+        
         // Find the starting slot
-        const startIndex = sortedSlots.findIndex(slot =>
+        const startIndex = sortedSlots.findIndex(slot => 
             slot.start === startSlot.start && slot.end === startSlot.end
         );
-
+        
         console.log('Found start index:', startIndex);
-
+        
         if (startIndex === -1) return [];
-
+        
         // Get slot duration from API data (60 minutes for non-members, 30 for members typically)
         let slotDuration = 30; // default
         if (startSlot.duration) {
             const match = startSlot.duration.match(/(\d+)/);
             slotDuration = match ? parseInt(match[1]) : 30;
         }
-
+        
         console.log('Slot duration detected:', slotDuration);
-
+        
         // Collect consecutive slots
         for (let i = startIndex; i < sortedSlots.length && remainingDuration > 0; i++) {
             const slot = sortedSlots[i];
-
+            
             // Check if this slot is available
             if (!isRoomAvailable('time1', selectedDate, slot.start, slot.end)) {
                 console.log('Slot not available:', slot);
                 break;
             }
-
+            
             slots.push(slot);
             remainingDuration -= slotDuration;
-
+            
             console.log('Added slot:', slot, 'Remaining duration:', remainingDuration);
-
+            
             // Break if we have enough duration
             if (remainingDuration <= 0) break;
-
+            
             // Check if next slot exists and is consecutive
             if (i + 1 < sortedSlots.length) {
                 const nextSlot = sortedSlots[i + 1];
@@ -170,7 +173,7 @@ const BookMeetingRoom = () => {
                 }
             }
         }
-
+        
         // Return slots only if we have enough for the requested duration
         const totalMinutes = slots.length * slotDuration;
         console.log('Final result:', {
@@ -189,7 +192,7 @@ const BookMeetingRoom = () => {
         }
 
         // Check if this slot is already selected
-        const isAlreadySelected = selectedTimeSlots.some(s =>
+        const isAlreadySelected = selectedTimeSlots.some(s => 
             s.start === slot.start && s.end === slot.end
         );
 
@@ -206,14 +209,14 @@ const BookMeetingRoom = () => {
 
             // Get consecutive slots based on selected booking duration
             const consecutiveSlots = getConsecutiveSlots(slot, selectedBookingDuration);
-
+            
             console.log('Debug consecutive slots:', {
                 selectedBookingDuration,
                 startSlot: slot,
                 foundSlots: consecutiveSlots.length,
                 slots: consecutiveSlots
             });
-
+            
             if (consecutiveSlots.length === 0) {
                 alert(`Cannot find ${selectedBookingDuration} minutes of consecutive slots starting from ${slot.display}`);
                 return;
@@ -221,11 +224,11 @@ const BookMeetingRoom = () => {
 
             // Set the new consecutive slots
             setSelectedTimeSlots(consecutiveSlots);
-
+            
             // Calculate total price for all selected slots
             const totalPriceDetails = calculateTotalPrice(consecutiveSlots);
             setCalculatedPrice(totalPriceDetails);
-
+            
             // Set the first selected slot's time as the main selected time
             setSelectedTime(consecutiveSlots[0].start);
             setSelectedEndTime(consecutiveSlots[consecutiveSlots.length - 1].end);
@@ -236,13 +239,13 @@ const BookMeetingRoom = () => {
         let newSelectedSlots;
         if (isAlreadySelected) {
             // Remove the slot if already selected
-            newSelectedSlots = selectedTimeSlots.filter(s =>
+            newSelectedSlots = selectedTimeSlots.filter(s => 
                 !(s.start === slot.start && s.end === slot.end)
             );
         } else {
             // Check if adding this slot would exceed the maximum allowed slots
             const maxSlots = memberType === 'Member' ? 3 : 4;
-
+            
             if (selectedTimeSlots.length >= maxSlots) {
                 alert(`Maximum ${maxSlots} slots allowed for ${memberType}`);
                 return;
@@ -261,7 +264,7 @@ const BookMeetingRoom = () => {
 
         // Set start and end times
         if (newSelectedSlots.length > 0) {
-            const sortedSlots = [...newSelectedSlots].sort((a, b) =>
+            const sortedSlots = [...newSelectedSlots].sort((a, b) => 
                 a.start.localeCompare(b.start)
             );
             setSelectedTime(sortedSlots[0].start);
@@ -279,7 +282,7 @@ const BookMeetingRoom = () => {
             const slotIndex = selectedTimeSlots.findIndex(
                 s => s.start === slot.start && s.end === slot.end
             );
-
+            
             let newSelectedSlots;
             if (slotIndex >= 0) {
                 // If slot is already selected, remove it
@@ -287,20 +290,20 @@ const BookMeetingRoom = () => {
             } else {
                 // Check if adding this slot would exceed the maximum allowed slots
                 const maxSlots = memberType === 'member' ? 3 : 4; // Max 3 slots for members, 4 for non-members
-
+                
                 if (selectedTimeSlots.length >= maxSlots) {
                     // Maximum slots already selected, don't add more
                     return;
                 }
-
+                
                 // Add the new slot temporarily to check continuity
                 const potentialSlots = [...selectedTimeSlots, slot];
-
+                
                 // Sort slots by start time
-                const sortedSlots = [...potentialSlots].sort((a, b) =>
+                const sortedSlots = [...potentialSlots].sort((a, b) => 
                     a.start.localeCompare(b.start)
                 );
-
+                
                 // Check if all slots form a continuous sequence
                 let isContinuous = true;
                 for (let i = 0; i < sortedSlots.length - 1; i++) {
@@ -309,22 +312,22 @@ const BookMeetingRoom = () => {
                         break;
                     }
                 }
-
+                
                 if (!isContinuous) {
                     alert("Please select consecutive time slots only");
                     return;
                 }
-
+                
                 // If all checks pass, add the new slot
                 newSelectedSlots = potentialSlots;
             }
-
+            
             setSelectedTimeSlots(newSelectedSlots);
-
+            
             // Calculate total price for all selected slots
             const totalPriceDetails = calculateTotalPrice(newSelectedSlots);
             setCalculatedPrice(totalPriceDetails);
-
+            
             // Set the first selected slot's time as the main selected time (for backward compatibility)
             if (newSelectedSlots.length > 0) {
                 setSelectedTime(newSelectedSlots[0].start);
@@ -335,18 +338,18 @@ const BookMeetingRoom = () => {
             }
         }
     };
-
+    
     // Get maximum allowed time slots based on member type
     const getMaxAllowedSlots = () => {
         return memberType === 'member' ? 3 : 4; // Max 3 slots for members, 4 for non-members
     };
-
+    
     // Get remaining available slots
     const getRemainingSlots = () => {
         const maxSlots = getMaxAllowedSlots();
         return maxSlots - selectedTimeSlots.length;
     };
-
+    
     // Get duration options based on member type
     const getDurationOptions = () => {
         // Base options for manual selection
@@ -385,13 +388,13 @@ const BookMeetingRoom = () => {
         // Default fallback (shouldn't happen if memberType is properly set)
         return baseOptions;
     };
-
+    
     // Calculate total price for all selected time slots
     const calculateTotalPrice = (slots) => {
         if (!slots || slots.length === 0) {
             return { duration: 0, subtotal: 0, gst: 0, total: 0 };
         }
-
+        
         const totalDetails = slots.reduce((acc, slot) => {
             const slotDetails = calculateDurationAndPrice(slot.start, slot.end);
             return {
@@ -401,7 +404,7 @@ const BookMeetingRoom = () => {
                 total: acc.total + slotDetails.total
             };
         }, { duration: 0, subtotal: 0, gst: 0, total: 0 });
-
+        
         return totalDetails;
     };
 
@@ -436,7 +439,7 @@ const BookMeetingRoom = () => {
             const startTime = timeSlots[i].value;
             const endTime30 = timeSlots[i + 1].value;
             const endTime60 = i < timeSlots.length - 2 ? timeSlots[i + 2].value : null;
-
+            
             slots.push({
                 start: startTime,
                 end: endTime30,
@@ -473,11 +476,11 @@ const BookMeetingRoom = () => {
     const goToPreviousDates = () => {
         const newStartDate = new Date(dateWindowStart);
         newStartDate.setDate(dateWindowStart.getDate() - 3);
-
+        
         // Prevent going before current day
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
+        
         if (newStartDate < today) {
             setDateWindowStart(today);
         } else {
@@ -497,10 +500,10 @@ const BookMeetingRoom = () => {
         const [startHour, startMinute] = start.split(':').map(Number);
         const [endHour, endMinute] = end.split(':').map(Number);
         const duration = (endHour - startHour) + (endMinute - startMinute) / 60;
-
+        
         // Use the getBasePrice function for consistent pricing
         const basePrice = getBasePrice();
-
+        
         const subtotal = Math.ceil(duration * basePrice);
         const gst = subtotal * 0.18;
         return {
@@ -524,7 +527,7 @@ const BookMeetingRoom = () => {
     const handleDateSelect = (date) => {
         setSelectedDate(date);
         handleCalendarClose();
-
+        
         // If in hourly booking mode, set up time slots based on member type
         if (bookingType === 'hourly' && memberType) {
             if (memberType === 'member') {
@@ -557,9 +560,9 @@ const BookMeetingRoom = () => {
             </Typography>
 
             {/* Date Selection Tabs with Navigation */}
-            <Box sx={{
-                display: 'flex',
-                gap: 2,
+            <Box sx={{ 
+                display: 'flex', 
+                gap: 2, 
                 mb: 4,
                 justifyContent: 'center',
                 alignItems: 'center'
@@ -567,20 +570,20 @@ const BookMeetingRoom = () => {
                 <Button
                     onClick={goToPreviousDates}
                     variant="outlined"
-                    sx={{
-                        minWidth: 40,
+                    sx={{ 
+                        minWidth: 40, 
                         borderRadius: '50%',
                         p: 1
                     }}
                 >
                     &lt;
                 </Button>
-
+                
                 {getAvailableDates().map((date) => (
                     <Button
                         key={format(date, 'yyyy-MM-dd')}
-                        variant={selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-                            ? "contained"
+                        variant={selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') 
+                            ? "contained" 
                             : "outlined"
                         }
                         onClick={() => {
@@ -602,12 +605,12 @@ const BookMeetingRoom = () => {
                         {format(date, 'dd MMM yyyy')}
                     </Button>
                 ))}
-
+                
                 <Button
                     onClick={goToNextDates}
                     variant="outlined"
-                    sx={{
-                        minWidth: 40,
+                    sx={{ 
+                        minWidth: 40, 
                         borderRadius: '50%',
                         p: 1
                     }}
@@ -617,8 +620,8 @@ const BookMeetingRoom = () => {
             </Box>
 
             {isLoadingSlots ? (
-                <Box sx={{
-                    textAlign: 'center',
+                <Box sx={{ 
+                    textAlign: 'center', 
                     py: 6,
                     display: 'flex',
                     flexDirection: 'column',
@@ -660,124 +663,124 @@ const BookMeetingRoom = () => {
                 </Box>
             ) : (
                 <>
-                    {/* Time Slots Header */}
-                    <Box sx={{
-                        mb: 3,
-                        p: 3,
-                        bgcolor: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(76, 175, 80, 0.2)'
-                    }}>
-                        <Typography variant="h6" sx={{
-                            color: '#2E7D32',
-                            fontWeight: 'bold',
-                            mb: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                        }}>
-                            🕐 Available Time Slots
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4CAF50', mb: 2 }}>
-                            Choose "Manual Selection" to pick individual slots, or select a duration ({memberType === 'Member' ? '30min-7hr' : '1hr-7hr'}) for automatic consecutive booking
-                        </Typography>
-
-                        {/* Duration Selector */}
-                        <Box sx={{
-                            mb: 3,
+                        {/* Time Slots Header */}
+                <Box sx={{ 
+                    mb: 3,
                             p: 3,
-                            bgcolor: 'rgba(102, 126, 234, 0.05)',
+                            bgcolor: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%)',
                             borderRadius: '16px',
-                            border: '1px solid rgba(102, 126, 234, 0.15)'
+                            border: '1px solid rgba(76, 175, 80, 0.2)'
                         }}>
-                            <Typography variant="subtitle1" sx={{
-                                color: '#667eea',
+                            <Typography variant="h6" sx={{ 
+                                color: '#2E7D32', 
                                 fontWeight: 'bold',
-                                mb: 2,
+                                mb: 1,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 1
                             }}>
-                                ⏱️ Choose Meeting Duration
+                                🕐 Available Time Slots
                             </Typography>
-                            <Box sx={{
-                                display: 'flex',
-                                gap: 2,
-                                flexWrap: 'wrap',
-                                alignItems: 'center'
-                            }}>
-                                {[30, 60, 90, 120, 150, 180].map((minutes) => {
-                                    const hours = Math.floor(minutes / 60);
-                                    const remainingMinutes = minutes % 60;
-                                    const displayText = hours > 0
-                                        ? `${hours}hr${remainingMinutes > 0 ? ` ${remainingMinutes}min` : ''}`
-                                        : `${minutes}min`;
+                            <Typography variant="body2" sx={{ color: '#4CAF50', mb: 2 }}>
+                                Choose "Manual Selection" to pick individual slots, or select a duration ({memberType === 'Member' ? '30min-7hr' : '1hr-7hr'}) for automatic consecutive booking
+                            </Typography>
 
-                                    return (
-                                        <Button
-                                            key={minutes}
-                                            variant={selectedTotalDuration === minutes ? "contained" : "outlined"}
-                                            onClick={() => setSelectedTotalDuration(minutes)}
-                                            sx={{
-                                                minWidth: '80px',
-                                                height: '40px',
-                                                borderRadius: '20px',
-                                                fontSize: '0.85rem',
-                                                fontWeight: 'bold',
-                                                background: selectedTotalDuration === minutes
-                                                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                                    : 'rgba(255, 255, 255, 0.8)',
-                                                color: selectedTotalDuration === minutes ? 'white' : '#667eea',
-                                                border: selectedTotalDuration === minutes
-                                                    ? 'none'
-                                                    : '2px solid rgba(102, 126, 234, 0.3)',
-                                                boxShadow: selectedTotalDuration === minutes
-                                                    ? '0 4px 15px rgba(102, 126, 234, 0.3)'
-                                                    : '0 2px 8px rgba(0, 0, 0, 0.1)',
-                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                '&:hover': {
-                                                    transform: 'translateY(-2px)',
-                                                    boxShadow: selectedTotalDuration === minutes
-                                                        ? '0 6px 20px rgba(102, 126, 234, 0.4)'
-                                                        : '0 4px 15px rgba(102, 126, 234, 0.2)',
-                                                    background: selectedTotalDuration === minutes
-                                                        ? 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)'
-                                                        : 'rgba(102, 126, 234, 0.1)'
-                                                }
-                                            }}
-                                        >
-                                            {displayText}
-                                        </Button>
-                                    );
-                                })}
+                            {/* Duration Selector */}
+                            <Box sx={{ 
+                                mb: 3,
+                                p: 3,
+                                bgcolor: 'rgba(102, 126, 234, 0.05)',
+                                borderRadius: '16px',
+                                border: '1px solid rgba(102, 126, 234, 0.15)'
+                            }}>
+                                <Typography variant="subtitle1" sx={{ 
+                                    color: '#667eea', 
+                                    fontWeight: 'bold',
+                                    mb: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1
+                                }}>
+                                    ⏱️ Choose Meeting Duration
+                                </Typography>
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    gap: 2, 
+                                    flexWrap: 'wrap',
+                                    alignItems: 'center'
+                                }}>
+                                    {[30, 60, 90, 120, 150, 180].map((minutes) => {
+                                        const hours = Math.floor(minutes / 60);
+                                        const remainingMinutes = minutes % 60;
+                                        const displayText = hours > 0 
+                                            ? `${hours}hr${remainingMinutes > 0 ? ` ${remainingMinutes}min` : ''}`
+                                            : `${minutes}min`;
+                                        
+                                        return (
+                                            <Button
+                                                key={minutes}
+                                                variant={selectedTotalDuration === minutes ? "contained" : "outlined"}
+                                                onClick={() => setSelectedTotalDuration(minutes)}
+                                                sx={{
+                                                    minWidth: '80px',
+                                                    height: '40px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 'bold',
+                                                    background: selectedTotalDuration === minutes 
+                                                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                        : 'rgba(255, 255, 255, 0.8)',
+                                                    color: selectedTotalDuration === minutes ? 'white' : '#667eea',
+                                                    border: selectedTotalDuration === minutes 
+                                                        ? 'none' 
+                                                        : '2px solid rgba(102, 126, 234, 0.3)',
+                                                    boxShadow: selectedTotalDuration === minutes 
+                                                        ? '0 4px 15px rgba(102, 126, 234, 0.3)'
+                                                        : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    '&:hover': {
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: selectedTotalDuration === minutes 
+                                                            ? '0 6px 20px rgba(102, 126, 234, 0.4)'
+                                                            : '0 4px 15px rgba(102, 126, 234, 0.2)',
+                                                        background: selectedTotalDuration === minutes 
+                                                            ? 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)'
+                                                            : 'rgba(102, 126, 234, 0.1)'
+                                                    }
+                                                }}
+                                            >
+                                                {displayText}
+                                            </Button>
+                                        );
+                                    })}
+                                </Box>
+                                <Typography variant="caption" sx={{ 
+                                    color: '#667eea',
+                                    fontStyle: 'italic',
+                                    mt: 1,
+                                    display: 'block'
+                                }}>
+                                    💡 Click any available time slot and we'll automatically book {selectedTotalDuration} minutes of consecutive slots
+                                </Typography>
                             </Box>
-                            <Typography variant="caption" sx={{
-                                color: '#667eea',
-                                fontStyle: 'italic',
-                                mt: 1,
-                                display: 'block'
-                            }}>
-                                💡 Click any available time slot and we'll automatically book {selectedTotalDuration} minutes of consecutive slots
-                            </Typography>
-                        </Box>
-
+                        
                         {/* Progress Bar */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Typography variant="caption" sx={{
-                                color: selectedTimeSlots.length > 0 ? '#4CAF50' : '#666',
+                            <Typography variant="caption" sx={{ 
+                                color: selectedTimeSlots.length > 0 ? '#4CAF50' : '#666', 
                                 minWidth: 'fit-content',
                                 fontWeight: selectedTimeSlots.length > 0 ? 'bold' : 'normal',
                                 transition: 'all 0.3s ease'
                             }}>
-                                {selectedTimeSlots.length > 0
+                                {selectedTimeSlots.length > 0 
                                     ? `${selectedTimeSlots.length} slots (${selectedTotalDuration}min) selected`
                                     : 'No slots selected'
                                 }
                             </Typography>
-                            <Box sx={{
-                                flex: 1,
-                                height: 8,
-                                bgcolor: 'rgba(76, 175, 80, 0.1)',
+                            <Box sx={{ 
+                                flex: 1, 
+                                height: 8, 
+                                bgcolor: 'rgba(76, 175, 80, 0.1)', 
                                 borderRadius: '4px',
                                 overflow: 'hidden',
                                 border: selectedTimeSlots.length > 0 ? '1px solid #4CAF50' : 'none',
@@ -800,47 +803,47 @@ const BookMeetingRoom = () => {
                     </Box>
 
                     {/* Enhanced Time Slots Grid */}
-                    <Box sx={{
+                    <Box sx={{ 
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
                         gap: 3,
                         mb: 4,
                         px: 2
-                    }}>
-                        {availableSlots.map((slot, index) => {
-                            const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
-                            const isInPreview = hoveredSlot && getConsecutiveSlots(slot, selectedTotalDuration).some(s =>
+                }}>
+                    {availableSlots.map((slot, index) => {
+                        const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                            const isInPreview = hoveredSlot && getConsecutiveSlots(slot, selectedTotalDuration).some(s => 
                                 s.start === slot.start && s.end === slot.end
                             );
                             const canSelect = true; // Always allow selection with duration-based booking
-
-                            return (
-                                <Box
-                                    key={index}
+                        
+                        return (
+                            <Box
+                                key={index}
                                     onClick={() => canSelect && handleTimeSlotSelectionUnified(slot)}
                                     onMouseEnter={() => setHoveredSlot(slot)}
                                     onMouseLeave={() => setHoveredSlot(null)}
-                                    sx={{
+                                sx={{
                                         position: 'relative',
-                                        width: '100%',
+                                    width: '100%',
                                         minHeight: '120px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        background: isSelected
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                        background: isSelected 
                                             ? 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)'
                                             : isInPreview
                                                 ? 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
                                                 : 'linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)',
-                                        border: isSelected
-                                            ? '2px solid #2E7D32'
+                                        border: isSelected 
+                                            ? '2px solid #2E7D32' 
                                             : isInPreview
                                                 ? '2px solid #1976D2'
                                                 : '2px solid transparent',
                                         borderRadius: '16px',
                                         cursor: canSelect ? 'pointer' : 'not-allowed',
-                                        boxShadow: isSelected
+                                        boxShadow: isSelected 
                                             ? '0 8px 25px rgba(76, 175, 80, 0.3)'
                                             : isInPreview
                                                 ? '0 8px 25px rgba(33, 150, 243, 0.3)'
@@ -848,21 +851,21 @@ const BookMeetingRoom = () => {
                                         transform: isSelected ? 'scale(1.05)' : isInPreview ? 'scale(1.03)' : 'scale(1)',
                                         '&:hover': canSelect ? {
                                             transform: 'scale(1.08) translateY(-4px)',
-                                            boxShadow: isSelected
+                                            boxShadow: isSelected 
                                                 ? '0 12px 35px rgba(76, 175, 80, 0.4)'
                                                 : isInPreview
                                                     ? '0 12px 35px rgba(33, 150, 243, 0.4)'
                                                     : '0 8px 25px rgba(76, 175, 80, 0.2)',
-                                            background: isSelected
+                                            background: isSelected 
                                                 ? 'linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%)'
                                                 : isInPreview
                                                     ? 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)'
                                                     : 'linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)',
-                                        } : {},
+                                    } : {},
                                         transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                                         p: 2,
                                         overflow: 'hidden',
-
+                                        
                                         // Animated background pattern
                                         '&::before': {
                                             content: '""',
@@ -871,7 +874,7 @@ const BookMeetingRoom = () => {
                                             left: 0,
                                             right: 0,
                                             bottom: 0,
-                                            background: isSelected
+                                            background: isSelected 
                                                 ? 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 50%)'
                                                 : 'radial-gradient(circle at 70% 70%, rgba(76, 175, 80, 0.1) 0%, transparent 50%)',
                                             opacity: 0.8,
@@ -880,8 +883,8 @@ const BookMeetingRoom = () => {
                                     }}
                                 >
                                     {/* Time Display */}
-                                    <Typography
-                                        sx={{
+                                <Typography
+                                    sx={{
                                             fontSize: '1rem',
                                             fontWeight: 'bold',
                                             color: isSelected ? 'white' : isInPreview ? 'white' : '#2E7D32',
@@ -891,11 +894,11 @@ const BookMeetingRoom = () => {
                                             zIndex: 1,
                                             textShadow: (isSelected || isInPreview) ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                                             letterSpacing: '0.5px'
-                                        }}
-                                    >
-                                        {slot.display}
-                                    </Typography>
-
+                                    }}
+                                >
+                                    {slot.display}
+                                </Typography>
+                                    
                                     {/* Duration Badge */}
                                     <Box sx={{
                                         bgcolor: isSelected ? 'rgba(255,255,255,0.2)' : isInPreview ? 'rgba(255,255,255,0.2)' : 'rgba(76, 175, 80, 0.2)',
@@ -903,7 +906,7 @@ const BookMeetingRoom = () => {
                                         px: 2,
                                         py: 0.5,
                                         borderRadius: '20px',
-                                        fontSize: '0.75rem',
+                                            fontSize: '0.75rem',
                                         fontWeight: 'medium',
                                         position: 'relative',
                                         zIndex: 1,
@@ -949,37 +952,37 @@ const BookMeetingRoom = () => {
                                             transform: 'translate(-50%, -50%)',
                                             animation: 'ripple 1.5s infinite',
                                             '@keyframes ripple': {
-                                                '0%': {
-                                                    width: '20px',
-                                                    height: '20px',
-                                                    opacity: 1
+                                                '0%': { 
+                                                    width: '20px', 
+                                                    height: '20px', 
+                                                    opacity: 1 
                                                 },
-                                                '100%': {
-                                                    width: '100px',
-                                                    height: '100px',
-                                                    opacity: 0
+                                                '100%': { 
+                                                    width: '100px', 
+                                                    height: '100px', 
+                                                    opacity: 0 
                                                 }
                                             }
                                         }} />
-                                    )}
-                                </Box>
-                            );
-                        })}
-                    </Box>
+                                )}
+                            </Box>
+                        );
+                    })}
+                </Box>
                 </>
             )}
 
             {selectedTimeSlots.length > 0 && (
-                <Box sx={{
-                    mt: 4,
-                    p: 4,
+                <Box sx={{ 
+                    mt: 4, 
+                    p: 4, 
                     background: 'linear-gradient(135deg, #E8F5E8 0%, #F1F8E9 100%)',
-                    borderRadius: '20px',
+                    borderRadius: '20px', 
                     border: '2px solid #4CAF50',
                     boxShadow: '0 8px 25px rgba(76, 175, 80, 0.15)',
                     position: 'relative',
                     overflow: 'hidden',
-
+                    
                     '&::before': {
                         content: '""',
                         position: 'absolute',
@@ -992,23 +995,23 @@ const BookMeetingRoom = () => {
                     }
                 }}>
                     {/* Header */}
-                    <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
+                    <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
                         justifyContent: 'space-between',
                         mb: 3,
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <Typography variant="h6" sx={{
-                            color: '#2E7D32',
+                        <Typography variant="h6" sx={{ 
+                            color: '#2E7D32', 
                             fontWeight: 'bold',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1
                         }}>
                             ✨ Selected Time Slots
-                        </Typography>
+                    </Typography>
                         <Box sx={{
                             bgcolor: '#4CAF50',
                             color: 'white',
@@ -1024,15 +1027,15 @@ const BookMeetingRoom = () => {
                     </Box>
 
                     {/* Selected Slots List */}
-                    <Box sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2,
+                    <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: 2, 
                         mb: 3,
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        {selectedTimeSlots.map((slot, index) => (
+                    {selectedTimeSlots.map((slot, index) => (
                             <Box key={index} sx={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1044,13 +1047,13 @@ const BookMeetingRoom = () => {
                                 backdropFilter: 'blur(10px)',
                                 animation: `slideIn 0.5s ease ${index * 0.1}s both`,
                                 '@keyframes slideIn': {
-                                    '0%': {
-                                        opacity: 0,
-                                        transform: 'translateX(-20px)'
+                                    '0%': { 
+                                        opacity: 0, 
+                                        transform: 'translateX(-20px)' 
                                     },
-                                    '100%': {
-                                        opacity: 1,
-                                        transform: 'translateX(0)'
+                                    '100%': { 
+                                        opacity: 1, 
+                                        transform: 'translateX(0)' 
                                     }
                                 }
                             }}>
@@ -1071,14 +1074,14 @@ const BookMeetingRoom = () => {
                                         {index + 1}
                                     </Box>
                                     <Box>
-                                        <Typography variant="body1" sx={{
-                                            fontWeight: 'bold',
+                                        <Typography variant="body1" sx={{ 
+                                            fontWeight: 'bold', 
                                             color: '#2E7D32',
                                             fontSize: '0.95rem'
                                         }}>
                                             {slot.display}
-                                        </Typography>
-                                        <Typography variant="caption" sx={{
+                        </Typography>
+                                        <Typography variant="caption" sx={{ 
                                             color: '#4CAF50',
                                             fontSize: '0.75rem'
                                         }}>
@@ -1094,9 +1097,9 @@ const BookMeetingRoom = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
-                                    <Typography sx={{
-                                        color: '#4CAF50',
-                                        fontSize: '1.2rem'
+                                    <Typography sx={{ 
+                                        color: '#4CAF50', 
+                                        fontSize: '1.2rem' 
                                     }}>
                                         ✓
                                     </Typography>
@@ -1118,8 +1121,8 @@ const BookMeetingRoom = () => {
                         backgroundPosition: '0 0, 10px 10px'
                     }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Typography variant="h6" sx={{
-                                color: '#2E7D32',
+                            <Typography variant="h6" sx={{ 
+                                color: '#2E7D32', 
                                 fontWeight: 'bold',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1127,16 +1130,16 @@ const BookMeetingRoom = () => {
                             }}>
                                 💰 Total Amount
                             </Typography>
-                            <Typography variant="h5" sx={{
-                                color: '#2E7D32',
+                            <Typography variant="h5" sx={{ 
+                                color: '#2E7D32', 
                                 fontWeight: 'bold',
                                 fontSize: '1.5rem',
                                 textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                             }}>
                                 ₹{Math.ceil(calculatedPrice.total)}/-
-                            </Typography>
+                    </Typography>
                         </Box>
-                        <Typography variant="caption" sx={{
+                        <Typography variant="caption" sx={{ 
                             color: '#4CAF50',
                             fontStyle: 'italic',
                             mt: 1,
@@ -1208,16 +1211,16 @@ const BookMeetingRoom = () => {
         }
 
         console.log('=== Starting handleFinalBooking ===');
-
+        
         // Debug token storage
         console.log('=== Token Debug Info ===');
         // let token = null;
-
+        
         try {
             // Get token from localStorage
             // token = localStorage.getItem('token');
             const userData = localStorage.getItem('userData');
-
+            
             console.log('Raw userData from localStorage:', userData);
 
             // Check if we're actually logged in
@@ -1239,7 +1242,7 @@ const BookMeetingRoom = () => {
             if (selectedDate && selectedTimeSlots.length > 0) {
                 console.log('All required fields present, proceeding with booking');
                 console.log('Selected time slots:', selectedTimeSlots);
-
+                
                 // For members, make API call
                 if (memberType === 'Member') {
                     try {
@@ -1250,7 +1253,7 @@ const BookMeetingRoom = () => {
                         }
 
                         // Format time slots to match API requirement
-                        const formattedTimeSlots = selectedTimeSlots.map(slot =>
+                        const formattedTimeSlots = selectedTimeSlots.map(slot => 
                             `${slot.start} - ${slot.end}`
                         );
 
@@ -1300,7 +1303,7 @@ const BookMeetingRoom = () => {
                             setShowRoomSelectionModal(false);
                             setShowTimeSlotModal(false);
                             setShowBookingModal(false);
-
+                            
                             // Show the confirmation modal
                             setShowConfirmationModal(true);
                         } else {
@@ -1313,11 +1316,11 @@ const BookMeetingRoom = () => {
                         console.error('Error response:', error.response?.data);
                         console.error('Error status:', error.response?.status);
                         console.error('Error headers:', error.response?.headers);
-
+                        
                         // Show a user-friendly error message
                         const errorMessage = error.response?.data?.message || error.message || 'Failed to book meeting room. Please try again.';
                         alert(errorMessage);
-
+                        
                         if (error.response?.status === 401) {
                             localStorage.removeItem('token');
                             localStorage.removeItem('userData');
@@ -1330,24 +1333,24 @@ const BookMeetingRoom = () => {
                     const formattedDate = format(selectedDate, "MMM dd, yyyy");
                     const userData = JSON.parse(localStorage.getItem('userData') || '{}');
                     const userName = userData.fullName || 'User';
-
+                    
                     let timeSlotText;
                     let priceText;
-
-                    if (bookingType === 'whole_day') {
+                    
+                    if (bookingType === 'Whole Day') {
                         timeSlotText = "Whole Day (09:00 to 18:00)";
                         priceText = `INR ${memberType === 'Member' ? '1800' : '2300'}/- (Including GST)`;
                     } else {
-                        timeSlotText = selectedTimeSlots.map(slot =>
+                        timeSlotText = selectedTimeSlots.map(slot => 
                             `${slot.start} to ${slot.end}`
                         ).join(', ');
                         priceText = `INR ${Math.ceil(calculatedPrice.total)}/- (Including GST)`;
                     }
 
-                    const reasonText = memberType === 'Member' && selectedReason
+                    const reasonText = memberType === 'Member' && selectedReason 
                         ? `\nReason: ${meetingReasons.find(r => r.id === selectedReason)?.name}`
                         : '';
-
+                    
                     const message = encodeURIComponent(
                         `Hi, I am ${userName}. I want to book the meeting room as a ${memberType} on ${formattedDate} for the following time slots: ${timeSlotText}. Price: ${priceText}${reasonText}`
                     );
@@ -1371,13 +1374,13 @@ const BookMeetingRoom = () => {
     // Get base price based on member type and seating capacity
     const getBasePrice = () => {
         // For whole day booking
-        if (bookingType === 'whole_day') {
+        if (bookingType === 'Whole Day') {
             if (selectedSeating === 'C2') { // 10-12 Seater
                 return memberType === 'member' ? 2500 : 3000;
             }
             return memberType === 'member' ? 1800 : 2300; // Default whole day pricing for 4-6 seater
         }
-
+        
         // For hourly booking
         if (memberType === 'member') {
             // For members, price depends on seating capacity
@@ -1389,7 +1392,7 @@ const BookMeetingRoom = () => {
                 return 400; // Default member price if no seating selected
             }
         }
-
+        
         // For non-members, price depends on seating capacity
         if (memberType === 'non_member') {
             if (selectedSeating === 'C1') { // 4-6 Seater
@@ -1398,11 +1401,11 @@ const BookMeetingRoom = () => {
                 return 500;
             }
         }
-
+        
         // Default for non-members if no seating selected
         return 500;
     };
-
+    
     const getPricing = () => {
         return getBasePrice();
     };
@@ -1422,7 +1425,7 @@ const BookMeetingRoom = () => {
         try {
             const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/room-types');
             console.log('Room Types API Response:', response.data);
-
+            
             if (response.data.success) {
                 console.log('Successfully fetched room types:', response.data.data);
                 setRoomTypes(response.data.data);
@@ -1457,7 +1460,7 @@ const BookMeetingRoom = () => {
     const handleBookingSubmit = () => {
         if (selectedDate) {
             // For whole day booking, set the calculated price directly
-            if (bookingType === 'whole_day') {
+            if (bookingType === 'Whole Day') {
                 const basePrice = getBasePrice();
                 setCalculatedPrice({
                     duration: 9, // 9 hours (9am-6pm)
@@ -1465,7 +1468,7 @@ const BookMeetingRoom = () => {
                     gst: 0, // GST is already included
                     total: basePrice
                 });
-
+                
                 // For whole day booking, create a single time slot for the whole day
                 setSelectedTimeSlots([{
                     start: '09:00',
@@ -1474,13 +1477,13 @@ const BookMeetingRoom = () => {
                     display: '09:00AM - 06:00PM'
                 }]);
             }
-
+            
             // Initialize date window with the selected date
             setDateWindowStart(selectedDate);
-
+            
             // Fetch available slots for the selected date
-            //fetchAvailableSlots(selectedDate);
-
+            fetchAvailableSlots(selectedDate);
+            
             setShowRoomSelectionModal(true);
             setShowTimeSlotModal(false);
         }
@@ -1489,9 +1492,11 @@ const BookMeetingRoom = () => {
     // Handle successful login for members
     const handleLoginSuccess = (userData) => {
         console.log('Member login successful:', userData);
+        console.log('Post-login booking type check:', bookingType);
         setShowLoginModal(false);
-
-        // After successful login, open the time slot selection modal
+        
+        // After successful login, always show time slot modal first for date/seating selection
+        console.log('Opening time slot modal after login');
         setShowTimeSlotModal(true);
     };
 
@@ -1502,14 +1507,15 @@ const BookMeetingRoom = () => {
 
     const handleBookingTypeChange = (e) => {
         const newBookingType = e.target.value;
+        console.log('Booking type changed to:', newBookingType);
         setBookingType(newBookingType);
-
+        
         // Reset date and seating when booking type changes
         setSelectedDate(null);
         setSelectedSeating('');
         setSelectedTimeSlots([]);
         setAvailableTimeSlots([]);
-
+        
         // Fetch pricing data when booking type changes if member type is already selected
         if (memberType && newBookingType) {
             // Use the exact values from the API response
@@ -1550,22 +1556,22 @@ const BookMeetingRoom = () => {
         const slots = [];
         const startHour = 9;
         const endHour = 18;
-        const endMinute = 30;
-        console.log("memberType", memberType);
-        console.log("duration", duration);
+        const endMinute = 30; 
+       console.log("memberType",memberType);
+       console.log("duration",duration);
         // For members, show 30-minute and 1-hour slots between 9am-6pm
         // if (memberType === 'member') {
-
+            
         // }
         // For non-members, only show 1-hour slots between 9am-6pm
         if (memberType === 'non_member') {
             for (let hour = startHour; hour < endHour; hour++) {
                 const startTime = `${hour.toString().padStart(2, '0')}:00`;
                 const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
-
+                
                 const formattedStartTime = `${startTime}${hour < 12 ? 'AM' : 'PM'}`;
                 const formattedEndTime = `${endTime}${(hour + 1) < 12 ? 'AM' : 'PM'}`;
-
+                
                 slots.push({
                     start: startTime,
                     end: endTime,
@@ -1581,16 +1587,16 @@ const BookMeetingRoom = () => {
             for (let hour = startHour; hour <= endHour; hour++) {
                 for (let minute = 0; minute < 60; minute += 30) {
                     if (hour === endHour && minute > endMinute) break;
-
+                    
                     const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                    const endTime = minute === 30
+                    const endTime = minute === 30 
                         ? `${(hour + 1).toString().padStart(2, '0')}:00`
                         : `${hour.toString().padStart(2, '0')}:30`;
-
+                    
                     const formattedStartTime = `${startTime}${hour < 12 ? 'AM' : 'PM'}`;
                     const formattedEndHour = minute === 30 ? hour + 1 : hour;
                     const formattedEndTime = `${endTime}${formattedEndHour < 12 ? 'AM' : 'PM'}`;
-
+                    
                     slots.push({
                         start: startTime,
                         end: endTime,
@@ -1603,10 +1609,10 @@ const BookMeetingRoom = () => {
             for (let hour = startHour; hour < endHour; hour++) {
                 const startTime = `${hour.toString().padStart(2, '0')}:00`;
                 const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
-
+                
                 const formattedStartTime = `${startTime}${hour < 12 ? 'AM' : 'PM'}`;
                 const formattedEndTime = `${endTime}${(hour + 1) < 12 ? 'AM' : 'PM'}`;
-
+                
                 slots.push({
                     start: startTime,
                     end: endTime,
@@ -1618,31 +1624,31 @@ const BookMeetingRoom = () => {
 
         return slots;
     };
-    const handleHourlyMemberType = (memberType) => {
+const handleHourlyMemberType = (memberType) => {
+     
+    if (memberType === 'member') {
+        setMemberType('member'); // we need to check why this state not updating on time
+        setSelectedDuration('30min');
+        setAvailableTimeSlots(generateTimeSlots('30min', 'member'));
+        // Clear selected time slots when changing member type
+        setSelectedTimeSlots([]);
+        setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
+        // Reset date and seating when member type changes
+        setSelectedDate(null);
+        setSelectedSeating('');
 
-        if (memberType === 'member') {
-            setMemberType('member'); // we need to check why this state not updating on time
-            setSelectedDuration('30min');
-            setAvailableTimeSlots(generateTimeSlots('30min', 'member'));
-            // Clear selected time slots when changing member type
-            setSelectedTimeSlots([]);
-            setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
-            // Reset date and seating when member type changes
-            setSelectedDate(null);
-            setSelectedSeating('');
-
-        } else {
-            setMemberType('non_member');
-            setSelectedDuration('1hour');
-            setAvailableTimeSlots(generateTimeSlots('1hour', 'non_member'));
-            // Clear selected time slots when changing member type
-            setSelectedTimeSlots([]);
-            setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
-            // Reset date and seating when member type changes
-            setSelectedDate(null);
-            setSelectedSeating('');
-        }
-    };
+    } else {
+        setMemberType('non_member');
+        setSelectedDuration('1hour');
+        setAvailableTimeSlots(generateTimeSlots('1hour', 'non_member'));
+        // Clear selected time slots when changing member type
+        setSelectedTimeSlots([]);
+        setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
+        // Reset date and seating when member type changes
+        setSelectedDate(null);
+        setSelectedSeating('');
+    }
+};
     // Update handleTimeChange
     const handleTimeChange = (event) => {
         const time = event.target.value;
@@ -1657,7 +1663,7 @@ const BookMeetingRoom = () => {
         const duration = event.target.value;
         setSelectedDuration(duration);
         //  setAvailableTimeSlots(generateTimeSlots(duration));
-        setAvailableTimeSlots(generateTimeSlots(duration, memberType));
+        setAvailableTimeSlots(generateTimeSlots(duration,memberType));
         setSelectedTime('');
         setSelectedEndTime('');
         setSelectedTimeSlots([]);
@@ -1675,7 +1681,7 @@ const BookMeetingRoom = () => {
             try {
                 const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/booking-types');
                 console.log('API Response:', response.data);
-
+                
                 if (response.data.success) {
                     console.log('Successfully fetched booking types:', response.data.data);
                     setBookingTypes(response.data.data);
@@ -1718,7 +1724,7 @@ const BookMeetingRoom = () => {
             try {
                 const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/member-types');
                 console.log('Member Types API Response:', response.data);
-
+                
                 if (response.data.success) {
                     console.log('Successfully fetched member types:', response.data.data);
                     setMemberTypes(response.data.data);
@@ -1771,6 +1777,20 @@ const BookMeetingRoom = () => {
         }
     }, [memberType, selectedBookingDuration]);
 
+    // Add useEffect to track whole day modal opening and log booking data
+    useEffect(() => {
+        if (showWholeDaySummaryModal) {
+            console.log('=== Whole Day Summary Modal Opened ===');
+            console.log('Booking Type:', bookingType);
+            console.log('Member Type:', memberType);
+            console.log('Selected Date:', selectedDate);
+            console.log('Selected Seating:', selectedSeating);
+            console.log('Seating Options:', seatingOptions);
+            console.log('Is Authenticated:', isAuthenticated);
+            console.log('=== End Debug Info ===');
+        }
+    }, [showWholeDaySummaryModal, bookingType, memberType, selectedDate, selectedSeating, isAuthenticated]);
+
     const [pricingData, setPricingData] = useState(null);
     const [isLoadingPricing, setIsLoadingPricing] = useState(false);
 
@@ -1785,11 +1805,11 @@ const BookMeetingRoom = () => {
                 bookingType: bookingType,
                 memberType: memberType
             };
-
+            
             console.log('Fetching pricing with params:', params);
             const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/pricing', { params });
             console.log('Pricing API Response:', response.data);
-
+            
             if (response.data.success) {
                 console.log('Successfully fetched pricing data:', response.data.data);
                 setPricingData(response.data.data);
@@ -1829,13 +1849,13 @@ const BookMeetingRoom = () => {
         const selectedMemberType = e.target.value;  // Keep the exact case from the API
         setMemberType(selectedMemberType);
         console.log('Selected Member Type:', selectedMemberType);
-
+        
         // Reset date and seating when member type changes
         setSelectedDate(null);
         setSelectedSeating('');
         setSelectedTimeSlots([]);
         setAvailableTimeSlots([]);
-
+        
         // Set default duration (manual selection for all users)
         setSelectedBookingDuration('manual');
 
@@ -1850,7 +1870,7 @@ const BookMeetingRoom = () => {
     const handleSeatingChange = (e) => {
         const newSeating = e.target.value;
         setSelectedSeating(newSeating);
-
+        
         // Fetch pricing data when seating changes if both member type and booking type are selected
         if (memberType && bookingType) {
             fetchPricingData(memberType, bookingType, newSeating);
@@ -1873,21 +1893,21 @@ const BookMeetingRoom = () => {
 
         setIsLoadingSlots(true);
         console.log('Fetching available slots...');
-
+        
         const params = {
             date: format(date, 'yyyy-MM-dd'),
             capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
             memberType: memberType === 'Member' ? 'member' : 'non-member'
         };
-
+        
         console.log('API Parameters:', params);
-
+        
         try {
             const response = await axios.get(`https://api.boldtribe.in/api/meetingrooms/available-slots`, {
                 params
             });
             console.log('Available Slots API Response:', response.data);
-
+            
             if (response.data.success && response.data.data.availableSlots) {
                 console.log('Successfully fetched available slots:', response.data.data.availableSlots);
                 // Transform the time slots into the required format
@@ -1921,7 +1941,7 @@ const BookMeetingRoom = () => {
     // Add back the isRoomAvailable function
     const isRoomAvailable = (roomId, date, startTime, endTime) => {
         if (!date || !startTime || !endTime) return true;
-
+        
         // Mock availability check (replace with your backend logic)
         const timeKey = `${format(date, 'yyyy-MM-dd')}-${startTime}-${endTime}`;
         return !bookedRooms[timeKey]?.includes(roomId);
@@ -1973,8 +1993,8 @@ const BookMeetingRoom = () => {
                     </IconButton>
 
                     <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-                        <PendingIcon sx={{
-                            fontSize: { xs: '3rem', sm: '4rem', md: '60px' },
+                        <PendingIcon sx={{ 
+                            fontSize: { xs: '3rem', sm: '4rem', md: '60px' }, 
                             color: '#FFA500',
                             animation: 'spin 2s linear infinite',
                             '@keyframes spin': {
@@ -1984,7 +2004,7 @@ const BookMeetingRoom = () => {
                         }} />
                     </Box>
 
-                    <Typography variant="h5" component="h2" sx={{
+                    <Typography variant="h5" component="h2" sx={{ 
                         mb: { xs: 2, sm: 3 },
                         color: '#FFA500',
                         fontWeight: 'bold'
@@ -2036,9 +2056,9 @@ const BookMeetingRoom = () => {
         try {
             // Get auth token from sessionStorage (where it's typically stored after login)
             const authToken = sessionStorage.getItem('token') || localStorage.getItem('token');
-
+            
             // Format time slots as required by the API
-            const formattedTimeSlots = selectedTimeSlots.map(slot =>
+            const formattedTimeSlots = selectedTimeSlots.map(slot => 
                 `${slot.start} - ${slot.end}`
             );
 
@@ -2091,7 +2111,7 @@ const BookMeetingRoom = () => {
                 // Close all other modals first
                 setShowPaymentModal(false);
                 setShowSummaryModal(false);
-
+                
                 // Show the pending modal
                 setShowPendingModal(true);
                 // Store booking details
@@ -2107,7 +2127,7 @@ const BookMeetingRoom = () => {
             if (error.response) {
                 console.error('Error response data:', error.response.data);
                 console.error('Error response status:', error.response.status);
-
+                
                 if (error.response.status === 401) {
                     alert('Session expired. Please login again.');
                 } else {
@@ -2197,13 +2217,13 @@ const BookMeetingRoom = () => {
                     </Box>
 
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: { xs: 1, sm: 2 } }}>
-                        <Button
-                            variant="outlined"
+                        <Button 
+                            variant="outlined" 
                             onClick={() => setShowSummaryModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button
+                        <Button 
                             variant="contained"
                             disabled={!paymentReceipt}
                             onClick={async () => {
@@ -2222,7 +2242,7 @@ const BookMeetingRoom = () => {
     // Modify the Pending Modal to show API response status
     const PendingModal = () => {
         const lastBooking = JSON.parse(localStorage.getItem('lastBookingDetails') || '{}');
-
+        
         return (
             <Modal
                 open={showPendingModal}
@@ -2247,7 +2267,7 @@ const BookMeetingRoom = () => {
                         <Typography variant="h6" component="h2" sx={{ mb: { xs: 2, sm: 3 } }}>
                             Booking Submitted Successfully
                         </Typography>
-
+                        
                         {lastBooking.booking && (
                             <Box sx={{ mb: { xs: 2, sm: 3 }, textAlign: 'left' }}>
                                 <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
@@ -2272,10 +2292,10 @@ const BookMeetingRoom = () => {
                         )}
 
                         <Typography variant="body1" sx={{ mb: { xs: 2, sm: 3 } }}>
-                            Your booking request has been submitted and is pending approval.
+                            Your booking request has been submitted and is pending approval. 
                             We will notify you once it's confirmed.
                         </Typography>
-                        <Button
+                        <Button 
                             variant="contained"
                             onClick={() => {
                                 setShowPendingModal(false);
@@ -2356,21 +2376,21 @@ const BookMeetingRoom = () => {
                             </Typography>
                         ))}
                     </Box>
-
+                    
                     <FormControl component="fieldset" fullWidth>
                         <RadioGroup
                             value={paymentMethod}
                             onChange={(e) => setPaymentMethod(e.target.value)}
                         >
-                            <FormControlLabel
-                                value="UPI"
-                                control={<Radio />}
+                            <FormControlLabel 
+                                value="UPI" 
+                                control={<Radio />} 
                                 label="UPI Payment"
                                 sx={{ mb: { xs: 1, sm: 2 } }}
                             />
-                            <FormControlLabel
-                                value="NET_BANKING"
-                                control={<Radio />}
+                            <FormControlLabel 
+                                value="NET_BANKING" 
+                                control={<Radio />} 
                                 label="Net Banking"
                                 sx={{ mb: { xs: 1, sm: 2 } }}
                             />
@@ -2384,14 +2404,14 @@ const BookMeetingRoom = () => {
                     </Box>
 
                     <Box sx={{ mt: { xs: 2, sm: 3 }, display: 'flex', justifyContent: 'flex-end', gap: { xs: 1, sm: 2 } }}>
-                        <Button
-                            variant="outlined"
+                        <Button 
+                            variant="outlined" 
                             onClick={() => setShowPaymentModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button
-                            variant="contained"
+                        <Button 
+                            variant="contained" 
                             onClick={() => {
                                 console.log('=== Payment Details Selected ===');
                                 console.log('Room ID:', selectedRoom);
@@ -2402,7 +2422,7 @@ const BookMeetingRoom = () => {
                                 console.log('Selected Payment Method:', paymentMethod);
                                 console.log('Total Amount (Including GST):', calculatedPrice.total);
                                 console.log('============================');
-
+                                
                                 setPaymentAmount(calculatedPrice.total);
                                 setShowPaymentModal(false);
                                 setShowSummaryModal(true);
@@ -2474,7 +2494,7 @@ const BookMeetingRoom = () => {
                     {[...Array(12)].map((_, i) => (
                         <Box
                             key={i}
-                            sx={{
+                    sx={{
                                 position: 'absolute',
                                 width: '4px',
                                 height: '4px',
@@ -2533,12 +2553,12 @@ const BookMeetingRoom = () => {
                             '@keyframes logoGlow': {
                                 '0%': { transform: 'scale(1)', opacity: 0.5 },
                                 '100%': { transform: 'scale(1.1)', opacity: 0.8 },
-                            },
-                        }}
-                    >
-                        <img
-                            src={logo}
-                            alt="Logo"
+                        },
+                    }}
+                >
+                        <img 
+                            src={logo} 
+                            alt="Logo" 
                             style={{
                                 height: '120px',
                                 width: 'auto',
@@ -2584,7 +2604,7 @@ const BookMeetingRoom = () => {
                         animation: 'cardFloat 6s ease-in-out infinite',
                         '&::before': {
                             content: '""',
-                            position: 'absolute',
+                        position: 'absolute',
                             top: 0,
                             left: 0,
                             right: 0,
@@ -2603,11 +2623,11 @@ const BookMeetingRoom = () => {
                         },
                     }}
                 >
-                    <Typography
-                        variant="h2"
-                        component="h1"
+                    <Typography 
+                        variant="h2" 
+                        component="h1" 
                         gutterBottom
-                        sx={{
+                        sx={{ 
                             background: 'linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%)',
                             backgroundClip: 'text',
                             WebkitBackgroundClip: 'text',
@@ -2626,9 +2646,9 @@ const BookMeetingRoom = () => {
                     >
                         Book Meeting Room
                     </Typography>
-
+                    
                     <Box
-                        sx={{
+                        sx={{ 
                             width: '80px',
                             height: '4px',
                             background: 'linear-gradient(90deg, #ffffff 0%, #f0f8ff 100%)',
@@ -2642,10 +2662,10 @@ const BookMeetingRoom = () => {
                             },
                         }}
                     />
-
-                    <Typography
-                        variant="h6"
-                        sx={{
+                    
+                    <Typography 
+                        variant="h6" 
+                        sx={{ 
                             color: 'rgba(255, 255, 255, 0.9)',
                             mb: { xs: 4, sm: 5 },
                             fontSize: { xs: '1rem', sm: '1.2rem' },
@@ -2656,7 +2676,7 @@ const BookMeetingRoom = () => {
                     >
                         Reserve our premium meeting spaces for productive discussions, presentations, and collaborative sessions.
                     </Typography>
-
+                    
                     <Button
                         variant="contained"
                         size="large"
@@ -2712,9 +2732,9 @@ const BookMeetingRoom = () => {
             </Box>
 
             {/* Modern Booking Type Modal */}
-            <Modal
-                open={showBookingModal}
-                onClose={() => setShowBookingModal(false)}
+            <Modal 
+                open={showBookingModal} 
+                onClose={() => setShowBookingModal(false)} 
                 closeAfterTransition
                 sx={{
                     display: 'flex',
@@ -2748,13 +2768,13 @@ const BookMeetingRoom = () => {
                             zIndex: -1
                         },
                         '@keyframes modalSlideIn': {
-                            '0%': {
-                                opacity: 0,
-                                transform: 'scale(0.8) translateY(20px)'
+                            '0%': { 
+                                opacity: 0, 
+                                transform: 'scale(0.8) translateY(20px)' 
                             },
-                            '100%': {
-                                opacity: 1,
-                                transform: 'scale(1) translateY(0)'
+                            '100%': { 
+                                opacity: 1, 
+                                transform: 'scale(1) translateY(0)' 
                             }
                         },
                         '&::-webkit-scrollbar': {
@@ -2792,34 +2812,34 @@ const BookMeetingRoom = () => {
                             <CloseIcon />
                         </IconButton>
                         {/* Modern Header */}
-                        <Box sx={{
-                            textAlign: 'center',
+                        <Box sx={{ 
+                            textAlign: 'center', 
                             mb: 4,
                             pt: 2
                         }}>
-                            <Box
-                                sx={{
+                        <Box
+                            sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
+                                justifyContent: 'center',
                                     width: '80px',
                                     height: '80px',
                                     borderRadius: '50%',
                                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    mb: 2,
+                                mb: 2,
                                     boxShadow: '0 10px 25px rgba(102, 126, 234, 0.3)',
                                     animation: 'iconFloat 3s ease-in-out infinite',
                                     '@keyframes iconFloat': {
                                         '0%, 100%': { transform: 'translateY(0px)' },
                                         '50%': { transform: 'translateY(-8px)' },
-                                    },
-                                }}
-                            >
+                                },
+                            }}
+                        >
                                 <Typography sx={{ fontSize: '2rem' }}>🏢</Typography>
                             </Box>
-                            <Typography
-                                variant="h4"
-                                sx={{
+                            <Typography 
+                                variant="h4" 
+                                sx={{ 
                                     color: '#333',
                                     fontWeight: 600,
                                     mb: 1,
@@ -2828,9 +2848,9 @@ const BookMeetingRoom = () => {
                             >
                                 Room Booking
                             </Typography>
-                            <Typography
-                                variant="body2"
-                                sx={{
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
                                     color: '#666',
                                     fontSize: '0.95rem'
                                 }}
@@ -2839,9 +2859,9 @@ const BookMeetingRoom = () => {
                             </Typography>
                         </Box>
 
-                        <FormControl
-                            fullWidth
-                            sx={{
+                        <FormControl 
+                            fullWidth 
+                            sx={{ 
                                 mb: 3,
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '16px',
@@ -2880,13 +2900,13 @@ const BookMeetingRoom = () => {
                             >
                                 <MenuItem value="" disabled>
                                     <Typography sx={{ color: '#999', fontStyle: 'italic' }}>
-                                        Select Booking Type
+                                    Select Booking Type
                                     </Typography>
                                 </MenuItem>
                                 {bookingTypes && bookingTypes.length > 0 ? (
                                     bookingTypes.map((type) => (
-                                        <MenuItem
-                                            key={type.id}
+                                        <MenuItem 
+                                            key={type.id} 
                                             value={type.name}
                                             sx={{
                                                 '&:hover': {
@@ -2901,7 +2921,7 @@ const BookMeetingRoom = () => {
                                                     borderRadius: '50%',
                                                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                                                 }} />
-                                                {type.name}
+                                            {type.name}
                                             </Box>
                                         </MenuItem>
                                     ))
@@ -2932,9 +2952,9 @@ const BookMeetingRoom = () => {
                                     '100%': { opacity: 1, transform: 'translateY(0)' }
                                 }
                             }}>
-                                <FormControl
-                                    fullWidth
-                                    sx={{
+                                <FormControl 
+                                    fullWidth 
+                                    sx={{ 
                                         mb: 3,
                                         '& .MuiOutlinedInput-root': {
                                             borderRadius: '16px',
@@ -2958,28 +2978,28 @@ const BookMeetingRoom = () => {
                                         }
                                     }}
                                 >
-                                    <InputLabel>Member Type</InputLabel>
-                                    <Select
-                                        value={memberType}
-                                        onChange={handleMemberTypeChange}
-                                        label="Member Type"
-                                        disabled={isLoadingMemberTypes}
+                                <InputLabel>Member Type</InputLabel>
+                                <Select
+                                    value={memberType}
+                                    onChange={handleMemberTypeChange}
+                                    label="Member Type"
+                                    disabled={isLoadingMemberTypes}
                                         sx={{
                                             '& .MuiSelect-select': {
                                                 padding: '16px',
                                                 fontSize: '1rem'
                                             }
                                         }}
-                                    >
-                                        <MenuItem value="" disabled>
+                                >
+                                    <MenuItem value="" disabled>
                                             <Typography sx={{ color: '#999', fontStyle: 'italic' }}>
-                                                Select Member Type
+                                        Select Member Type
                                             </Typography>
-                                        </MenuItem>
-                                        {memberTypes && memberTypes.length > 0 ? (
-                                            memberTypes.map((type) => (
-                                                <MenuItem
-                                                    key={type.id}
+                                    </MenuItem>
+                                    {memberTypes && memberTypes.length > 0 ? (
+                                        memberTypes.map((type) => (
+                                                <MenuItem 
+                                                    key={type.id} 
                                                     value={type.name}
                                                     sx={{
                                                         '&:hover': {
@@ -2992,16 +3012,16 @@ const BookMeetingRoom = () => {
                                                             width: '8px',
                                                             height: '8px',
                                                             borderRadius: '50%',
-                                                            background: type.name === 'Member'
+                                                            background: type.name === 'Member' 
                                                                 ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
                                                                 : 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
                                                         }} />
-                                                        {type.name}
+                                                {type.name}
                                                     </Box>
-                                                </MenuItem>
-                                            ))
-                                        ) : (
-                                            <>
+                                            </MenuItem>
+                                        ))
+                                    ) : (
+                                        <>
                                                 <MenuItem value="Member">
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                         <Typography sx={{ fontSize: '1.2rem' }}>👤</Typography>
@@ -3014,17 +3034,17 @@ const BookMeetingRoom = () => {
                                                         Non-Member
                                                     </Box>
                                                 </MenuItem>
-                                            </>
-                                        )}
-                                    </Select>
-                                </FormControl>
+                                        </>
+                                    )}
+                                </Select>
+                            </FormControl>
                             </Box>
                         )}
 
                         {bookingType && memberType && (
                             <Card sx={{
-                                mt: 1.5,
-                                background: 'linear-gradient(135deg, #000000 0%, #00B2B2 100%)',
+                                    mt: 1.5,
+                                    background: 'linear-gradient(135deg, #000000 0%, #00B2B2 100%)',
                                 color: 'white',
                                 transform: 'scale(1)',
                                 transition: 'transform 0.3s ease',
@@ -3034,53 +3054,81 @@ const BookMeetingRoom = () => {
                             }}>
                                 <CardContent sx={{ textAlign: 'center', p: 2 }}>
                                     <Box sx={{ mb: 1 }}>
-                                        <img
-                                            src={logo}
-                                            alt="Logo"
-                                            style={{
-                                                width: '100px',
+                                        <img 
+                                            src={logo} 
+                                            alt="Logo" 
+                                            style={{ 
+                                                width: '100px', 
                                                 height: 'auto',
                                                 marginBottom: '0.5rem',
                                                 filter: 'brightness(1.1)'
-                                            }}
+                                            }} 
                                         />
                                     </Box>
                                     {isLoadingPricing ? (
                                         <Typography variant="h6" gutterBottom>
                                             Loading pricing...
                                         </Typography>
-                                    ) : pricingData ? (
+                                    ) : (pricingData || (bookingType === 'Whole Day' && memberType)) ? (
                                         <>
                                             <Typography variant="h6" gutterBottom>
-                                                ₹{pricingData.price}/- {bookingType === 'Hourly' ? '+ GST per hour' : '(Including GST)'}
+                                                {bookingType === 'Whole Day' 
+                                                    ? (selectedSeating 
+                                                        ? `₹${selectedSeating === 'C2' 
+                                                            ? (memberType === 'Member' ? '2,500' : '3,000') 
+                                                            : (memberType === 'Member' ? '1,800' : '2,300')}/- (Including GST)`
+                                                        : `Starting from ₹${memberType === 'Member' ? '1,800' : '2,300'}/- (Including GST)`)
+                                                    : `₹${pricingData?.price}/- ${bookingType === 'Hourly' ? '+ GST per hour' : '(Including GST)'}`
+                                                }
                                             </Typography>
                                             <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                                {pricingData.openTime} to {pricingData.closeTime}
+                                                {bookingType === 'Whole Day' 
+                                                    ? (memberType === 'Member' ? '09:00 to 18:30 (9.5 hours)' : '09:00 to 18:00 (9 hours)')
+                                                    : `${pricingData?.openTime} to ${pricingData?.closeTime}`
+                                                }
                                             </Typography>
                                             <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                                {pricingData.bookingType}
+                                                {bookingType === 'Whole Day' ? 'Whole Day Booking' : pricingData?.bookingType}
                                             </Typography>
                                             <Typography variant="body2" sx={{ mb: 2 }}>
-                                                {pricingData.memberType}
+                                                {memberType} {selectedSeating ? `- ${seatingOptions.find(s => s.id === selectedSeating)?.name}` : '- Multiple seating options available'}
                                             </Typography>
                                         </>
                                     ) : (
                                         <Typography variant="h6" gutterBottom>
-                                            Please select seating capacity to view pricing
+                                            Please select {bookingType === 'Whole Day' ? 'all options' : 'seating capacity'} to view pricing
                                         </Typography>
                                     )}
                                     <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                                         <Button
                                             variant="contained"
                                             onClick={() => {
+                                                console.log('=== Book Now Button Clicked ===');
+                                                console.log('Booking Type:', bookingType);
+                                                console.log('Member Type:', memberType);
+                                                console.log('Selected Date:', selectedDate);
+                                                console.log('Selected Seating:', selectedSeating);
+                                                console.log('Is Authenticated:', isAuthenticated);
+                                                console.log('Pricing Data:', pricingData);
+                                                console.log('Button should be disabled:', bookingType === 'Whole Day' ? (!bookingType || !memberType || !selectedDate || !selectedSeating) : !pricingData);
+                                                console.log('================================');
+                                                
                                                 // Check if user is member and not authenticated
                                                 if (memberType === 'Member' && !isAuthenticated) {
+                                                    console.log('Showing login modal for member authentication');
                                                     setShowLoginModal(true);
                                                 } else {
+                                                    // Always show time slot modal first for date/seating selection
+                                                    console.log('Opening time slot modal for date and seating selection');
                                                     setShowTimeSlotModal(true);
                                                 }
                                             }}
-                                            disabled={!pricingData}
+                                            disabled={
+                                                // For whole day bookings, only require booking type and member type
+                                                bookingType === 'Whole Day' 
+                                                    ? (!bookingType || !memberType)
+                                                    : !pricingData  // For hourly bookings, require pricing data
+                                            }
                                             sx={{
                                                 bgcolor: 'white',
                                                 color: '#000000',
@@ -3149,8 +3197,8 @@ const BookMeetingRoom = () => {
                             <CloseIcon />
                         </IconButton>
 
-                        <Typography
-                            variant="h6"
+                        <Typography 
+                            variant="h6" 
                             gutterBottom
                             sx={{
                                 fontSize: { xs: '1.2rem', sm: '1.5rem' },
@@ -3160,10 +3208,10 @@ const BookMeetingRoom = () => {
                         >
                             Select Date and Seating Capacity
                         </Typography>
-
-                        <Box sx={{
-                            display: 'flex',
-                            alignItems: 'center',
+                        
+                        <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
                             mb: { xs: 2, sm: 3 },
                             flexDirection: { xs: 'column', sm: 'row' },
                             gap: { xs: 2, sm: 0 }
@@ -3189,13 +3237,13 @@ const BookMeetingRoom = () => {
                                                 ...params.InputProps,
                                                 readOnly: true,
                                                 endAdornment: (
-                                                    <IconButton
+                                                    <IconButton 
                                                         onClick={handleCalendarClick}
-                                                        sx={{
+                                                        sx={{ 
                                                             p: { xs: 0.5, sm: 1 }
                                                         }}
                                                     >
-                                                        <CalendarTodayIcon sx={{
+                                                        <CalendarTodayIcon sx={{ 
                                                             fontSize: { xs: '1.2rem', sm: '1.5rem' }
                                                         }} />
                                                     </IconButton>
@@ -3233,8 +3281,8 @@ const BookMeetingRoom = () => {
                                     }}
                                 >
                                     {seatingOptions.map((option) => (
-                                        <MenuItem
-                                            key={option.id}
+                                        <MenuItem 
+                                            key={option.id} 
                                             value={option.id}
                                             sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
                                         >
@@ -3245,7 +3293,90 @@ const BookMeetingRoom = () => {
                             </FormControl>
                         )}
 
-                        {bookingType && memberType && (
+                        {/* Whole Day Booking Summary and Book Now Button */}
+                        {bookingType === 'Whole Day' && selectedDate && selectedSeating && (
+                            <Card sx={{
+                                mt: 3,
+                                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                                border: '1px solid rgba(102, 126, 234, 0.2)',
+                                borderRadius: 3
+                            }}>
+                                <CardContent sx={{ p: 3 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                                        🌟 Booking Summary
+                                    </Typography>
+                                    
+                                    <Box sx={{ mb: 2 }}>
+                                        <Typography variant="body1" sx={{ mb: 1 }}>
+                                            📅 <strong>Date:</strong> {format(selectedDate, "EEEE, MMMM dd, yyyy")}
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ mb: 1 }}>
+                                            ⏰ <strong>Time:</strong> {memberType === 'Member' ? '9:00 AM - 6:30 PM (9.5 hours)' : '9:00 AM - 6:00 PM (9 hours)'}
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ mb: 1 }}>
+                                            🪑 <strong>Seating:</strong> {seatingOptions.find(s => s.id === selectedSeating)?.name}
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ mb: 2 }}>
+                                            👤 <strong>Type:</strong> {memberType}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box sx={{
+                                        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
+                                        borderRadius: 2,
+                                        p: 2,
+                                        textAlign: 'center',
+                                        mb: 3
+                                    }}>
+                                        <Typography variant="h5" sx={{
+                                            fontWeight: 'bold',
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            backgroundClip: 'text',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent'
+                                        }}>
+                                            ₹{selectedSeating === 'C2' 
+                                                ? (memberType === 'Member' ? '2,500' : '3,000') 
+                                                : (memberType === 'Member' ? '1,800' : '2,300')
+                                            }
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: '#666' }}>
+                                            Including GST
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        onClick={() => {
+                                            console.log('Whole Day Book Now clicked - opening summary modal');
+                                            setShowTimeSlotModal(false);
+                                            setShowWholeDaySummaryModal(true);
+                                        }}
+                                        sx={{
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            height: '56px',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 600,
+                                            borderRadius: '16px',
+                                            textTransform: 'none',
+                                            letterSpacing: '0.5px',
+                                            boxShadow: '0 10px 25px rgba(102, 126, 234, 0.3)',
+                                            '&:hover': {
+                                                background: 'linear-gradient(135deg, #5a6fd8 0%, #6b4190 100%)',
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 15px 30px rgba(102, 126, 234, 0.4)'
+                                            },
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                    >
+                                        Book Whole Day
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {bookingType && memberType && bookingType !== 'Whole Day' && (
                             <Box sx={{
                                 mt: 4,
                                 animation: 'slideUp 0.4s ease-out',
@@ -3254,12 +3385,12 @@ const BookMeetingRoom = () => {
                                     '100%': { opacity: 1, transform: 'translateY(0)' }
                                 }
                             }}>-
-                                <Button
-                                    fullWidth
-                                    variant="contained"
-                                    onClick={handleBookingSubmit}
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            onClick={handleBookingSubmit}
                                     disabled={!bookingType || !memberType}
-                                    sx={{
+                            sx={{
                                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                         height: '56px',
                                         fontSize: '1.1rem',
@@ -3281,7 +3412,7 @@ const BookMeetingRoom = () => {
                                             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
                                             transition: 'left 0.5s ease',
                                         },
-                                        '&:hover': {
+                                '&:hover': {
                                             background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
                                             transform: 'translateY(-2px)',
                                             boxShadow: '0 15px 35px rgba(102, 126, 234, 0.4)',
@@ -3291,20 +3422,20 @@ const BookMeetingRoom = () => {
                                         },
                                         '&:active': {
                                             transform: 'translateY(0px)',
-                                        },
-                                        '&:disabled': {
+                                },
+                                '&:disabled': {
                                             background: 'linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)',
                                             color: '#999',
                                             boxShadow: 'none',
                                             transform: 'none'
-                                        }
-                                    }}
-                                >
+                                }
+                            }}
+                        >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <span>Continue</span>
                                         <Typography sx={{ fontSize: '1.2rem' }}>→</Typography>
                                     </Box>
-                                </Button>
+                        </Button>
                             </Box>
                         )}
                     </Box>
@@ -3349,13 +3480,13 @@ const BookMeetingRoom = () => {
                             zIndex: -1
                         },
                         '@keyframes modalSlideIn': {
-                            '0%': {
-                                opacity: 0,
-                                transform: 'scale(0.9) translateY(20px)'
+                            '0%': { 
+                                opacity: 0, 
+                                transform: 'scale(0.9) translateY(20px)' 
                             },
-                            '100%': {
-                                opacity: 1,
-                                transform: 'scale(1) translateY(0)'
+                            '100%': { 
+                                opacity: 1, 
+                                transform: 'scale(1) translateY(0)' 
                             }
                         },
                         '&::-webkit-scrollbar': {
@@ -3393,10 +3524,10 @@ const BookMeetingRoom = () => {
                         >
                             <CloseIcon />
                         </IconButton>
-
+                        
                         {/* Modern Header */}
-                        <Box sx={{
-                            textAlign: 'center',
+                        <Box sx={{ 
+                            textAlign: 'center', 
                             mb: 5,
                             pt: 2
                         }}>
@@ -3420,20 +3551,20 @@ const BookMeetingRoom = () => {
                             >
                                 <Typography sx={{ fontSize: '2rem' }}>⏰</Typography>
                             </Box>
-                            <Typography
-                                variant="h4"
-                                sx={{
+                        <Typography 
+                                variant="h4" 
+                            sx={{
                                     color: '#333',
                                     fontWeight: 600,
                                     mb: 1,
                                     fontSize: { xs: '1.5rem', sm: '1.8rem' }
-                                }}
-                            >
-                                Select Time Slot
-                            </Typography>
-                            <Typography
-                                variant="body2"
-                                sx={{
+                            }}
+                        >
+                            Select Time Slot
+                        </Typography>
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
                                     color: '#666',
                                     fontSize: '0.95rem'
                                 }}
@@ -3443,8 +3574,8 @@ const BookMeetingRoom = () => {
                         </Box>
 
                         {/* Clean International Date Navigation */}
-                        <Box sx={{
-                            display: 'flex',
+                        <Box sx={{ 
+                            display: 'flex', 
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             mb: 5,
@@ -3457,7 +3588,7 @@ const BookMeetingRoom = () => {
                             <Button
                                 onClick={goToPreviousDates}
                                 variant="outlined"
-                                sx={{
+                                sx={{ 
                                     minWidth: '48px',
                                     height: '48px',
                                     borderRadius: '12px',
@@ -3477,7 +3608,7 @@ const BookMeetingRoom = () => {
                             >
                                 ←
                             </Button>
-
+                            
                             <Box sx={{
                                 display: 'flex',
                                 gap: 1.5,
@@ -3488,8 +3619,8 @@ const BookMeetingRoom = () => {
                                 {getAvailableDates().map((date) => (
                                     <Button
                                         key={format(date, 'yyyy-MM-dd')}
-                                        variant={selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-                                            ? "contained"
+                                        variant={selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') 
+                                            ? "contained" 
                                             : "outlined"
                                         }
                                         onClick={() => {
@@ -3530,15 +3661,15 @@ const BookMeetingRoom = () => {
                                         }}
                                     >
                                         <Box sx={{ textAlign: 'center' }}>
-                                            <Typography sx={{
-                                                fontSize: '0.85rem',
+                                            <Typography sx={{ 
+                                                fontSize: '0.85rem', 
                                                 fontWeight: 600,
                                                 lineHeight: 1.2
                                             }}>
                                                 {format(date, 'dd MMM')}
                                             </Typography>
-                                            <Typography sx={{
-                                                fontSize: '0.7rem',
+                                            <Typography sx={{ 
+                                                fontSize: '0.7rem', 
                                                 opacity: 0.7,
                                                 fontWeight: 400
                                             }}>
@@ -3548,11 +3679,11 @@ const BookMeetingRoom = () => {
                                     </Button>
                                 ))}
                             </Box>
-
+                            
                             <Button
                                 onClick={goToNextDates}
                                 variant="outlined"
-                                sx={{
+                                sx={{ 
                                     minWidth: '48px',
                                     height: '48px',
                                     borderRadius: '12px',
@@ -3575,8 +3706,8 @@ const BookMeetingRoom = () => {
                         </Box>
 
                         {isLoadingSlots ? (
-                            <Box sx={{
-                                textAlign: 'center',
+                            <Box sx={{ 
+                                textAlign: 'center', 
                                 py: { xs: 4, sm: 6 },
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -3610,15 +3741,15 @@ const BookMeetingRoom = () => {
                                         ⏰
                                     </Box>
                                 </Box>
-                                <Typography variant="h6" sx={{
-                                    color: '#4CAF50',
+                                <Typography variant="h6" sx={{ 
+                                    color: '#4CAF50', 
                                     fontWeight: 'bold',
                                     fontSize: { xs: '1rem', sm: '1.25rem' }
                                 }}>
                                     Finding Available Slots...
                                 </Typography>
-                                <Typography variant="body2" sx={{
-                                    color: '#666',
+                                <Typography variant="body2" sx={{ 
+                                    color: '#666', 
                                     maxWidth: '280px',
                                     fontSize: { xs: '0.85rem', sm: '0.9rem' }
                                 }}>
@@ -3626,365 +3757,353 @@ const BookMeetingRoom = () => {
                                 </Typography>
                             </Box>
                         ) : (
-                            <>
-                                {bookingType != 'Whole Day' ? (
-
-                                    <Box sx={{
-                                        width: '100%',
-                                        maxWidth: '100%',
-                                        mb: { xs: 4, sm: 5 }
+                            <Box sx={{ 
+                                width: '100%',
+                                maxWidth: '100%',
+                                mb: { xs: 4, sm: 5 }
+                            }}>
+                                {/* Duration Selection Section */}
+                                <Box sx={{
+                                    mb: 4,
+                                    p: 3,
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '16px',
+                                    border: '1px solid #e9ecef'
+                                }}>
+                                    <Typography variant="h6" sx={{
+                                        fontWeight: 600,
+                                        color: '#2c3e50',
+                                        fontSize: '1.1rem',
+                                        mb: 2,
+                                        fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
                                     }}>
-                                        {/* Duration Selection Section */}
-                                        <Box sx={{
-                                            mb: 4,
-                                            p: 3,
-                                            backgroundColor: '#f8f9fa',
-                                            borderRadius: '16px',
-                                            border: '1px solid #e9ecef'
+                                        Select Duration
+                                    </Typography>
+                                    
+                                    {/* Advertisement for Whole Day Option */}
+                                    <Box sx={{
+                                        mb: 3,
+                                        p: 2.5,
+                                        background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+                                        borderRadius: '12px',
+                                        border: '1px solid rgba(255, 152, 0, 0.3)',
+                                        textAlign: 'center'
+                                    }}>
+                                        <Typography sx={{
+                                            color: 'white',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 600,
+                                            mb: 1,
+                                            textShadow: '0 1px 2px rgba(0,0,0,0.2)'
                                         }}>
-                                            <Typography variant="h6" sx={{
-                                                fontWeight: 600,
-                                                color: '#2c3e50',
-                                                fontSize: '1.1rem',
-                                                mb: 2,
-                                                fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
-                                            }}>
-                                                Select Duration
-                                            </Typography>
-
-                                            {/* Advertisement for Whole Day Option */}
-                                            <Box sx={{
-                                                mb: 3,
-                                                p: 2.5,
-                                                background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+                                            💡 Need more than 7 hours?
+                                        </Typography>
+                                        <Typography sx={{
+                                            color: 'rgba(255,255,255,0.95)',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 400
+                                        }}>
+                                            Explore our "Whole Day" booking type for extended meetings!
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box sx={{
+                                        display: 'grid',
+                                        gridTemplateColumns: {
+                                            xs: 'repeat(3, 1fr)',
+                                            sm: 'repeat(4, 1fr)',
+                                            md: 'repeat(5, 1fr)'
+                                        },
+                                        gap: 1.5,
+                                        mb: 2
+                                    }}>
+                                        {getDurationOptions().map((duration) => (
+                                            <Button
+                                                key={duration.id}
+                                                variant={selectedBookingDuration === duration.id ? "contained" : "outlined"}
+                                                onClick={() => {
+                                                    setSelectedBookingDuration(duration.id);
+                                                    setSelectedTimeSlots([]); // Clear previous selections
+                                                }}
+                                                sx={{
+                                                    height: '48px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 500,
+                                                    textTransform: 'none',
+                                                    fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif',
+                                                    backgroundColor: selectedBookingDuration === duration.id
+                                                        ? '#3498db'
+                                                        : '#ffffff',
+                                                    color: selectedBookingDuration === duration.id
+                                                        ? 'white'
+                                                        : '#2c3e50',
+                                                    border: `1px solid ${selectedBookingDuration === duration.id ? '#3498db' : '#e9ecef'}`,
+                                                    boxShadow: selectedBookingDuration === duration.id
+                                                        ? '0 4px 12px rgba(52, 152, 219, 0.3)'
+                                                        : 'none',
+                                                    transition: 'all 0.2s ease',
+                                                    '&:hover': {
+                                                        backgroundColor: selectedBookingDuration === duration.id
+                                                            ? '#2980b9'
+                                                            : '#f8f9fa',
+                                                        borderColor: '#3498db',
+                                                        transform: 'translateY(-1px)',
+                                                        boxShadow: '0 4px 12px rgba(52, 152, 219, 0.2)'
+                                                    }
+                                                }}
+                                            >
+                                                {duration.label}
+                                            </Button>
+                                        ))}
+                                    </Box>
+                                    
+                                    {/* Whole Day Option - Separate and Prominent */}
+                                    <Box sx={{ mb: 2 }}>
+                                        <Button
+                                            variant={selectedBookingDuration === 'wholeday' ? "contained" : "outlined"}
+                                            onClick={() => {
+                                                setSelectedBookingDuration('wholeday');
+                                                setSelectedTimeSlots([]); // Clear previous selections
+                                            }}
+                                            sx={{
+                                                width: '100%',
+                                                height: '56px',
                                                 borderRadius: '12px',
-                                                border: '1px solid rgba(255, 152, 0, 0.3)',
-                                                textAlign: 'center'
+                                                fontSize: '1rem',
+                                                fontWeight: 600,
+                                                textTransform: 'none',
+                                                fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif',
+                                                backgroundColor: selectedBookingDuration === 'wholeday'
+                                                    ? '#e74c3c'
+                                                    : '#ffffff',
+                                                color: selectedBookingDuration === 'wholeday'
+                                                    ? 'white'
+                                                    : '#e74c3c',
+                                                border: `2px solid ${selectedBookingDuration === 'wholeday' ? '#e74c3c' : '#e74c3c'}`,
+                                                boxShadow: selectedBookingDuration === 'wholeday'
+                                                    ? '0 6px 16px rgba(231, 76, 60, 0.3)'
+                                                    : 'none',
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    backgroundColor: selectedBookingDuration === 'wholeday'
+                                                        ? '#c0392b'
+                                                        : 'rgba(231, 76, 60, 0.1)',
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: '0 8px 20px rgba(231, 76, 60, 0.25)'
+                                                }
+                                            }}
+                                        >
+                                            🏢 Book Whole Day (7+ hours)
+                                        </Button>
+                                    </Box>
+                                    
+                                    {selectedBookingDuration && (
+                                        <Box sx={{
+                                            mt: 2,
+                                            p: 2,
+                                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(52, 152, 219, 0.2)'
+                                        }}>
+                                            <Typography variant="body2" sx={{
+                                                color: '#3498db',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 500
                                             }}>
-                                                <Typography sx={{
-                                                    color: 'white',
-                                                    fontSize: '0.9rem',
+                                                {selectedBookingDuration === 'wholeday' 
+                                                    ? '🏢 Click any slot to book the entire day (all available slots)'
+                                                    : '💡 Select any time slot below and we\'ll automatically book consecutive slots for your selected duration'
+                                                }
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+
+                                {/* Time Slots Header */}
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    mb: 3,
+                                    pb: 2,
+                                    borderBottom: '2px solid rgba(0, 0, 0, 0.05)'
+                                }}>
+                                    <Typography variant="h6" sx={{
+                                        fontWeight: 600,
+                                        color: '#2c3e50',
+                                        fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                                        fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
+                                    }}>
+                                        Available Time Slots
+                                    </Typography>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        px: 2,
+                                        py: 0.5,
+                                        borderRadius: '20px',
+                                        bgcolor: 'rgba(52, 152, 219, 0.1)',
+                                        border: '1px solid rgba(52, 152, 219, 0.2)'
+                                    }}>
+                                        <Box sx={{
+                                            width: 8,
+                                            height: 8,
+                                            borderRadius: '50%',
+                                            bgcolor: '#3498db'
+                                        }} />
+                                        <Typography variant="caption" sx={{
+                                            color: '#3498db',
+                                            fontWeight: 500,
+                                            fontSize: '0.75rem'
+                                        }}>
+                                            {availableSlots.length} slots available
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                
+                                <Typography variant="body2" sx={{ 
+                                    color: '#4CAF50', 
+                                    mb: 2, 
+                                    textAlign: 'center',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    Choose "Manual Selection" to pick individual slots, or select a duration ({memberType === 'Member' ? '30min-7hr' : '1hr-7hr'}) for automatic consecutive booking
+                                </Typography>
+                                
+                                {/* Time Slots Grid - International Layout */}
+                                <Box sx={{ 
+                                    display: 'grid',
+                                    gridTemplateColumns: {
+                                        xs: 'repeat(2, 1fr)',
+                                        sm: 'repeat(3, 1fr)',
+                                        md: 'repeat(4, 1fr)',
+                                        lg: 'repeat(6, 1fr)'
+                                    },
+                                    gap: { xs: 1.5, sm: 2, md: 2 },
+                                    width: '100%'
+                                }}>
+                                {availableSlots.map((slot, index) => {
+                                    const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                                    const isInPreview = hoveredSlot && getConsecutiveSlots(slot, selectedBookingDuration).some(s => 
+                                        s.start === slot.start && s.end === slot.end
+                                    );
+                                    const canSelect = true;
+                                    
+                                    return (
+                                        <Box
+                                            key={index}
+                                            onClick={() => canSelect && handleTimeSlotSelectionUnified(slot)}
+                                            onMouseEnter={() => setHoveredSlot(slot)}
+                                            onMouseLeave={() => setHoveredSlot(null)}
+                                            sx={{
+                                                position: 'relative',
+                                                minHeight: { xs: '70px', sm: '80px' },
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: canSelect ? 'pointer' : 'not-allowed',
+                                                border: '2px solid transparent',
+                                                borderRadius: '12px',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                backgroundColor: isSelected 
+                                                    ? '#3498db'
+                                                    : isInPreview 
+                                                        ? '#e8f4fd'
+                                                        : '#ffffff',
+                                                borderColor: isSelected 
+                                                    ? '#3498db'
+                                                    : isInPreview 
+                                                        ? '#3498db'
+                                                        : '#e9ecef',
+                                                boxShadow: isSelected 
+                                                    ? '0 4px 12px rgba(52, 152, 219, 0.3)'
+                                                    : isInPreview
+                                                        ? '0 2px 8px rgba(52, 152, 219, 0.2)'
+                                                        : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                                '&:hover': canSelect ? {
+                                                    borderColor: '#3498db',
+                                                    backgroundColor: isSelected ? '#2980b9' : '#f8fcff',
+                                                    boxShadow: '0 4px 12px rgba(52, 152, 219, 0.25)',
+                                                    transform: 'translateY(-2px)'
+                                                } : {},
+                                                p: { xs: 1.5, sm: 2 }
+                                            }}
+                                        >
+                                            {/* Time Display */}
+                                            <Typography
+                                                variant="body1"
+                                                sx={{
                                                     fontWeight: 600,
-                                                    mb: 1,
-                                                    textShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                                                }}>
-                                                    💡 Need more than 7 hours?
-                                                </Typography>
-                                                <Typography sx={{
-                                                    color: 'rgba(255,255,255,0.95)',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 400
-                                                }}>
-                                                    Explore our "Whole Day" booking type for extended meetings!
-                                                </Typography>
-                                            </Box>
-
-                                            <Box sx={{
-                                                display: 'grid',
-                                                gridTemplateColumns: {
-                                                    xs: 'repeat(3, 1fr)',
-                                                    sm: 'repeat(4, 1fr)',
-                                                    md: 'repeat(5, 1fr)'
-                                                },
-                                                gap: 1.5,
-                                                mb: 2
-                                            }}>
-                                                {getDurationOptions().map((duration) => (
-                                                    <Button
-                                                        key={duration.id}
-                                                        variant={selectedBookingDuration === duration.id ? "contained" : "outlined"}
-                                                        onClick={() => {
-                                                            setSelectedBookingDuration(duration.id);
-                                                            setSelectedTimeSlots([]); // Clear previous selections
-                                                        }}
-                                                        sx={{
-                                                            height: '48px',
-                                                            borderRadius: '12px',
-                                                            fontSize: '0.85rem',
-                                                            fontWeight: 500,
-                                                            textTransform: 'none',
-                                                            fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif',
-                                                            backgroundColor: selectedBookingDuration === duration.id
-                                                                ? '#3498db'
-                                                                : '#ffffff',
-                                                            color: selectedBookingDuration === duration.id
-                                                                ? 'white'
-                                                                : '#2c3e50',
-                                                            border: `1px solid ${selectedBookingDuration === duration.id ? '#3498db' : '#e9ecef'}`,
-                                                            boxShadow: selectedBookingDuration === duration.id
-                                                                ? '0 4px 12px rgba(52, 152, 219, 0.3)'
-                                                                : 'none',
-                                                            transition: 'all 0.2s ease',
-                                                            '&:hover': {
-                                                                backgroundColor: selectedBookingDuration === duration.id
-                                                                    ? '#2980b9'
-                                                                    : '#f8f9fa',
-                                                                borderColor: '#3498db',
-                                                                transform: 'translateY(-1px)',
-                                                                boxShadow: '0 4px 12px rgba(52, 152, 219, 0.2)'
-                                                            }
-                                                        }}
-                                                    >
-                                                        {duration.label}
-                                                    </Button>
-                                                ))}
-                                            </Box>
-
-                                            {/* Whole Day Option - Separate and Prominent */}
-                                            <Box sx={{ mb: 2 }}>
-                                                <Button
-                                                    variant={selectedBookingDuration === 'wholeday' ? "contained" : "outlined"}
-                                                    onClick={() => {
-                                                        setSelectedBookingDuration('wholeday');
-                                                        setSelectedTimeSlots([]); // Clear previous selections
-                                                    }}
+                                                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                                                    color: isSelected ? '#ffffff' : '#2c3e50',
+                                                    textAlign: 'center',
+                                                    lineHeight: 1.2,
+                                                    fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
+                                                }}
+                                            >
+                                                {slot.display}
+                                            </Typography>
+                                            
+                                            {/* Duration Badge */}
+                                            {slot.duration && (
+                                                <Typography
+                                                    variant="caption"
                                                     sx={{
-                                                        width: '100%',
-                                                        height: '56px',
-                                                        borderRadius: '12px',
-                                                        fontSize: '1rem',
-                                                        fontWeight: 600,
-                                                        textTransform: 'none',
-                                                        fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif',
-                                                        backgroundColor: selectedBookingDuration === 'wholeday'
-                                                            ? '#e74c3c'
-                                                            : '#ffffff',
-                                                        color: selectedBookingDuration === 'wholeday'
-                                                            ? 'white'
-                                                            : '#e74c3c',
-                                                        border: `2px solid ${selectedBookingDuration === 'wholeday' ? '#e74c3c' : '#e74c3c'}`,
-                                                        boxShadow: selectedBookingDuration === 'wholeday'
-                                                            ? '0 6px 16px rgba(231, 76, 60, 0.3)'
-                                                            : 'none',
-                                                        transition: 'all 0.2s ease',
-                                                        '&:hover': {
-                                                            backgroundColor: selectedBookingDuration === 'wholeday'
-                                                                ? '#c0392b'
-                                                                : 'rgba(231, 76, 60, 0.1)',
-                                                            transform: 'translateY(-2px)',
-                                                            boxShadow: '0 8px 20px rgba(231, 76, 60, 0.25)'
-                                                        }
+                                                        mt: 0.5,
+                                                        px: 1,
+                                                        py: 0.25,
+                                                        borderRadius: '10px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 500,
+                                                        backgroundColor: isSelected 
+                                                            ? 'rgba(255, 255, 255, 0.2)'
+                                                            : 'rgba(52, 152, 219, 0.1)',
+                                                        color: isSelected ? '#ffffff' : '#3498db',
+                                                        border: `1px solid ${isSelected ? 'rgba(255, 255, 255, 0.3)' : 'rgba(52, 152, 219, 0.2)'}`
                                                     }}
                                                 >
-                                                    🏢 Book Whole Day (7+ hours)
-                                                </Button>
-                                            </Box>
+                                                    {slot.duration}
+                                                </Typography>
+                                            )}
 
-                                            {selectedBookingDuration && (
-                                                <Box sx={{
-                                                    mt: 2,
-                                                    p: 2,
-                                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid rgba(52, 152, 219, 0.2)'
-                                                }}>
-                                                    <Typography variant="body2" sx={{
-                                                        color: '#3498db',
-                                                        fontSize: '0.85rem',
-                                                        fontWeight: 500
+                                            {/* Selection Indicator */}
+                                            {isSelected && (
+                                                <Box
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: 8,
+                                                        right: 8,
+                                                        width: 20,
+                                                        height: 20,
+                                                        borderRadius: '50%',
+                                                        backgroundColor: '#ffffff',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                                                    }}
+                                                >
+                                                    <Typography sx={{ 
+                                                        color: '#3498db', 
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold'
                                                     }}>
-                                                        {selectedBookingDuration === 'wholeday'
-                                                            ? '🏢 Click any slot to book the entire day (all available slots)'
-                                                            : '💡 Select any time slot below and we\'ll automatically book consecutive slots for your selected duration'
-                                                        }
+                                                        ✓
                                                     </Typography>
                                                 </Box>
                                             )}
                                         </Box>
-
-                                        {/* Time Slots Header */}
-                                        <Box sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            mb: 3,
-                                            pb: 2,
-                                            borderBottom: '2px solid rgba(0, 0, 0, 0.05)'
-                                        }}>
-                                            <Typography variant="h6" sx={{
-                                                fontWeight: 600,
-                                                color: '#2c3e50',
-                                                fontSize: { xs: '1.1rem', sm: '1.25rem' },
-                                                fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
-                                            }}>
-                                                Available Time Slots
-                                            </Typography>
-                                            <Box sx={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 1,
-                                                px: 2,
-                                                py: 0.5,
-                                                borderRadius: '20px',
-                                                bgcolor: 'rgba(52, 152, 219, 0.1)',
-                                                border: '1px solid rgba(52, 152, 219, 0.2)'
-                                            }}>
-                                                <Box sx={{
-                                                    width: 8,
-                                                    height: 8,
-                                                    borderRadius: '50%',
-                                                    bgcolor: '#3498db'
-                                                }} />
-                                                <Typography variant="caption" sx={{
-                                                    color: '#3498db',
-                                                    fontWeight: 500,
-                                                    fontSize: '0.75rem'
-                                                }}>
-                                                    {availableSlots.length} slots available
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-
-                                        <Typography variant="body2" sx={{
-                                            color: '#4CAF50',
-                                            mb: 2,
-                                            textAlign: 'center',
-                                            fontSize: '0.9rem'
-                                        }}>
-                                            Choose "Manual Selection" to pick individual slots, or select a duration ({memberType === 'Member' ? '30min-7hr' : '1hr-7hr'}) for automatic consecutive booking
-                                        </Typography>
-
-                                        {/* Time Slots Grid - International Layout */}
-                                        <Box sx={{
-                                            display: 'grid',
-                                            gridTemplateColumns: {
-                                                xs: 'repeat(2, 1fr)',
-                                                sm: 'repeat(3, 1fr)',
-                                                md: 'repeat(4, 1fr)',
-                                                lg: 'repeat(6, 1fr)'
-                                            },
-                                            gap: { xs: 1.5, sm: 2, md: 2 },
-                                            width: '100%'
-                                        }}>
-                                            {availableSlots.map((slot, index) => {
-                                                const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
-                                                const isInPreview = hoveredSlot && getConsecutiveSlots(slot, selectedBookingDuration).some(s =>
-                                                    s.start === slot.start && s.end === slot.end
-                                                );
-                                                const canSelect = true;
-
-                                                return (
-                                                    <Box
-                                                        key={index}
-                                                        onClick={() => canSelect && handleTimeSlotSelectionUnified(slot)}
-                                                        onMouseEnter={() => setHoveredSlot(slot)}
-                                                        onMouseLeave={() => setHoveredSlot(null)}
-                                                        sx={{
-                                                            position: 'relative',
-                                                            minHeight: { xs: '70px', sm: '80px' },
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            cursor: canSelect ? 'pointer' : 'not-allowed',
-                                                            border: '2px solid transparent',
-                                                            borderRadius: '12px',
-                                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                            backgroundColor: isSelected
-                                                                ? '#3498db'
-                                                                : isInPreview
-                                                                    ? '#e8f4fd'
-                                                                    : '#ffffff',
-                                                            borderColor: isSelected
-                                                                ? '#3498db'
-                                                                : isInPreview
-                                                                    ? '#3498db'
-                                                                    : '#e9ecef',
-                                                            boxShadow: isSelected
-                                                                ? '0 4px 12px rgba(52, 152, 219, 0.3)'
-                                                                : isInPreview
-                                                                    ? '0 2px 8px rgba(52, 152, 219, 0.2)'
-                                                                    : '0 1px 3px rgba(0, 0, 0, 0.1)',
-                                                            '&:hover': canSelect ? {
-                                                                borderColor: '#3498db',
-                                                                backgroundColor: isSelected ? '#2980b9' : '#f8fcff',
-                                                                boxShadow: '0 4px 12px rgba(52, 152, 219, 0.25)',
-                                                                transform: 'translateY(-2px)'
-                                                            } : {},
-                                                            p: { xs: 1.5, sm: 2 }
-                                                        }}
-                                                    >
-                                                        {/* Time Display */}
-                                                        <Typography
-                                                            variant="body1"
-                                                            sx={{
-                                                                fontWeight: 600,
-                                                                fontSize: { xs: '0.9rem', sm: '1rem' },
-                                                                color: isSelected ? '#ffffff' : '#2c3e50',
-                                                                textAlign: 'center',
-                                                                lineHeight: 1.2,
-                                                                fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
-                                                            }}
-                                                        >
-                                                            {slot.display}
-                                                        </Typography>
-
-                                                        {/* Duration Badge */}
-                                                        {slot.duration && (
-                                                            <Typography
-                                                                variant="caption"
-                                                                sx={{
-                                                                    mt: 0.5,
-                                                                    px: 1,
-                                                                    py: 0.25,
-                                                                    borderRadius: '10px',
-                                                                    fontSize: '0.7rem',
-                                                                    fontWeight: 500,
-                                                                    backgroundColor: isSelected
-                                                                        ? 'rgba(255, 255, 255, 0.2)'
-                                                                        : 'rgba(52, 152, 219, 0.1)',
-                                                                    color: isSelected ? '#ffffff' : '#3498db',
-                                                                    border: `1px solid ${isSelected ? 'rgba(255, 255, 255, 0.3)' : 'rgba(52, 152, 219, 0.2)'}`
-                                                                }}
-                                                            >
-                                                                {slot.duration}
-                                                            </Typography>
-                                                        )}
-
-                                                        {/* Selection Indicator */}
-                                                        {isSelected && (
-                                                            <Box
-                                                                sx={{
-                                                                    position: 'absolute',
-                                                                    top: 8,
-                                                                    right: 8,
-                                                                    width: 20,
-                                                                    height: 20,
-                                                                    borderRadius: '50%',
-                                                                    backgroundColor: '#ffffff',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                                                                }}
-                                                            >
-                                                                <Typography sx={{
-                                                                    color: '#3498db',
-                                                                    fontSize: '12px',
-                                                                    fontWeight: 'bold'
-                                                                }}>
-                                                                    ✓
-                                                                </Typography>
-                                                            </Box>
-                                                        )}
-                                                    </Box>
-                                                );
-                                            })}
-                                        </Box>
-                                    </Box>
-                                )
-
-                                    : (<>
-                                        <Typography variant="body1" sx={{ textAlign: 'center', mt: 4, fontSize: '1rem', color: '#2c3e50' }}>
-                                            By selecting "Whole Day", you will book all available slots for the day from 9:00 AM to 6:00 PM.
-                                        </Typography>
-                                    </>)
-                                }
-                            </>
+                                    );
+                                })}
+                                </Box>
+                            </Box>
                         )}
 
                         {selectedTimeSlots.length > 0 && (
-                            <Box sx={{
+                            <Box sx={{ 
                                 mt: 4,
                                 p: 3,
                                 backgroundColor: '#f8f9fa',
@@ -3992,9 +4111,9 @@ const BookMeetingRoom = () => {
                                 border: '1px solid #e9ecef',
                                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                             }}>
-                                <Box sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
                                     mb: 2,
                                     gap: 1.5
                                 }}>
@@ -4012,9 +4131,9 @@ const BookMeetingRoom = () => {
                                     }}>
                                         {selectedTimeSlots.length}
                                     </Box>
-                                    <Typography
-                                        variant="h6"
-                                        sx={{
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
                                             fontSize: '1.1rem',
                                             fontWeight: 600,
                                             color: '#2c3e50',
@@ -4024,15 +4143,15 @@ const BookMeetingRoom = () => {
                                         Selected Time Slots ({selectedTimeSlots.length}/{getMaxAllowedSlots()})
                                     </Typography>
                                 </Box>
-
-                                <Box sx={{
+                                
+                                <Box sx={{ 
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     gap: 1,
                                     mb: 3
                                 }}>
                                     {selectedTimeSlots.map((slot, index) => (
-                                        <Box
+                                        <Box 
                                             key={index}
                                             sx={{
                                                 display: 'inline-flex',
@@ -4058,16 +4177,16 @@ const BookMeetingRoom = () => {
                                         </Box>
                                     ))}
                                 </Box>
-
+                                
                                 <Box sx={{
                                     p: 2.5,
                                     backgroundColor: '#3498db',
                                     borderRadius: '12px',
                                     textAlign: 'center'
                                 }}>
-                                    <Typography
-                                        variant="h6"
-                                        sx={{
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
                                             color: 'white',
                                             fontSize: '1.1rem',
                                             fontWeight: 600,
@@ -4097,8 +4216,8 @@ const BookMeetingRoom = () => {
                                         Select a reason
                                     </MenuItem>
                                     {meetingReasons.map((reason) => (
-                                        <MenuItem
-                                            key={reason.id}
+                                        <MenuItem 
+                                            key={reason.id} 
                                             value={reason.id}
                                             sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
                                         >
@@ -4110,9 +4229,9 @@ const BookMeetingRoom = () => {
                         )}
 
                         {/* Update the button text based on member type */}
-                        <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
+                        <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
                             mt: { xs: 2, sm: 3 },
                             gap: { xs: 1, sm: 2 }
                         }}>
@@ -4154,22 +4273,275 @@ const BookMeetingRoom = () => {
 
             {/* Payment Modal */}
             <PaymentModal />
-
+            
             {/* Summary Modal */}
             <SummaryModal />
-
+            
             {/* Pending Modal */}
             <PendingModal />
-
+            
             {/* Login Modal for Members */}
             <LoginModal
                 open={showLoginModal}
                 onClose={handleLoginClose}
                 onLoginSuccess={handleLoginSuccess}
             />
+
+            {/* Whole Day Booking Summary Modal */}
+            <Modal
+                open={showWholeDaySummaryModal}
+                onClose={() => setShowWholeDaySummaryModal(false)}
+                closeAfterTransition
+            >
+                <Fade in={showWholeDaySummaryModal}>
+                    <Box sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: { xs: '90%', sm: '80%', md: 600 },
+                        maxHeight: { xs: '90vh', sm: '85vh' },
+                        overflow: 'auto',
+                        bgcolor: 'transparent',
+                        borderRadius: 4,
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        p: 0,
+                        '&::-webkit-scrollbar': {
+                            width: '8px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            background: 'rgba(0,0,0,0.1)',
+                            borderRadius: '10px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
+                            borderRadius: '10px'
+                        }
+                    }}>
+                        <Card sx={{
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                            backdropFilter: 'blur(20px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 4,
+                            overflow: 'hidden',
+                            position: 'relative',
+                            '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: '4px',
+                                background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                            }
+                        }}>
+                            <CardContent sx={{ p: 4 }}>
+                                {/* Header with Close Button */}
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center',
+                                    mb: 3 
+                                }}>
+                                    <Typography variant="h5" sx={{
+                                        fontWeight: 'bold',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        fontSize: { xs: '1.5rem', md: '1.75rem' }
+                                    }}>
+                                        🌟 Whole Day Booking Summary
+                                    </Typography>
+                                    <IconButton
+                                        onClick={() => setShowWholeDaySummaryModal(false)}
+                                        sx={{
+                                            color: '#666',
+                                            '&:hover': {
+                                                bgcolor: 'rgba(102, 126, 234, 0.1)',
+                                                color: '#667eea'
+                                            }
+                                        }}
+                                    >
+                                        <CloseIcon />
+                                    </IconButton>
+                                </Box>
+
+                                {/* Booking Details Card */}
+                                <Card sx={{
+                                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                                    border: '1px solid rgba(102, 126, 234, 0.2)',
+                                    borderRadius: 3,
+                                    mb: 3
+                                }}>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                            <Box sx={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                mr: 2
+                                            }}>
+                                                <CalendarTodayIcon sx={{ color: 'white', fontSize: 24 }} />
+                                            </Box>
+                                            <Box>
+                                                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333' }}>
+                                                    {selectedDate ? format(selectedDate, "EEEE, MMMM dd, yyyy") : 'Date not selected'}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#666' }}>
+                                                    Full Day Conference Experience
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+
+                                        {/* Time Duration Display */}
+                                        <Box sx={{
+                                            background: 'linear-gradient(90deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                                            borderRadius: 2,
+                                            p: 3,
+                                            mb: 3,
+                                            border: '1px solid rgba(102, 126, 234, 0.2)'
+                                        }}>
+                                            <Typography variant="h4" sx={{
+                                                fontWeight: 'bold',
+                                                textAlign: 'center',
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                backgroundClip: 'text',
+                                                WebkitBackgroundClip: 'text',
+                                                WebkitTextFillColor: 'transparent',
+                                                mb: 1
+                                            }}>
+                                                {memberType === 'Member' ? '9:00 AM - 6:30 PM' : '9:00 AM - 6:00 PM'}
+                                            </Typography>
+                                            <Typography variant="body1" sx={{
+                                                textAlign: 'center',
+                                                color: '#666',
+                                                fontWeight: '500'
+                                            }}>
+                                                {memberType === 'Member' ? '9.5 Hours Premium Access' : '9 Hours Standard Access'}
+                                            </Typography>
+                                        </Box>
+
+                                        {/* Seating & Member Type Info */}
+                                        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                                            <Box sx={{
+                                                flex: 1,
+                                                background: 'rgba(255,255,255,0.8)',
+                                                borderRadius: 2,
+                                                p: 2,
+                                                textAlign: 'center',
+                                                border: '1px solid rgba(102, 126, 234, 0.2)'
+                                            }}>
+                                                <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                                                    Seating Capacity
+                                                </Typography>
+                                                <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333' }}>
+                                                    {seatingOptions.find(s => s.id === selectedSeating)?.name || 'Not selected'}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{
+                                                flex: 1,
+                                                background: 'rgba(255,255,255,0.8)',
+                                                borderRadius: 2,
+                                                p: 2,
+                                                textAlign: 'center',
+                                                border: '1px solid rgba(102, 126, 234, 0.2)'
+                                            }}>
+                                                <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                                                    Member Type
+                                                </Typography>
+                                                <Typography variant="h6" sx={{ 
+                                                    fontWeight: 'bold', 
+                                                    color: memberType === 'Member' ? '#667eea' : '#764ba2'
+                                                }}>
+                                                    {memberType}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+
+                                        {/* Price Display */}
+                                        <Box sx={{
+                                            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
+                                            borderRadius: 3,
+                                            p: 3,
+                                            textAlign: 'center',
+                                            border: '2px solid rgba(102, 126, 234, 0.3)'
+                                        }}>
+                                            <Typography variant="body1" sx={{ color: '#666', mb: 1 }}>
+                                                Total Price (Including GST)
+                                            </Typography>
+                                            <Typography variant="h3" sx={{
+                                                fontWeight: 'bold',
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                backgroundClip: 'text',
+                                                WebkitBackgroundClip: 'text',
+                                                WebkitTextFillColor: 'transparent'
+                                            }}>
+                                                ₹{pricingData ? Math.ceil(pricingData.total) : (selectedSeating === 'C2' ? (memberType === 'Member' ? '2,500' : '3,000') : (memberType === 'Member' ? '1,800' : '2,300'))}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
+                                                {memberType === 'Member' ? 'Premium Member Rate' : 'Standard Rate'}
+                                            </Typography>
+                                        </Box>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Action Buttons */}
+                                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => setShowWholeDaySummaryModal(false)}
+                                        sx={{
+                                            borderColor: '#667eea',
+                                            color: '#667eea',
+                                            px: 4,
+                                            py: 1.5,
+                                            borderRadius: 2,
+                                            '&:hover': {
+                                                borderColor: '#764ba2',
+                                                color: '#764ba2',
+                                                background: 'rgba(102, 126, 234, 0.1)'
+                                            }
+                                        }}
+                                    >
+                                        Modify Booking
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => {
+                                            setShowWholeDaySummaryModal(false);
+                                            setShowTimeSlotModal(true);
+                                        }}
+                                        sx={{
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            px: 4,
+                                            py: 1.5,
+                                            borderRadius: 2,
+                                            fontWeight: 'bold',
+                                            '&:hover': {
+                                                background: 'linear-gradient(135deg, #5a6fd8 0%, #6b4190 100%)',
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 10px 20px rgba(102, 126, 234, 0.3)'
+                                            },
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                    >
+                                        {memberType === 'Member' ? 'Confirm Booking' : 'Proceed to Payment'}
+                                    </Button>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
+                </Fade>
+            </Modal>
         </>
     );
 };
 
 export default BookMeetingRoom;
 
+    
