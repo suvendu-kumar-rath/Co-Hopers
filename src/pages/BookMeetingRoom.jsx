@@ -58,6 +58,17 @@ const BookMeetingRoom = () => {
     const [selectedSeating, setSelectedSeating] = useState('');
     const [showTimeSlotGridModal, setShowTimeSlotGridModal] = useState(false);
     
+    // KYC related states for non-members (now mandatory)
+    const [kycData, setKycData] = useState({
+        panNumber: '',
+        gstNumber: '',
+        certificateOfIncorporation: null
+    });
+
+    // Error states for debounced validation
+    const [panError, setPanError] = useState('');
+    const [gstError, setGstError] = useState('');
+    
     const seatingOptions = [
         { id: 'C1', name: '4-6 Seater', capacity: 4-6 },
         { id: 'C2', name: '10-12 Seater', capacity:10-12}
@@ -338,18 +349,9 @@ const BookMeetingRoom = () => {
             }
         }
     };
+
     
-    // Get maximum allowed time slots based on member type
-    const getMaxAllowedSlots = () => {
-        return memberType === 'member' ? 3 : 4; // Max 3 slots for members, 4 for non-members
-    };
-    
-    // Get remaining available slots
-    const getRemainingSlots = () => {
-        const maxSlots = getMaxAllowedSlots();
-        return maxSlots - selectedTimeSlots.length;
-    };
-    
+
     // Get duration options based on member type
     const getDurationOptions = () => {
         // Base options for manual selection
@@ -1022,7 +1024,7 @@ const BookMeetingRoom = () => {
                             fontWeight: 'bold',
                             boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
                         }}>
-                            {selectedTimeSlots.length}/{getMaxAllowedSlots()} Selected
+                            {selectedTimeSlots.length} Selected
                         </Box>
                     </Box>
 
@@ -1547,6 +1549,77 @@ const BookMeetingRoom = () => {
             [event.target.name]: event.target.checked
         });
     };
+
+    // KYC utility functions
+    const resetKYCData = () => {
+        setKycData({
+            panNumber: '',
+            gstNumber: '',
+            certificateOfIncorporation: null
+        });
+    };
+
+    const validatePAN = (pan) => {
+        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+        return panRegex.test(pan);
+    };
+
+    const validateGST = (gst) => {
+        if (!gst) return true; // GST is optional
+        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+        return gstRegex.test(gst);
+    };
+
+    // Validate KYC requirements for non-members
+    const isKYCValid = () => {
+        if (memberType !== 'Non-Member') return true; // KYC not required for members
+        
+        // PAN number is mandatory for non-members
+        if (!kycData.panNumber || !validatePAN(kycData.panNumber)) {
+            return false;
+        }
+        
+        // GST validation if provided
+        if (kycData.gstNumber && !validateGST(kycData.gstNumber)) {
+            return false;
+        }
+        
+        return true;
+    };
+
+    // Debounced validation for PAN number
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (kycData.panNumber) {
+                if (!validatePAN(kycData.panNumber)) {
+                    setPanError('Invalid PAN format (e.g., ABCDE1234F)');
+                } else {
+                    setPanError('');
+                }
+            } else {
+                setPanError('');
+            }
+        }, 400);
+
+        return () => clearTimeout(timer);
+    }, [kycData.panNumber]);
+
+    // Debounced validation for GST number
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (kycData.gstNumber) {
+                if (!validateGST(kycData.gstNumber)) {
+                    setGstError('Invalid GST format (e.g., 22AAAAA0000A1Z5)');
+                } else {
+                    setGstError('');
+                }
+            } else {
+                setGstError('');
+            }
+        }, 400);
+
+        return () => clearTimeout(timer);
+    }, [kycData.gstNumber]);
 
     const [selectedDuration, setSelectedDuration] = useState('30min');
     const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
@@ -2314,7 +2387,10 @@ const handleHourlyMemberType = (memberType) => {
     const PaymentModal = () => (
         <Modal
             open={showPaymentModal}
-            onClose={() => setShowPaymentModal(false)}
+            onClose={() => {
+                setShowPaymentModal(false);
+                resetKYCData();
+            }}
             aria-labelledby="payment-modal"
             aria-describedby="payment-modal-description"
         >
@@ -2325,31 +2401,42 @@ const handleHourlyMemberType = (memberType) => {
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
                     width: { xs: '90%', sm: '80%', md: 400 },
+                    maxHeight: '90vh',
                     bgcolor: 'background.paper',
                     borderRadius: { xs: 2, sm: 3 },
                     boxShadow: 24,
-                    p: { xs: 2, sm: 3, md: 4 },
                     background: 'linear-gradient(135deg, #ffffff 0%, #f0f0ff 100%)',
-                    '&::-webkit-scrollbar': {
-                        width: '8px'
-                    },
-                    '&::-webkit-scrollbar-track': {
-                        background: '#f1f1f1',
-                        borderRadius: '4px'
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                        background: '#888',
-                        borderRadius: '4px',
-                        '&:hover': {
-                            background: '#555'
-                        }
-                    }
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}>
+                    <Box sx={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        p: { xs: 2, sm: 3, md: 4 },
+                        '&::-webkit-scrollbar': {
+                            width: '8px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            background: '#f1f1f1',
+                            borderRadius: '4px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: '#888',
+                            borderRadius: '4px',
+                            '&:hover': {
+                                background: '#555'
+                            }
+                        }
+                    }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
                         <Typography variant="h6" component="h2">
                             Select Payment Method
                         </Typography>
-                        <IconButton onClick={() => setShowPaymentModal(false)} size="small">
+                        <IconButton onClick={() => {
+                            setShowPaymentModal(false);
+                            resetKYCData();
+                        }} size="small">
                             <CloseIcon />
                         </IconButton>
                     </Box>
@@ -2368,14 +2455,158 @@ const handleHourlyMemberType = (memberType) => {
                     {/* Display Selected Time Slots */}
                     <Box sx={{ mb: { xs: 2, sm: 3 } }}>
                         <Typography variant="subtitle1" sx={{ mb: { xs: 1, sm: 2 } }}>
-                            Selected Time Slots: ({selectedTimeSlots.length}/4)
+                            Selected Time Slots: ({selectedTimeSlots.length})
                         </Typography>
                         {selectedTimeSlots.map((slot, index) => (
                             <Typography key={index} variant="body2" sx={{ mb: { xs: 1, sm: 2 } }}>
-                                {slot.start} - {slot.end} (30 Minutes)
+                                {slot.start} - {slot.end} 
                             </Typography>
                         ))}
                     </Box>
+                    
+                    {/* KYC Section for Non-Members - MANDATORY */}
+                    {memberType === 'Non-Member' && (
+                        <Box sx={{ mb: 3 }}>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 2, color: '#d32f2f' }}>
+                                📋 KYC Details Required *
+                            </Typography>
+                            
+                            <Card sx={{
+                                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+                                border: '1px solid rgba(102, 126, 234, 0.2)',
+                                borderRadius: 2,
+                                p: 2,
+                                mb: 2
+                            }}>
+                                <Typography variant="subtitle1" gutterBottom sx={{ 
+                                    fontWeight: 'bold',
+                                    color: '#667eea',
+                                    mb: 2
+                                }}>
+                                    🏢 Business Information
+                                </Typography>
+                                
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <TextField
+                                        label="PAN Number *"
+                                        value={kycData.panNumber}
+                                        onChange={(e) => setKycData(prev => ({...prev, panNumber: e.target.value}))}
+                                        placeholder="ABCDE1234F"
+                                        fullWidth
+                                        size="small"
+                                        required
+                                        inputProps={{ 
+                                            maxLength: 10,
+                                            style: { textTransform: 'uppercase' }
+                                        }}
+                                        error={!!panError}
+                                        helperText={panError || 'PAN number is required for non-members'}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                '&:hover fieldset': {
+                                                    borderColor: '#667eea',
+                                                },
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#667eea',
+                                                },
+                                            },
+                                            '& .MuiInputLabel-root.Mui-focused': {
+                                                color: '#667eea',
+                                            },
+                                        }}
+                                    />
+                                    
+                                    <TextField
+                                        label="GST Number (Optional)"
+                                        value={kycData.gstNumber}
+                                        onChange={(e) => setKycData(prev => ({...prev, gstNumber: e.target.value}))}
+                                        placeholder="22AAAAA0000A1Z5"
+                                        fullWidth
+                                        size="small"
+                                        inputProps={{ 
+                                            maxLength: 15,
+                                            style: { textTransform: 'uppercase' }
+                                        }}
+                                        error={!!gstError}
+                                        helperText={gstError}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                '&:hover fieldset': {
+                                                    borderColor: '#667eea',
+                                                },
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#667eea',
+                                                },
+                                            },
+                                            '& .MuiInputLabel-root.Mui-focused': {
+                                                color: '#667eea',
+                                            },
+                                        }}
+                                    />
+                                    
+                                    <Box>
+                                        <Typography variant="body2" sx={{ mb: 1, fontWeight: '500' }}>
+                                            📄 Certificate of Incorporation (Optional)
+                                        </Typography>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            sx={{
+                                                borderColor: '#667eea',
+                                                color: '#667eea',
+                                                '&:hover': {
+                                                    borderColor: '#764ba2',
+                                                    backgroundColor: 'rgba(102, 126, 234, 0.04)'
+                                                }
+                                            }}
+                                        >
+                                            {kycData.certificateOfIncorporation 
+                                                ? `Selected: ${kycData.certificateOfIncorporation.name}`
+                                                : 'Upload Certificate'
+                                            }
+                                            <input
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                type="file"
+                                                onChange={(e) => {
+                                                    if (e.target.files[0]) {
+                                                        setKycData({...kycData, certificateOfIncorporation: e.target.files[0]});
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                        {kycData.certificateOfIncorporation && (
+                                            <Typography variant="caption" sx={{ 
+                                                display: 'block', 
+                                                mt: 1, 
+                                                color: '#667eea' 
+                                            }}>
+                                                ✅ File selected: {kycData.certificateOfIncorporation.name}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                </Box>
+                                
+                                <Box sx={{ 
+                                    mt: 2, 
+                                    p: 1.5, 
+                                    background: 'rgba(211, 47, 47, 0.1)', 
+                                    borderRadius: 1,
+                                    border: '1px solid rgba(211, 47, 47, 0.2)'
+                                }}>
+                                    <Typography variant="caption" sx={{ 
+                                        color: '#d32f2f',
+                                        display: 'block',
+                                        lineHeight: 1.4,
+                                        fontWeight: 'bold'
+                                    }}>
+                                        ⚠️ <strong>Important:</strong> PAN number is mandatory for all non-member bookings. You cannot proceed to payment without providing a valid PAN number.
+                                    </Typography>
+                                </Box>
+                            </Card>
+                        </Box>
+                    )}
                     
                     <FormControl component="fieldset" fullWidth>
                         <RadioGroup
@@ -2406,30 +2637,55 @@ const handleHourlyMemberType = (memberType) => {
                     <Box sx={{ mt: { xs: 2, sm: 3 }, display: 'flex', justifyContent: 'flex-end', gap: { xs: 1, sm: 2 } }}>
                         <Button 
                             variant="outlined" 
-                            onClick={() => setShowPaymentModal(false)}
+                            onClick={() => {
+                                setShowPaymentModal(false);
+                                resetKYCData();
+                            }}
                         >
                             Cancel
                         </Button>
                         <Button 
                             variant="contained" 
+                            disabled={!isKYCValid()}
                             onClick={() => {
                                 console.log('=== Payment Details Selected ===');
                                 console.log('Room ID:', selectedRoom);
+                                console.log('Member Type:', memberType);
                                 console.log('Selected Time Slots:', selectedTimeSlots.length);
                                 selectedTimeSlots.forEach((slot, index) => {
                                     console.log(`Slot ${index + 1}: ${slot.start} - ${slot.end} (30 Minutes)`);
                                 });
                                 console.log('Selected Payment Method:', paymentMethod);
                                 console.log('Total Amount (Including GST):', calculatedPrice.total);
+                                
+                                // Log KYC data for non-members (now mandatory)
+                                if (memberType === 'Non-Member') {
+                                    console.log('=== KYC Details (Required) ===');
+                                    console.log('PAN Number:', kycData.panNumber);
+                                    console.log('GST Number:', kycData.gstNumber || 'Not provided');
+                                    console.log('Certificate of Incorporation:', kycData.certificateOfIncorporation ? kycData.certificateOfIncorporation.name : 'Not provided');
+                                    console.log('==============================');
+                                }
                                 console.log('============================');
                                 
                                 setPaymentAmount(calculatedPrice.total);
                                 setShowPaymentModal(false);
                                 setShowSummaryModal(true);
                             }}
+                            sx={{
+                                opacity: !isKYCValid() ? 0.6 : 1,
+                                '&.Mui-disabled': {
+                                    backgroundColor: '#ccc',
+                                    color: '#999'
+                                }
+                            }}
                         >
-                            Proceed to Pay
+                            {!isKYCValid() && memberType === 'Non-Member' 
+                                ? 'Complete KYC to Pay' 
+                                : 'Proceed to Pay'
+                            }
                         </Button>
+                    </Box>
                     </Box>
                 </Box>
             </Fade>
@@ -4140,7 +4396,7 @@ const handleHourlyMemberType = (memberType) => {
                                             fontFamily: '"SF Pro Display", "Segoe UI", "Roboto", sans-serif'
                                         }}
                                     >
-                                        Selected Time Slots ({selectedTimeSlots.length}/{getMaxAllowedSlots()})
+                                        Selected Time Slots ({selectedTimeSlots.length})
                                     </Typography>
                                 </Box>
                                 
@@ -4513,8 +4769,15 @@ const handleHourlyMemberType = (memberType) => {
                                     <Button
                                         variant="contained"
                                         onClick={() => {
-                                            setShowWholeDaySummaryModal(false);
-                                            setShowTimeSlotModal(true);
+                                            if (memberType === 'Non-Member') {
+                                                // For non-members, open payment modal with KYC
+                                                setShowWholeDaySummaryModal(false);
+                                                setShowPaymentModal(true);
+                                            } else {
+                                                // For members, handle member booking logic
+                                                setShowWholeDaySummaryModal(false);
+                                                setShowTimeSlotModal(true);
+                                            }
                                         }}
                                         sx={{
                                             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
