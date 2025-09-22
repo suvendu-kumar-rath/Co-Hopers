@@ -1207,6 +1207,9 @@ const BookMeetingRoom = () => {
 
     // Update handleFinalBooking function
     const handleFinalBooking = async () => {
+    const token = sessionStorage.getItem('authToken');
+    console.log('Retrieved token from sessionStorage:', token);
+
         if (memberType === 'Non-Member') {
             setShowPaymentModal(true);
             return;
@@ -1277,7 +1280,7 @@ const BookMeetingRoom = () => {
                         console.log('=== Booking Request Details ===');
                         console.log('API Endpoint:', 'https://api.boldtribe.in/api/meetingrooms/book');
                         console.log('Request Headers:', {
-                            // 'Authorization': `Bearer ${token}`,
+                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         });
                         console.log('Request Body:', bookingData);
@@ -1289,7 +1292,7 @@ const BookMeetingRoom = () => {
                             bookingData,
                             {
                                 headers: {
-                                    // 'Authorization': `Bearer ${token}`,
+                                     'Authorization': `Bearer ${token}`,
                                     'Content-Type': 'application/json'
                                 }
                             }
@@ -3396,7 +3399,7 @@ const handleHourlyMemberType = (memberType) => {
                                                 }
                                             }}
                                         >
-                                            Book Nowwwwwwwwwwwwwwwwww
+                                            Book Now
                                         </Button>
                                     </Box>
                                 </CardContent>
@@ -4517,7 +4520,7 @@ const handleHourlyMemberType = (memberType) => {
                                     height: { xs: '40px', sm: '45px' }
                                 }}
                             >
-                                {memberType === 'Member' ? 'Book Now' : 'Proceed to Payment'}
+                                {memberType === 'Member' ? 'Book Now 5555' : 'Proceed to Payment'}
                             </Button>
                         </Box>
                     </Box>
