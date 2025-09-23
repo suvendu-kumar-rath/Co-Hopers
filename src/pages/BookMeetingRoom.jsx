@@ -1252,7 +1252,7 @@ const BookMeetingRoom = () => {
                 if (memberType === 'Member') {
                     try {
                         // Validate time slots
-                        if (selectedTimeSlots.length > 2) {
+                        if (selectedTimeSlots.length > 7) {
                             alert('For hourly bookings, you can only select up to 2 time slots (1 hour maximum).');
                             return;
                         }
