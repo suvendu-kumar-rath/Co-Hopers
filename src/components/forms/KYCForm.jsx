@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Grid, Paper, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Box, Typography, Button, Grid, Paper, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, FormControl, InputLabel, MenuItem, Select, CircularProgress, Alert } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -10,14 +10,28 @@ import KYCImage from '../../assets/images/KYC.png';
 import FreelancerKYCImage from '../../assets/images/freelancer.png';
 import { ROUTES } from '../../constants/routes';
 import FileUpload from '../common/FileUpload';
+import { bookingService } from '../../services/bookingService';
+import { useAuth } from '../../context/AuthContext';
 
 const KYCForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  
+  // Get booking data from navigation state (passed from Services page)
+  const selectedOffice = location.state?.selectedOffice;
+  const paymentMethod = location.state?.paymentMethod;
+  
   const [expanded, setExpanded] = useState('panel1');
   const [selectedOption, setSelectedOption] = useState('Director');
   const [companyKYCCompleted, setCompanyKYCCompleted] = useState(false);
   const [kycType, setKYCType] = useState('company');
   const [signingAuthority, setSigningAuthority] = useState('director');
+  
+  // Submission states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [companyData, setCompanyData] = useState({
     companyName: '',
     directorName: '',
@@ -188,10 +202,117 @@ const KYCForm = () => {
     setExpanded('panel1');
   };
 
-  const handleSubmit = () => {
-    // Navigate to success page
-    navigate(ROUTES.PENDING_REVIEW);
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+      
+      // Prepare KYC data based on the selected type
+      const kycData = {
+        kycType,
+        signingAuthority: kycType === 'company' ? signingAuthority : null,
+        companyData: kycType === 'company' ? companyData : null,
+        uploadedFiles: kycType === 'company' ? uploadedFiles : null,
+        directorFiles: kycType === 'company' && signingAuthority === 'director' ? directorFiles : null,
+        signingAuthorityFiles: kycType === 'company' && signingAuthority === 'signing-authority' ? signingAuthorityFiles : null,
+        freelancerFiles: kycType === 'freelancer' ? freelancerFiles : null,
+        submittedAt: new Date().toISOString(),
+        userId: user?.id || user?.userId,
+        userEmail: user?.email,
+        userName: user?.name || user?.userName
+      };
+      
+      console.log('Submitting KYC data:', kycData);
+      
+      // Step 1: Create booking first to get a valid booking ID
+      const bookingData = {
+        spaceId: selectedOffice?.id,
+        spaceName: selectedOffice?.title,
+        spacePrice: selectedOffice?.price,
+        paymentMethod,
+        userId: user?.id || user?.userId,
+        userEmail: user?.email,
+        userName: user?.name || user?.userName,
+        bookingType: 'space_rental',
+        duration: 'monthly', // You can make this configurable
+        startDate: new Date().toISOString(),
+        totalAmount: selectedOffice?.price?.replace(/[^\d]/g, '') // Extract numeric value
+      };
+      
+      console.log('Creating booking with data:', bookingData);
+      
+      const bookingResult = await bookingService.bookSpace(bookingData);
+      
+      if (!bookingResult.success) {
+        throw new Error(bookingResult.message || 'Booking creation failed');
+      }
+      
+      console.log('Booking created successfully:', bookingResult.data);
+      
+      // Get the real booking ID from the booking creation response
+      const bookingId = bookingResult.data?.bookingId || bookingResult.data?.id;
+      
+      if (!bookingId) {
+        throw new Error('Booking ID not received from server. Cannot proceed with KYC submission.');
+      }
+      
+      // Step 2: Submit KYC data with the real booking ID
+      const kycResult = await bookingService.submitKYC(bookingId, kycData);
+      
+      if (!kycResult.success) {
+        throw new Error(kycResult.message || 'KYC submission failed');
+      }
+      
+      console.log('KYC submitted successfully:', kycResult.data);
+      
+      setSubmitSuccess(true);
+      
+      // Navigate to success page after successful submission
+      setTimeout(() => {
+        navigate(ROUTES.PENDING_REVIEW, {
+          state: {
+            bookingId: bookingId,
+            kycId: kycResult.data?.kycId,
+            message: 'Your KYC and booking have been submitted successfully!'
+          }
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Submission error:', error);
+      setSubmitError(error.message || 'An error occurred during submission. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Submit Button Component
+  const SubmitButton = () => (
+    <Button
+      variant="contained"
+      onClick={handleSubmit}
+      disabled={isSubmitting}
+      sx={{ 
+        bgcolor: isSubmitting ? '#ccc' : '#8BC34A',
+        color: 'white',
+        '&:hover': {
+          bgcolor: isSubmitting ? '#ccc' : '#7CB342'
+        },
+        minWidth: '120px'
+      }}
+    >
+      {isSubmitting ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CircularProgress size={20} color="inherit" />
+          Submitting...
+        </Box>
+      ) : submitSuccess ? (
+        'SUCCESS ✓'
+      ) : (
+        'SUBMIT'
+      )}
+    </Button>
+  );
 
   const FileUploadButton = ({ type, label }) => {
     const file = uploadedFiles[type];
@@ -542,6 +663,39 @@ const KYCForm = () => {
         mx: 'auto',
         width: '100%'
       }}>
+        
+        {/* Submission Feedback */}
+        {submitError && (
+          <Alert 
+            severity="error" 
+            sx={{ mb: 3 }}
+            onClose={() => setSubmitError(null)}
+          >
+            {submitError}
+          </Alert>
+        )}
+        
+        {submitSuccess && (
+          <Alert 
+            severity="success" 
+            sx={{ mb: 3 }}
+          >
+            KYC and booking submitted successfully! Redirecting to confirmation page...
+          </Alert>
+        )}
+        
+        {/* Show booking info if available */}
+        {selectedOffice && (
+          <Alert 
+            severity="info" 
+            sx={{ mb: 3 }}
+          >
+            <Typography variant="body2">
+              <strong>Booking Details:</strong> {selectedOffice.title} - {selectedOffice.price} 
+              (Payment Method: {paymentMethod === 'scan' ? 'UPI/QR Code' : 'Bank Transfer'})
+            </Typography>
+          </Alert>
+        )}
         <Accordion 
           expanded={expanded === 'panel1'} 
           onChange={handleAccordionChange('panel1')}

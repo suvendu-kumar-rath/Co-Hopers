@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery, IconButton, Stepper, Step, StepLabel, Avatar } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery, IconButton, Stepper, Step, StepLabel, Avatar, CircularProgress } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
 import ShareIcon from '@mui/icons-material/Share';
@@ -21,6 +21,9 @@ import { PRIVATE_OFFICES } from '../constants/officeData';
 import { ROUTES } from '../constants/routes';
 import { shareToWhatsApp } from '../utils/helpers/shareUtils';
 import PaymentModal from '../components/modals/PaymentModal';
+import { spacesService } from '../services';
+import { useAuth } from '../context/AuthContext';
+import LoginModal from '../components/modals/LoginModal';
 
 const Services = () => {
   const theme = useTheme();
@@ -29,6 +32,19 @@ const Services = () => {
   const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
   const navigate = useNavigate();
   const { officeType, id } = useParams();
+  const { isAuthenticated, user } = useAuth();
+
+  // Static features that will be shown for all spaces
+  const staticFeatures = [
+    'High-speed WiFi',
+    'Professional environment',
+    'Meeting rooms access',
+    'Reception services',
+    '24/7 Security',
+    'Air conditioning',
+    'Parking available',
+    'Tea/Coffee facilities'
+  ];
 
   // State for popup modal and slider
   const [showOfficeModal, setShowOfficeModal] = useState(false);
@@ -42,8 +58,64 @@ const Services = () => {
   const [uploadedScreenshot, setUploadedScreenshot] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
 
-  // Use office data from constants
-  const privateOffices = PRIVATE_OFFICES;
+  // Debug payment step changes
+  useEffect(() => {
+    console.log('Payment step changed to:', paymentStep);
+  }, [paymentStep]);
+
+  useEffect(() => {
+    console.log('Payment modal visibility changed to:', showPaymentModal);
+  }, [showPaymentModal]);
+
+  // Spaces data from API
+  const [spaces, setSpaces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Login modal state
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Use API data if available, otherwise fallback to static data
+  const privateOffices = spaces.length > 0 ? spaces : PRIVATE_OFFICES;
+
+  // Fetch spaces data from API on component mount
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('Fetching spaces from API...');
+        const response = await spacesService.getSpaces();
+        
+        console.log('Spaces API Response:', response);
+        
+        // Check if response has the expected structure
+        if (response && response.success && response.data) {
+          // Use API data directly without transformation
+          setSpaces(response.data);
+          console.log('Spaces data:', response.data);
+        } else if (response && Array.isArray(response)) {
+          // If response is directly an array of spaces
+          setSpaces(response);
+          console.log('Spaces data (direct array):', response);
+        } else {
+          console.warn('Unexpected API response structure:', response);
+          // Keep using fallback static data
+          setSpaces([]);
+        }
+      } catch (error) {
+        console.error('Error fetching spaces:', error);
+        setError(error.message);
+        // Keep using fallback static data on error
+        setSpaces([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSpaces();
+  }, []);
 
   // Virtual Office Data (commented out)
   // const virtualOffices = [
@@ -76,8 +148,26 @@ const Services = () => {
   //   }
   // ];
 
-  const handleOfficeClick = (office) => {
-    setSelectedOffice(office);
+  // Fetch space details from API when Book Now is clicked
+  const handleOfficeClick = async (office) => {
+    // If office has an id, fetch details from API
+    if (office && office.id) {
+      try {
+        const result = await spacesService.getSpaceById(office.id);
+        if (result.success) {
+          setSelectedOffice({ ...office, ...result.data });
+        } else {
+          setSelectedOffice(office);
+          // Optionally show error message to user
+          console.error('Failed to fetch space details:', result.message);
+        }
+      } catch (error) {
+        setSelectedOffice(office);
+        console.error('Error fetching space details:', error);
+      }
+    } else {
+      setSelectedOffice(office);
+    }
     setShowOfficeModal(true);
   };
 
@@ -87,7 +177,18 @@ const Services = () => {
   };
 
   const handleProceedToPayment = () => {
-    // Show payment modal first, keep selectedOffice for payment
+    console.log('handleProceedToPayment called - isAuthenticated:', isAuthenticated);
+    
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      // Close office modal first, then show login modal
+      setShowOfficeModal(false);
+      setShowLoginModal(true);
+      return;
+    }
+    
+    // User is authenticated, proceed to payment
+    console.log('Opening payment modal with initial state');
     setShowOfficeModal(false);
     setShowPaymentModal(true);
     setPaymentStep(0);
@@ -100,8 +201,27 @@ const Services = () => {
     shareToWhatsApp(office);
   };
 
+  // Login modal handlers
+  const handleLoginSuccess = (userData) => {
+    console.log('Login successful:', userData);
+    setShowLoginModal(false);
+    // After successful login, proceed to payment
+    setShowPaymentModal(true);
+    setPaymentStep(0);
+    setPaymentMethod('scan');
+    setUploadedScreenshot(null);
+    setScreenshotPreview(null);
+  };
+
+  const handleLoginClose = () => {
+    setShowLoginModal(false);
+    // Re-open office modal if user cancels login
+    setShowOfficeModal(true);
+  };
+
   // Payment modal handlers
   const handleClosePaymentModal = () => {
+    console.log('Closing payment modal and resetting state');
     setShowPaymentModal(false);
     setPaymentStep(0);
     setPaymentMethod('scan');
@@ -110,36 +230,82 @@ const Services = () => {
     setSelectedOffice(null); // Clear selected office when payment modal closes
   };
 
-  const handleNextPaymentStep = () => {
+  const handleNextPaymentStep = async () => {
+    console.log('=== handleNextPaymentStep DEBUG ===');
+    console.log('Current paymentStep:', paymentStep);
+    console.log('showPaymentModal:', showPaymentModal);
+    
+    // Skip screenshot upload step - create booking and go to form
     if (paymentStep === 0) {
-      setPaymentStep(1);
-    } else if (paymentStep === 1 && uploadedScreenshot) {
-      // Payment completed, navigate to form
+      try {
+        // Prepare booking data
+        const bookingData = {
+          spaceId: selectedOffice?.id || 1, // Use office ID or default to 1
+          date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+          startDate: new Date().toISOString().split('T')[0], // Start from today
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // End date 30 days from now
+          amount: parseFloat(selectedOffice?.price?.replace(/[^\d.]/g, '') || '1500') // Extract numeric value from price
+        };
+
+        console.log('Creating booking with data:', bookingData);
+        
+        // Import and call booking service
+        const { bookingService } = await import('../services');
+        const bookingResult = await bookingService.bookSpace(bookingData);
+        
+        if (bookingResult.success) {
+          console.log('Booking created successfully:', bookingResult.data);
+          
+          // Navigate with state data including booking info for the KYC form
+          navigate(ROUTES.FORM, {
+            state: {
+              selectedOffice: selectedOffice,
+              paymentMethod: paymentMethod,
+              bookingFlow: true,
+              bookingId: bookingResult.data?.booking?.id || bookingResult.data?.id,
+              bookingData: bookingResult.data
+            }
+          });
+        } else {
+          console.error('Booking failed:', bookingResult.message);
+          // Show error to user - you might want to add a toast notification here
+          alert(`Booking failed: ${bookingResult.message}`);
+          return; // Don't close modal on error
+        }
+      } catch (error) {
+        console.error('Error creating booking:', error);
+        alert('Failed to create booking. Please try again.');
+        return; // Don't close modal on error
+      }
+      
+      // Reset modal state only after successful booking
       setShowPaymentModal(false);
       setPaymentStep(0);
       setPaymentMethod('scan');
       setUploadedScreenshot(null);
       setScreenshotPreview(null);
       setSelectedOffice(null);
-      navigate(ROUTES.FORM);
     }
+    console.log('=== END DEBUG ===');
   };
 
   const handleScreenshotUpload = (event) => {
     const file = event.target.files[0];
+    console.log('handleScreenshotUpload called - file:', file?.name);
     if (file) {
       setUploadedScreenshot(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setScreenshotPreview(e.target.result);
+        console.log('Screenshot preview set');
       };
       reader.readAsDataURL(file);
     }
   };
 
   const isNextButtonDisabled = () => {
-    if (paymentStep === 0) return false;
-    if (paymentStep === 1) return !uploadedScreenshot;
+    // Since we only have step 0 (payment method selection), button is never disabled
+    console.log('isNextButtonDisabled - paymentStep:', paymentStep, 'disabled: false');
     return false;
   };
 
@@ -295,7 +461,7 @@ const Services = () => {
             </Typography>
 
                 <List sx={{ mb: 3 }}>
-                  {selectedOffice.features.map((feature, index) => (
+                  {staticFeatures.map((feature, index) => (
                 <ListItem 
                   key={index} 
                   sx={{ 
@@ -389,7 +555,7 @@ const Services = () => {
             }
           }}
         >
-          PROCEED TO PAYMENT
+          {isAuthenticated ? 'PROCEED TO PAYMENT' : 'LOGIN & PROCEED'}
         </Button>
       </Box>
         </>
@@ -456,6 +622,37 @@ const Services = () => {
         >
           Complete Payment
         </Typography>
+        
+        {/* Step Indicator */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: 1, 
+          mb: 2,
+          alignItems: 'center'
+        }}>
+          <Box sx={{
+            width: 30,
+            height: 30,
+            borderRadius: '50%',
+            bgcolor: '#E53935',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>1</Box>
+        </Box>
+        
+        <Typography variant="body2" sx={{ 
+          color: '#333', 
+          textAlign: 'center',
+          mb: 1,
+          fontWeight: 500
+        }}>
+          Choose Payment Method
+        </Typography>
         {selectedOffice && (
           <Box sx={{
             bgcolor: 'rgba(255, 255, 255, 0.2)',
@@ -489,6 +686,20 @@ const Services = () => {
           </Box>
         )}
       </Box>
+
+      {/* Debug Info (Development Only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ 
+          p: 2, 
+          bgcolor: '#f0f0f0', 
+          borderBottom: '1px solid #ddd',
+          fontSize: '12px'
+        }}>
+          <strong>DEBUG:</strong> 
+          paymentStep={paymentStep}, 
+          showPaymentModal={showPaymentModal ? 'YES' : 'NO'}
+        </Box>
+      )}
 
       {/* Step Content */}
       <DialogContent sx={{ p: 0 }}>
@@ -634,45 +845,75 @@ const Services = () => {
                 overflow: 'auto'
               }}>
                 {paymentMethod === 'scan' && (
-                  <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', mt: -32 }}>
+                  <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', mt: -2 }}>
+                    {/* QR Code Label */}
+                    <Typography variant="subtitle1" sx={{ mb: 1, color: '#333', fontWeight: 600, letterSpacing: 1 }}>
+                      Scan this QR code to pay
+                    </Typography>
                     {/* QR Code Section */}
-                    <Box sx={{ 
-                      bgcolor: 'white',
-                      p: { xs: 1.5, sm: 2 },
-                      borderRadius: '12px',
+                    <Box sx={{
+                      bgcolor: '#fff',
+                      p: { xs: 2, sm: 3 },
+                      borderRadius: '16px',
                       mb: 2,
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      border: '1px solid #e0e0e0'
+                      boxShadow: '0 6px 24px rgba(0,0,0,0.10)',
+                      border: '2px solid #9FE2DF',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      maxWidth: 260,
+                      width: '100%'
                     }}>
-                      <QrCodeIcon sx={{ 
-                        fontSize: { xs: 60, sm: 70 }, 
-                        color: '#333', 
-                        mb: 1
+                      <img
+                        src="/WhatsApp Image 2025-10-13 at 5.04.52 PM.jpeg"
+                        alt="Payment QR Code"
+                        style={{
+                          width: '220px',
+                          height: '220px',
+                          objectFit: 'contain',
+                          borderRadius: '12px',
+                          border: '1.5px solid #e0e0e0',
+                          background: '#f8f9fa',
+                          marginBottom: 8
+                        }}
+                        onError={e => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
+                      {/* Fallback QR Icon (hidden by default) */}
+                      <QrCodeIcon sx={{
+                        fontSize: 80,
+                        color: '#bbb',
+                        mb: 1,
+                        display: 'none'
                       }} />
-                      <Typography variant="body2" sx={{ 
-                        color: '#666', 
-                        fontSize: { xs: '11px', sm: '12px' }
-                      }}>
-                        Scan this QR code with your UPI app
-                      </Typography>
                     </Box>
-
                     {/* UPI Details */}
-                    <Box sx={{ 
-                      bgcolor: 'rgba(159, 226, 223, 0.1)',
+                    <Box sx={{
+                      bgcolor: 'rgba(159, 226, 223, 0.13)',
                       p: 2,
                       borderRadius: '12px',
-                      border: '1px solid rgba(159, 226, 223, 0.3)',
+                      border: '1.5px solid #9FE2DF',
                       width: '100%',
-                      maxWidth: '250px'
+                      maxWidth: 320,
+                      textAlign: 'center',
+                      mt: 1
                     }}>
-                      <Typography variant="h6" sx={{ 
-                        mb: 1, 
-                        color: '#333', 
-                        fontSize: { xs: '14px', sm: '16px' },
-                        fontWeight: 'bold'
+                      <Typography variant="h6" sx={{
+                        mb: 1,
+                        color: '#2c5530',
+                        fontSize: { xs: '15px', sm: '17px' },
+                        fontWeight: 'bold',
+                        letterSpacing: 0.5
                       }}>
-                        UPI ID: cohopers@paytm
+                        UPI ID: <span style={{ color: '#E53935', fontWeight: 700 }}>siva.beb-3@oksbi</span>
+                      </Typography>
+                      <Typography variant="body2" sx={{
+                        color: '#666',
+                        fontSize: { xs: '12px', sm: '14px' }
+                      }}>
+                        You can also copy the UPI ID to pay directly in your UPI app.
                       </Typography>
                     </Box>
                   </Box>
@@ -680,112 +921,84 @@ const Services = () => {
 
                 {paymentMethod === 'account' && (
                   <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', mt: -24 }}>
-                    <Typography variant="h6" sx={{ 
-                      mb: 1, 
-                      color: '#333', 
-                      textAlign: 'center', 
+                    <Typography variant="h6" sx={{
+                      mb: 1,
+                      color: '#333',
+                      textAlign: 'center',
                       fontSize: { xs: '18px', sm: '20px' },
                       fontWeight: 'bold'
                     }}>
                       Bank Account Details
                     </Typography>
-                    
-                    <Box sx={{ 
+                    <Box sx={{
                       width: '100%',
-                      maxWidth: '320px'
+                      maxWidth: '380px',
+                      bgcolor: '#f8f9fa',
+                      borderRadius: '16px',
+                      p: { xs: 2, sm: 3 },
+                      border: '2px solid #9FE2DF',
+                      boxShadow: '0 4px 16px rgba(159,226,223,0.10)',
+                      mb: 2
                     }}>
                       {/* Bank Icon */}
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        mb: 2 
+                      <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        mb: 2
                       }}>
-                        <AccountBalanceIcon sx={{ 
-                          fontSize: { xs: 30, sm: 36 }, 
+                        <AccountBalanceIcon sx={{
+                          fontSize: { xs: 32, sm: 40 },
                           color: '#9FE2DF'
                         }} />
                       </Box>
-
                       <Grid container spacing={2}>
                         <Grid item xs={12}>
-                          <Box sx={{ mb: 1.5 }}>
-                            <Typography variant="body2" sx={{ 
-                              color: '#666', 
-                              fontWeight: 500, 
-                              mb: 0.5, 
-                              fontSize: { xs: '12px', sm: '13px' } 
-                            }}>
-                              Account Name:
-                            </Typography>
-                            <Typography variant="body1" sx={{ 
-                              color: '#333', 
-                              fontWeight: 600, 
-                              fontSize: { xs: '14px', sm: '15px' } 
-                            }}>
-                              CoHopers Private Limited
-                            </Typography>
-                          </Box>
+                          <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 0.5, fontSize: { xs: '12px', sm: '13px' } }}>
+                            Account Name:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: '#333', fontWeight: 600, fontSize: { xs: '14px', sm: '15px' } }}>
+                            9C Technology Labs Private Limited
+                          </Typography>
                         </Grid>
-                        
                         <Grid item xs={12}>
-                          <Box sx={{ mb: 1.5 }}>
-                            <Typography variant="body2" sx={{ 
-                              color: '#666', 
-                              fontWeight: 500, 
-                              mb: 0.5, 
-                              fontSize: { xs: '12px', sm: '13px' } 
-                            }}>
-                              Account Number:
-                            </Typography>
-                            <Typography variant="body1" sx={{ 
-                              color: '#333', 
-                              fontWeight: 600, 
-                              fontSize: { xs: '14px', sm: '15px' },
-                              letterSpacing: '1px'
-                            }}>
-                              123456789012
-                            </Typography>
-                          </Box>
+                          <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 0.5, fontSize: { xs: '12px', sm: '13px' } }}>
+                            Current A/C No:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: '#333', fontWeight: 600, fontSize: { xs: '14px', sm: '15px' }, letterSpacing: '1px' }}>
+                            50200045207337
+                          </Typography>
                         </Grid>
-                        
                         <Grid item xs={12} sm={6}>
-                          <Box sx={{ mb: 1.5 }}>
-                            <Typography variant="body2" sx={{ 
-                              color: '#666', 
-                              fontWeight: 500, 
-                              mb: 0.5, 
-                              fontSize: { xs: '12px', sm: '13px' } 
-                            }}>
-                              IFSC Code:
-                            </Typography>
-                            <Typography variant="body1" sx={{ 
-                              color: '#333', 
-                              fontWeight: 600, 
-                              fontSize: { xs: '13px', sm: '14px' } 
-                            }}>
-                              HDFC0001234
-                            </Typography>
-                          </Box>
+                          <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 0.5, fontSize: { xs: '12px', sm: '13px' } }}>
+                            IFSC Code:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: '#333', fontWeight: 600, fontSize: { xs: '13px', sm: '14px' } }}>
+                            HDFC0004013
+                          </Typography>
                         </Grid>
-                        
                         <Grid item xs={12} sm={6}>
-                          <Box sx={{ mb: 1.5 }}>
-                            <Typography variant="body2" sx={{ 
-                              color: '#666', 
-                              fontWeight: 500, 
-                              mb: 0.5, 
-                              fontSize: { xs: '12px', sm: '13px' } 
-                            }}>
-                              Bank Name:
-                            </Typography>
-                            <Typography variant="body1" sx={{ 
-                              color: '#333', 
-                              fontWeight: 600, 
-                              fontSize: { xs: '13px', sm: '14px' } 
-                            }}>
-                              HDFC Bank
-                            </Typography>
-                          </Box>
+                          <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 0.5, fontSize: { xs: '12px', sm: '13px' } }}>
+                            Bank Name:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: '#333', fontWeight: 600, fontSize: { xs: '13px', sm: '14px' } }}>
+                            HDFC Bank
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 0.5, fontSize: { xs: '12px', sm: '13px' } }}>
+                            Branch:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: '#333', fontWeight: 600, fontSize: { xs: '13px', sm: '14px' } }}>
+                            Infocity, Bhubaneswar, Plot E/3, Ground floor, Chandaka industrial estate, Patia
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 0.5, fontSize: { xs: '12px', sm: '13px' } }}>
+                            UPI ID:
+                          </Typography>
+                          <Typography variant="body1" sx={{ color: '#E53935', fontWeight: 700, fontSize: { xs: '14px', sm: '15px' } }}>
+                            siva.beb-3@okhdfcbank
+                          </Typography>
                         </Grid>
                       </Grid>
                     </Box>
@@ -796,91 +1009,7 @@ const Services = () => {
           </Box>
         )}
 
-        {paymentStep === 1 && (
-          <Box sx={{ p: { xs: 3, sm: 4 } }}>
-            <Typography variant="h6" sx={{ mb: 3, textAlign: 'center', color: '#333' }}>
-              Upload Payment Screenshot
-            </Typography>
-            
-            {selectedOffice && (
-              <Box sx={{ 
-                bgcolor: '#9FE2DF',
-                p: 2,
-                borderRadius: '8px',
-                mb: 3,
-                textAlign: 'center'
-              }}>
-                <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
-                  Amount: {selectedOffice.price}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#333' }}>
-                  Payment Method: {paymentMethod === 'scan' ? 'UPI/QR Code' : 'Bank Transfer'}
-                </Typography>
-              </Box>
-            )}
 
-            <Box sx={{ 
-              border: '2px dashed #9FE2DF',
-              borderRadius: '12px',
-              p: 4,
-              textAlign: 'center',
-              bgcolor: '#f8f9fa',
-              mb: 3
-            }}>
-              {screenshotPreview ? (
-                <Box>
-                  <img 
-                    src={screenshotPreview} 
-                    alt="Payment Screenshot" 
-                    style={{ 
-                      maxWidth: '100%', 
-                      maxHeight: '200px',
-                      borderRadius: '8px',
-                      marginBottom: '16px'
-                    }} 
-                  />
-                  <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 500 }}>
-                    Screenshot uploaded successfully!
-                  </Typography>
-                </Box>
-              ) : (
-                <Box>
-                  <CameraAltIcon sx={{ fontSize: 48, color: '#9FE2DF', mb: 2 }} />
-                  <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
-                    Upload Payment Screenshot
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#666', mb: 3 }}>
-                    Please upload a screenshot of your payment confirmation
-                  </Typography>
-                </Box>
-              )}
-              
-              <input
-                accept="image/*"
-                style={{ display: 'none' }}
-                id="screenshot-upload"
-                type="file"
-                onChange={handleScreenshotUpload}
-              />
-              <label htmlFor="screenshot-upload">
-                <Button
-                  variant="contained"
-                  component="span"
-                  startIcon={<CloudUploadIcon />}
-                  sx={{
-                    bgcolor: '#9FE2DF',
-                    color: '#333',
-                    '&:hover': {
-                      bgcolor: '#7dd3d8'
-                    }
-                  }}
-                >
-                  {screenshotPreview ? 'Change Screenshot' : 'Choose File'}
-                </Button>
-              </label>
-            </Box>
-          </Box>
-        )}
       </DialogContent>
 
       {/* Footer Buttons */}
@@ -942,14 +1071,69 @@ const Services = () => {
             transition: 'all 0.3s ease'
           }}
         >
-          {paymentStep === 0 ? 'Next' : 'Complete Payment'}
+          Proceed to Form
         </Button>
       </DialogActions>
     </Dialog>
   );
 
+  // Show loading state while fetching data
+  if (loading) {
+    return (
+      <Box sx={{ 
+        width: '100%', 
+        minHeight: '100vh', 
+        bgcolor: 'white',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        gap: 2
+      }}>
+        <CircularProgress size={60} sx={{ color: '#2196f3' }} />
+        <Typography variant="h6" sx={{ color: '#666' }}>
+          Loading spaces...
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'white' }}>
+      {/* Show error message if API fails but still show fallback data */}
+      {error && (
+        <Box sx={{ 
+          bgcolor: '#fff3cd', 
+          color: '#856404', 
+          p: 2, 
+          textAlign: 'center',
+          borderBottom: '1px solid #ffeaa7'
+        }}>
+          <Typography variant="body2">
+            Unable to load latest spaces data. Showing default spaces. ({error})
+          </Typography>
+        </Box>
+      )}
+      
+      {/* User Authentication Status */}
+      {isAuthenticated && user && (
+        <Box sx={{ 
+          bgcolor: '#e8f5e9', 
+          color: '#2e7d32', 
+          p: 1, 
+          textAlign: 'center',
+          borderBottom: '1px solid #c8e6c9',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <CheckIcon sx={{ fontSize: 16 }} />
+          <Typography variant="body2" sx={{ fontSize: '14px' }}>
+            Welcome back, {user.name || user.mobileNumber || 'User'}!
+          </Typography>
+        </Box>
+      )}
       {/* Banner Slider Section */}
       <Box sx={{
         position: 'relative',
@@ -1213,6 +1397,13 @@ const Services = () => {
 
       {/* Payment Modal */}
       <PaymentModal />
+
+      {/* Login Modal */}
+      <LoginModal
+        open={showLoginModal}
+        onClose={handleLoginClose}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </Box>
   );
 };

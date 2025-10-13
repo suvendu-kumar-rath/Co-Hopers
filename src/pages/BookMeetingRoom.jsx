@@ -2492,46 +2492,7 @@ const handleHourlyMemberType = (memberType) => {
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <TextField
                                         label="PAN Number *"
-                                        value={kycData.panNumber}
-                                        onChange={(e) => setKycData(prev => ({...prev, panNumber: e.target.value}))}
-                                        placeholder="ABCDE1234F"
-                                        fullWidth
-                                        size="small"
-                                        required
-                                        inputProps={{ 
-                                            maxLength: 10,
-                                            style: { textTransform: 'uppercase' }
-                                        }}
-                                        error={!!panError}
-                                        helperText={panError || 'PAN number is required for non-members'}
-                                        sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                '&:hover fieldset': {
-                                                    borderColor: '#667eea',
-                                                },
-                                                '&.Mui-focused fieldset': {
-                                                    borderColor: '#667eea',
-                                                },
-                                            },
-                                            '& .MuiInputLabel-root.Mui-focused': {
-                                                color: '#667eea',
-                                            },
-                                        }}
-                                    />
-                                    
-                                    <TextField
-                                        label="GST Number (Optional)"
-                                        value={kycData.gstNumber}
-                                        onChange={(e) => setKycData(prev => ({...prev, gstNumber: e.target.value}))}
-                                        placeholder="22AAAAA0000A1Z5"
-                                        fullWidth
-                                        size="small"
-                                        inputProps={{ 
-                                            maxLength: 15,
-                                            style: { textTransform: 'uppercase' }
-                                        }}
-                                        error={!!gstError}
-                                        helperText={gstError}
+   helperText={gstError}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 '&:hover fieldset': {
