@@ -305,7 +305,7 @@ class SpacesService {
 
     return apiSpaces.map((space, index) => ({
       id: space._id || space.id || `space-${index}`,
-      title: space.name || space.title || 'Office Space',
+      space_name: space.name || space.title || 'Office Space',
       price: this.formatPrice(space.price || space.pricing || space.rent),
       image: space.image || space.images?.[0] || space.photo || '/default-office.jpg',
       description: space.description || 'Premium workspace solution',

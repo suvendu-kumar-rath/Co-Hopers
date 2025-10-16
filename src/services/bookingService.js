@@ -122,6 +122,16 @@ export const bookingService = {
                 };
             }
             
+            if (error.response?.status === 500) {
+                const errorMessage = error.response.data?.error || 
+                                   error.response.data?.message || 
+                                   'Internal server error during booking creation';
+                return {
+                    success: false,
+                    message: errorMessage
+                };
+            }
+            
             if (error.response?.data?.message) {
                 return {
                     success: false,
@@ -327,14 +337,98 @@ export const bookingService = {
         try {
             console.log('Submitting KYC for booking:', bookingId, 'with data:', kycData);
             
-            const response = await apiClient.post(`/booking/kyc/${bookingId}`, kycData);
+            // Create FormData for multipart/form-data submission
+            const formData = new FormData();
+            console.log('kycData', kycData);
             
-            console.log('KYC submission response:', response.data);
+            // Handle different KYC types
+            if (kycData.kycType === 'freelancer') {
+                // Freelancer KYC fields - use form data if available, otherwise fallback to user data
+                formData.append('type', 'freelancer');
+                formData.append('name', kycData.freelancerData?.name || kycData.userName || '');
+                formData.append('email', kycData.freelancerData?.email || kycData.userEmail || '');
+                formData.append('mobile', kycData.freelancerData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
+                
+                // Freelancer files
+                if (kycData.freelancerFiles?.idFront?.file) {
+                    formData.append('idFront', kycData.freelancerFiles.idFront.file);
+                }
+                if (kycData.freelancerFiles?.idBack?.file) {
+                    formData.append('idBack', kycData.freelancerFiles.idBack.file);
+                }
+                if (kycData.freelancerFiles?.pan?.file) {
+                    formData.append('pan', kycData.freelancerFiles.pan.file);
+                }
+                if (kycData.freelancerFiles?.photo?.file) {
+                    formData.append('photo', kycData.freelancerFiles.photo.file);
+                }
+                if (kycData.freelancerFiles?.paymentScreenshot?.file) {
+                    formData.append('paymentScreenshot', kycData.freelancerFiles.paymentScreenshot.file);
+                }
+                
+            } else if (kycData.kycType === 'company') {
+                // Company KYC fields
+                formData.append('type', 'company');
+                formData.append('name', kycData.companyData?.directorName || kycData.userName || '');
+                formData.append('email', kycData.companyData?.email || kycData.userEmail || '');
+                formData.append('mobile', kycData.companyData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
+                formData.append('companyName', kycData.companyData?.companyName || '');
+                formData.append('gstNumber', kycData.companyData?.gstNumber || '');
+                formData.append('directorName', kycData.companyData?.directorName || '');
+                formData.append('din', kycData.companyData?.din || '');
+                
+                // Company files
+                if (kycData.uploadedFiles?.certificateOfIncorporation?.file) {
+                    formData.append('certificateOfIncorporation', kycData.uploadedFiles.certificateOfIncorporation.file);
+                }
+                if (kycData.uploadedFiles?.companyPAN?.file) {
+                    formData.append('companyPAN', kycData.uploadedFiles.companyPAN.file);
+                }
+                
+                // Director files (if director is signing authority)
+                if (kycData.signingAuthority === 'director' && kycData.directorFiles) {
+                    if (kycData.directorFiles?.directorPAN?.file) {
+                        formData.append('directorPAN', kycData.directorFiles.directorPAN.file);
+                    }
+                    if (kycData.directorFiles?.directorPhoto?.file) {
+                        formData.append('directorPhoto', kycData.directorFiles.directorPhoto.file);
+                    }
+                    if (kycData.directorFiles?.directorIdFront?.file) {
+                        formData.append('directorIdFront', kycData.directorFiles.directorIdFront.file);
+                    }
+                    if (kycData.directorFiles?.directorIdBack?.file) {
+                        formData.append('directorIdBack', kycData.directorFiles.directorIdBack.file);
+                    }
+                    if (kycData.directorFiles?.directorPaymentProof?.file) {
+                        formData.append('directorPaymentProof', kycData.directorFiles.directorPaymentProof.file);
+                    }
+                }
+                
+                // Signing Authority files (if signing authority is someone else)
+                if (kycData.signingAuthority === 'signing-authority' && kycData.signingAuthorityFiles) {
+                    // Add signing authority specific files if needed
+                    // You may need to map these based on your form structure
+                }
+            }
             
-            if (response.data && response.data.success) {
+            // Log FormData contents for debugging
+            console.log('FormData contents:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value);
+            }
+            
+            const response = await apiClient.post(`/booking/kyc/${bookingId}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            
+            console.log('KYC submission response:', response);
+            
+            if (response.data) {
                 return {
                     success: true,
-                    data: response.data.data,
+                    data: response.data,
                     message: response.data.message || 'KYC submitted successfully'
                 };
             } else {

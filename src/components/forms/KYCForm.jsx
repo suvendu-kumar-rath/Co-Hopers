@@ -35,7 +35,10 @@ const KYCForm = () => {
   const [companyData, setCompanyData] = useState({
     companyName: '',
     directorName: '',
-    din: ''
+    din: '',
+    email: '',
+    mobile: '',
+    gstNumber: ''
   });
   const [uploadedFiles, setUploadedFiles] = useState({
     coi: null,
@@ -64,6 +67,13 @@ const KYCForm = () => {
     paymentScreenshot: null,
     memberPhoto: null,
     memberPAN: null
+  });
+
+  // Freelancer form data state
+  const [freelancerData, setFreelancerData] = useState({
+    name: '',
+    email: '',
+    mobile: ''
   });
 
   const handleAccordionChange = (panel) => (event, newExpanded) => {
@@ -206,6 +216,7 @@ const KYCForm = () => {
     try {
       setIsSubmitting(true);
       setSubmitError(null);
+      console.log("user:", user);
       
       // Prepare KYC data based on the selected type
       const kycData = {
@@ -216,54 +227,104 @@ const KYCForm = () => {
         directorFiles: kycType === 'company' && signingAuthority === 'director' ? directorFiles : null,
         signingAuthorityFiles: kycType === 'company' && signingAuthority === 'signing-authority' ? signingAuthorityFiles : null,
         freelancerFiles: kycType === 'freelancer' ? freelancerFiles : null,
+        freelancerData: kycType === 'freelancer' ? freelancerData : null, // Add freelancer form data
         submittedAt: new Date().toISOString(),
         userId: user?.id || user?.userId,
         userEmail: user?.email,
-        userName: user?.name || user?.userName
+        userName: user?.name || user?.userName,
+        user: user // Pass the full user object for accessing mobile/phone number
       };
       
       console.log('Submitting KYC data:', kycData);
       
-      // Step 1: Create booking first to get a valid booking ID
+      // Check if booking was already created (from Services page)
+      const existingBookingId = location.state?.bookingId;
+      
+      if (existingBookingId) {
+        console.log('Using existing booking ID:', existingBookingId);
+        
+        // Step: Submit KYC data with the existing booking ID
+        const kycResult = await bookingService.submitKYC(existingBookingId, kycData);
+        
+        if (!kycResult.success) {
+          throw new Error(kycResult.message || 'KYC submission failed');
+        }
+
+        console.log('KYC submitted successfully:', kycResult.data);
+        
+        setSubmitSuccess(true);
+        
+        // Navigate to success page after successful submission
+        setTimeout(() => {
+          navigate(ROUTES.PENDING_REVIEW, {
+            state: {
+              bookingId: existingBookingId,
+              kycId: kycResult.data?.kycId,
+              message: 'Your KYC and booking have been submitted successfully!'
+            }
+          });
+        }, 2000);
+        
+        return; // Exit early since we used existing booking
+      }
+
+      // Step 1: Create booking first to get a valid booking ID (fallback for direct form access)
+      const today = new Date();
+      const endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      
+      // Parse amount from selectedOffice price or use default
+      let amount = 1500;
+      if (selectedOffice?.price) {
+        const priceMatch = selectedOffice.price.match(/[\d,]+/);
+        if (priceMatch) {
+          amount = parseFloat(priceMatch[0].replace(/,/g, ''));
+        }
+      }
+      
       const bookingData = {
-        spaceId: selectedOffice?.id,
-        spaceName: selectedOffice?.title,
-        spacePrice: selectedOffice?.price,
-        paymentMethod,
-        userId: user?.id || user?.userId,
-        userEmail: user?.email,
-        userName: user?.name || user?.userName,
-        bookingType: 'space_rental',
-        duration: 'monthly', // You can make this configurable
-        startDate: new Date().toISOString(),
-        totalAmount: selectedOffice?.price?.replace(/[^\d]/g, '') // Extract numeric value
+        spaceId: parseInt(selectedOffice?.id) || 1,
+        date: today.toISOString().split('T')[0],
+        startDate: today.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        amount: amount
       };
+      
+      // Validate booking data before sending
+      if (!bookingData.spaceId || !bookingData.date || !bookingData.startDate || !bookingData.endDate || !bookingData.amount) {
+        console.error('Invalid booking data:', bookingData);
+        throw new Error('Invalid booking data. Missing required fields.');
+      }
       
       console.log('Creating booking with data:', bookingData);
       
       const bookingResult = await bookingService.bookSpace(bookingData);
       
+      console.log('Booking result:', bookingResult);
+      
       if (!bookingResult.success) {
+        console.error('Booking failed:', bookingResult);
         throw new Error(bookingResult.message || 'Booking creation failed');
       }
       
       console.log('Booking created successfully:', bookingResult.data);
       
       // Get the real booking ID from the booking creation response
-      const bookingId = bookingResult.data?.bookingId || bookingResult.data?.id;
+      const bookingId = bookingResult.data?.booking?.id || bookingResult.data?.id;
       
       if (!bookingId) {
+        console.error('Booking result data:', bookingResult.data);
         throw new Error('Booking ID not received from server. Cannot proceed with KYC submission.');
       }
       
       // Step 2: Submit KYC data with the real booking ID
       const kycResult = await bookingService.submitKYC(bookingId, kycData);
+
       
       if (!kycResult.success) {
         throw new Error(kycResult.message || 'KYC submission failed');
       }
       
-      console.log('KYC submitted successfully:', kycResult.data);
+      console.log('KYC submitted successfully 23444:', kycResult.data);
       
       setSubmitSuccess(true);
       
@@ -934,6 +995,14 @@ const KYCForm = () => {
                         onChange={(e) => setCompanyData({...companyData, din: e.target.value})}
                       />
 
+                      <TextField
+                        fullWidth
+                        placeholder="GST Number*"
+                        variant="outlined"
+                        value={companyData.gstNumber}
+                        onChange={(e) => setCompanyData({...companyData, gstNumber: e.target.value})}
+                      />
+
                       <Box>
                         <Typography variant="body1" sx={{ mb: 1 }}>
                           Who is the signing authority?*
@@ -1067,6 +1136,8 @@ const KYCForm = () => {
                           fullWidth
                           placeholder="Email-ID (Invoice will be sent)*"
                           variant="outlined"
+                          value={companyData.email}
+                          onChange={(e) => setCompanyData({...companyData, email: e.target.value})}
                           sx={{ 
                             mt: 2,
                             '& .MuiOutlinedInput-root': {
@@ -1079,6 +1150,8 @@ const KYCForm = () => {
                           fullWidth
                           placeholder="Mobile Number*"
                           variant="outlined"
+                          value={companyData.mobile}
+                          onChange={(e) => setCompanyData({...companyData, mobile: e.target.value})}
                           sx={{ 
                             '& .MuiOutlinedInput-root': {
                               bgcolor: 'white'
@@ -1401,6 +1474,8 @@ const KYCForm = () => {
                       fullWidth
                       placeholder="Name of member*"
                       variant="outlined"
+                      value={freelancerData.name}
+                      onChange={(e) => setFreelancerData({...freelancerData, name: e.target.value})}
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           bgcolor: 'white'
@@ -1427,6 +1502,8 @@ const KYCForm = () => {
                       fullWidth
                       placeholder="Email-ID (Invoice will be sent)*"
                       variant="outlined"
+                      value={freelancerData.email}
+                      onChange={(e) => setFreelancerData({...freelancerData, email: e.target.value})}
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           bgcolor: 'white'
@@ -1438,6 +1515,8 @@ const KYCForm = () => {
                       fullWidth
                       placeholder="Mobile Number*"
                       variant="outlined"
+                      value={freelancerData.mobile}
+                      onChange={(e) => setFreelancerData({...freelancerData, mobile: e.target.value})}
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           bgcolor: 'white'

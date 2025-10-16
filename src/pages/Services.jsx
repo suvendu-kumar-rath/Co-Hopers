@@ -1323,7 +1323,7 @@ const Services = () => {
                       }
                     }}
                   />
-                  {office.isAvailable ? 'Available' : 'Already Booked'}
+                  {office.isAvailable ? 'Available' : 'Not Available'}
                 </Box>
 
                 <Typography
@@ -1338,7 +1338,7 @@ const Services = () => {
                     mb: 2
                   }}
                 >
-                  {office.title}
+                  {office.space_name}
                 </Typography>
                 <Box sx={{
                   display: 'flex',
