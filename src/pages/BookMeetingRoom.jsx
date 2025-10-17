@@ -60,13 +60,12 @@ const BookMeetingRoom = () => {
     
     // KYC related states for non-members (now mandatory)
     const [kycData, setKycData] = useState({
-        panNumber: '',
+        identityProof: null,
         gstNumber: '',
         certificateOfIncorporation: null
     });
 
     // Error states for debounced validation
-    const [panError, setPanError] = useState('');
     const [gstError, setGstError] = useState('');
     
     const seatingOptions = [
@@ -1556,15 +1555,10 @@ const BookMeetingRoom = () => {
     // KYC utility functions
     const resetKYCData = () => {
         setKycData({
-            panNumber: '',
+            identityProof: null,
             gstNumber: '',
             certificateOfIncorporation: null
         });
-    };
-
-    const validatePAN = (pan) => {
-        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-        return panRegex.test(pan);
     };
 
     const validateGST = (gst) => {
@@ -1577,8 +1571,8 @@ const BookMeetingRoom = () => {
     const isKYCValid = () => {
         if (memberType !== 'Non-Member') return true; // KYC not required for members
         
-        // PAN number is mandatory for non-members
-        if (!kycData.panNumber || !validatePAN(kycData.panNumber)) {
+        // Identity proof is mandatory for non-members
+        if (!kycData.identityProof) {
             return false;
         }
         
@@ -1589,23 +1583,6 @@ const BookMeetingRoom = () => {
         
         return true;
     };
-
-    // Debounced validation for PAN number
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (kycData.panNumber) {
-                if (!validatePAN(kycData.panNumber)) {
-                    setPanError('Invalid PAN format (e.g., ABCDE1234F)');
-                } else {
-                    setPanError('');
-                }
-            } else {
-                setPanError('');
-            }
-        }, 400);
-
-        return () => clearTimeout(timer);
-    }, [kycData.panNumber]);
 
     // Debounced validation for GST number
     useEffect(() => {
@@ -2490,9 +2467,78 @@ const handleHourlyMemberType = (memberType) => {
                                 </Typography>
                                 
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Box>
+                                        <Typography variant="body2" sx={{ mb: 1, fontWeight: '500' }}>
+                                            🆔 Identity Proof (PAN/Aadhaar/Any ID) *
+                                        </Typography>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            sx={{
+                                                borderColor: '#667eea',
+                                                color: '#667eea',
+                                                '&:hover': {
+                                                    borderColor: '#764ba2',
+                                                    backgroundColor: 'rgba(102, 126, 234, 0.04)'
+                                                }
+                                            }}
+                                        >
+                                            {kycData.identityProof 
+                                                ? `Selected: ${kycData.identityProof.name}`
+                                                : 'Upload Identity Proof *'
+                                            }
+                                            <input
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                type="file"
+                                                onChange={(e) => {
+                                                    if (e.target.files[0]) {
+                                                        setKycData({...kycData, identityProof: e.target.files[0]});
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                        {kycData.identityProof && (
+                                            <Typography variant="caption" sx={{ 
+                                                display: 'block', 
+                                                mt: 1, 
+                                                color: '#667eea' 
+                                            }}>
+                                                ✅ File selected: {kycData.identityProof.name}
+                                            </Typography>
+                                        )}
+                                        <Typography variant="caption" sx={{ 
+                                            display: 'block', 
+                                            mt: 1, 
+                                            color: '#666',
+                                            fontStyle: 'italic'
+                                        }}>
+                                            Accepted: PAN Card, Aadhaar Card, Passport, Driving License
+                                        </Typography>
+                                    </Box>
+                                    
                                     <TextField
-                                        label="PAN Number *"
-   helperText={gstError}
+                                        label="GST Number (Optional)"
+                                        value={kycData.gstNumber}
+                                        onChange={(e) => {
+                                            const value = e.target.value.toUpperCase();
+                                            setKycData({...kycData, gstNumber: value});
+                                            
+                                            // Validate GST format if provided
+                                            if (value) {
+                                                const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                                                if (!gstRegex.test(value)) {
+                                                    setGstError('Invalid GST format. Please enter valid GSTIN (15 characters)');
+                                                } else {
+                                                    setGstError('');
+                                                }
+                                            } else {
+                                                setGstError('');
+                                            }
+                                        }}
+                                        error={Boolean(gstError)}
+                                        helperText={gstError}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 '&:hover fieldset': {
@@ -2565,7 +2611,7 @@ const handleHourlyMemberType = (memberType) => {
                                         lineHeight: 1.4,
                                         fontWeight: 'bold'
                                     }}>
-                                        ⚠️ <strong>Important:</strong> PAN number is mandatory for all non-member bookings. You cannot proceed to payment without providing a valid PAN number.
+                                        ⚠️ <strong>Important:</strong> Identity proof upload is mandatory for all non-member bookings. You cannot proceed to payment without uploading a valid identity document (PAN/Aadhaar/Passport/Driving License).
                                     </Typography>
                                 </Box>
                             </Card>
@@ -2625,7 +2671,7 @@ const handleHourlyMemberType = (memberType) => {
                                 // Log KYC data for non-members (now mandatory)
                                 if (memberType === 'Non-Member') {
                                     console.log('=== KYC Details (Required) ===');
-                                    console.log('PAN Number:', kycData.panNumber);
+                                    console.log('Identity Proof:', kycData.identityProof ? kycData.identityProof.name : 'Not provided');
                                     console.log('GST Number:', kycData.gstNumber || 'Not provided');
                                     console.log('Certificate of Incorporation:', kycData.certificateOfIncorporation ? kycData.certificateOfIncorporation.name : 'Not provided');
                                     console.log('==============================');
@@ -2645,7 +2691,7 @@ const handleHourlyMemberType = (memberType) => {
                             }}
                         >
                             {!isKYCValid() && memberType === 'Non-Member' 
-                                ? 'Complete KYC to Pay' 
+                                ? 'Upload Identity Proof to Pay' 
                                 : 'Proceed to Pay'
                             }
                         </Button>
