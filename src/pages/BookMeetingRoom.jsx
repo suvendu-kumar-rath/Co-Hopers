@@ -2517,85 +2517,6 @@ const handleHourlyMemberType = (memberType) => {
                                             Accepted: PAN Card, Aadhaar Card, Passport, Driving License
                                         </Typography>
                                     </Box>
-                                    
-                                    <TextField
-                                        label="GST Number (Optional)"
-                                        value={kycData.gstNumber}
-                                        onChange={(e) => {
-                                            const value = e.target.value.toUpperCase();
-                                            setKycData({...kycData, gstNumber: value});
-                                            
-                                            // Validate GST format if provided
-                                            if (value) {
-                                                const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-                                                if (!gstRegex.test(value)) {
-                                                    setGstError('Invalid GST format. Please enter valid GSTIN (15 characters)');
-                                                } else {
-                                                    setGstError('');
-                                                }
-                                            } else {
-                                                setGstError('');
-                                            }
-                                        }}
-                                        error={Boolean(gstError)}
-                                        helperText={gstError}
-                                        sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                '&:hover fieldset': {
-                                                    borderColor: '#667eea',
-                                                },
-                                                '&.Mui-focused fieldset': {
-                                                    borderColor: '#667eea',
-                                                },
-                                            },
-                                            '& .MuiInputLabel-root.Mui-focused': {
-                                                color: '#667eea',
-                                            },
-                                        }}
-                                    />
-                                    
-                                    <Box>
-                                        <Typography variant="body2" sx={{ mb: 1, fontWeight: '500' }}>
-                                            📄 Certificate of Incorporation (Optional)
-                                        </Typography>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            sx={{
-                                                borderColor: '#667eea',
-                                                color: '#667eea',
-                                                '&:hover': {
-                                                    borderColor: '#764ba2',
-                                                    backgroundColor: 'rgba(102, 126, 234, 0.04)'
-                                                }
-                                            }}
-                                        >
-                                            {kycData.certificateOfIncorporation 
-                                                ? `Selected: ${kycData.certificateOfIncorporation.name}`
-                                                : 'Upload Certificate'
-                                            }
-                                            <input
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                type="file"
-                                                onChange={(e) => {
-                                                    if (e.target.files[0]) {
-                                                        setKycData({...kycData, certificateOfIncorporation: e.target.files[0]});
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                        {kycData.certificateOfIncorporation && (
-                                            <Typography variant="caption" sx={{ 
-                                                display: 'block', 
-                                                mt: 1, 
-                                                color: '#667eea' 
-                                            }}>
-                                                ✅ File selected: {kycData.certificateOfIncorporation.name}
-                                            </Typography>
-                                        )}
-                                    </Box>
                                 </Box>
                                 
                                 <Box sx={{ 
@@ -2637,6 +2558,44 @@ const handleHourlyMemberType = (memberType) => {
                             />
                         </RadioGroup>
                     </FormControl>
+
+                    {/* Show payment instructions based on selected method */}
+                    {memberType === 'Non-Member' && paymentMethod === 'UPI' && (
+                        <Box sx={{ mt: 3, mb: 3, textAlign: 'center' }}>
+                            <img src={`${process.env.PUBLIC_URL}/WhatsApp Image 2025-10-13 at 5.04.52 PM.jpeg`} alt="UPI QR" style={{ maxWidth: '220px', borderRadius: '12px', marginBottom: '12px' }} />
+                            <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#667eea', mt: 2 }}>
+                                UPI ID: <span style={{ color: '#d32f2f' }}>siva.beb-3@okhdfcbank</span>
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 1 }}>
+                                Scan the QR or use the UPI ID above to make your payment.
+                            </Typography>
+                        </Box>
+                    )}
+                    {memberType === 'Non-Member' && paymentMethod === 'NET_BANKING' && (
+                        <Box sx={{ mt: 3, mb: 3, textAlign: 'left', background: 'rgba(102,126,234,0.05)', borderRadius: 2, p: 2 }}>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#667eea', mb: 1 }}>
+                                Net Banking Details
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>Account Name:</strong> 9C Technology Labs Private Limited
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>Current A/C No:</strong> 5020004520737
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>IFSC Code:</strong> HDFC0004013
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>Bank Name:</strong> HDFC Bank
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>Branch:</strong> Infocity, Bhubaneswar, Plot E/3, Ground floor, Chandaka industrial estate, Patia
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 1 }}>
+                                Please use the above details to make your payment via Net Banking.
+                            </Typography>
+                        </Box>
+                    )}
 
                     <Box sx={{ mt: { xs: 2, sm: 3 } }}>
                         <Typography variant="subtitle1" sx={{ mb: { xs: 1, sm: 2 } }}>
