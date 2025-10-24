@@ -1280,7 +1280,7 @@ const BookMeetingRoom = () => {
                         console.log('API Endpoint:', 'https://api.boldtribe.in/api/meetingrooms/book');
                         console.log('Request Headers:', {
                              'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'multipart/form-data'
                         });
                         console.log('Request Body:', bookingData);
 
@@ -1292,7 +1292,7 @@ const BookMeetingRoom = () => {
                             {
                                 headers: {
                                      'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
+                                    'Content-Type': 'multipart/form-data'
                                 }
                             }
                         );
@@ -1495,11 +1495,29 @@ const BookMeetingRoom = () => {
 
     // Handle successful login for members
     const handleLoginSuccess = (userData) => {
-        console.log('Member login successful:', userData);
+        console.log('Login successful:', userData);
         console.log('Post-login booking type check:', bookingType);
         setShowLoginModal(false);
         
-        // After successful login, always show time slot modal first for date/seating selection
+        // If user was trying to select Non-Member, now set it after successful login
+        if (memberType !== 'Non-Member') {
+            console.log('Setting member type to Non-Member after login');
+            setMemberType('Non-Member');
+            
+            // Reset relevant states for new member type
+            setSelectedDate(null);
+            setSelectedSeating('');
+            setSelectedTimeSlots([]);
+            setAvailableTimeSlots([]);
+            setSelectedBookingDuration('manual');
+            
+            // Fetch pricing data if booking type is already selected
+            if (bookingType) {
+                fetchPricingData('Non-Member', bookingType, selectedSeating || 'C1');
+            }
+        }
+        
+        // After successful login, show time slot modal for date/seating selection
         console.log('Opening time slot modal after login');
         setShowTimeSlotModal(true);
     };
@@ -1507,6 +1525,12 @@ const BookMeetingRoom = () => {
     // Handle login modal close
     const handleLoginClose = () => {
         setShowLoginModal(false);
+        // If user was trying to select Non-Member but cancelled login, reset member type
+        // This ensures the dropdown doesn't show Non-Member selected when user is not authenticated
+        if (!isAuthenticated) {
+            console.log('Login cancelled, resetting member type selection');
+            setMemberType('');
+        }
     };
 
     const handleBookingTypeChange = (e) => {
@@ -1900,8 +1924,17 @@ const handleHourlyMemberType = (memberType) => {
     // Update the member type selection handler
     const handleMemberTypeChange = (e) => {
         const selectedMemberType = e.target.value;  // Keep the exact case from the API
-        setMemberType(selectedMemberType);
         console.log('Selected Member Type:', selectedMemberType);
+        
+        // Check if user selected Non-Member and is not authenticated
+        if (selectedMemberType === 'Non-Member' && !isAuthenticated) {
+            console.log('Non-Member selected but user not authenticated, showing login modal');
+            setShowLoginModal(true);
+            return; // Don't proceed with member type change until user logs in
+        }
+        
+        setMemberType(selectedMemberType);
+        console.log('Member type successfully set to:', selectedMemberType);
         
         // Reset date and seating when member type changes
         setSelectedDate(null);
@@ -2108,47 +2141,66 @@ const handleHourlyMemberType = (memberType) => {
     const handleNonMemberBooking = async () => {
         try {
             // Get auth token from sessionStorage (where it's typically stored after login)
-            const authToken = sessionStorage.getItem('token') || localStorage.getItem('token');
-            
+            const authToken = sessionStorage.getItem('authToken');
+
+            // Check for valid token before proceeding
+            if (!authToken || authToken === 'null' || authToken === 'undefined') {
+                alert('Authentication required. Please log in to continue.');
+                setShowLoginModal(true);
+                return;
+            }
+
+            // Validate KYC data - ID proof is mandatory for non-members
+            if (!kycData.identityProof) {
+                alert('ID proof is required for non-member bookings. Please upload your identity document.');
+                return;
+            }
+
+            // Validate payment receipt
+            if (!paymentReceipt) {
+                alert('Payment receipt is required. Please upload your payment screenshot.');
+                return;
+            }
+
             // Format time slots as required by the API
-            const formattedTimeSlots = selectedTimeSlots.map(slot => 
+            const formattedTimeSlots = selectedTimeSlots.map(slot =>
                 `${slot.start} - ${slot.end}`
             );
 
             // Set duration based on number of slots
             const duration = selectedTimeSlots.length === 1 ? '30 Minutes' : '1 Hour';
 
-            // Prepare the booking data in the required format
-            const bookingData = {
-                capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
-                bookingDate: format(selectedDate, 'yyyy-MM-dd'),
-                timeSlots: formattedTimeSlots,
-                duration: duration,
-                bookingType: 'Hourly',  // Always set to Hourly as per API requirement
-                memberType: 'Non-Member',
-                notes: "Meeting room booking",
-                paymentMethod: paymentMethod,
-                totalAmount: calculatedPrice.total,
-                paymentReceipt: paymentReceipt ? await convertFileToBase64(paymentReceipt) : null
-            };
+            // Prepare FormData for file upload
+            const formData = new FormData();
+            formData.append('capacityType', selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater');
+            formData.append('bookingDate', format(selectedDate, 'yyyy-MM-dd'));
+            formattedTimeSlots.forEach(slot => formData.append('timeSlots[]', slot));
+            formData.append('duration', duration);
+            formData.append('bookingType', 'Hourly');
+            formData.append('memberType', 'Non-Member');
+            formData.append('notes', 'Meeting room booking');
+            formData.append('totalAmount', calculatedPrice.total);
+            formData.append('idProof', kycData.identityProof);
+            formData.append('paymentScreenshot', paymentReceipt);
 
-            // Log the request data
-            console.log('=== Booking Request Data ===');
-            console.log('API Endpoint:', 'https://api.boldtribe.in/api/meetingrooms/book');
-            console.log('Request Headers:', {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
-            });
-            console.log('Request Body:', bookingData);
+            // Log the request data (without the files)
+            console.log('=== Booking Request Data (FormData) ===');
+            for (let pair of formData.entries()) {
+                if (pair[1] instanceof File) {
+                    console.log(pair[0], ': File -', pair[1].name, pair[1].size, 'bytes');
+                } else {
+                    console.log(pair[0], ':', pair[1]);
+                }
+            }
             console.log('===========================');
 
             // Make the API call with auth token
             const response = await axios.post(
                 'https://api.boldtribe.in/api/meetingrooms/book',
-                bookingData,
+                formData,
                 {
                     headers: {
-                        'Content-Type': 'application/json',
+                        // Do NOT set Content-Type, let browser/axios set it for FormData
                         'Authorization': `Bearer ${authToken}`
                     }
                 }
@@ -2267,6 +2319,25 @@ const handleHourlyMemberType = (memberType) => {
                                 accept: 'image/*,.pdf'
                             }}
                         />
+                        {/* Show preview if image is selected */}
+                        {paymentReceipt && paymentReceipt.type && paymentReceipt.type.startsWith('image/') && (
+                            <Box sx={{ mt: 2, mb: 2 }}>
+                                <img
+                                    src={URL.createObjectURL(paymentReceipt)}
+                                    alt="Payment Receipt Preview"
+                                    style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }}
+                                />
+                                <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                                    {paymentReceipt.name}
+                                </Typography>
+                            </Box>
+                        )}
+                        {/* Show file name if PDF is selected */}
+                        {paymentReceipt && paymentReceipt.type && paymentReceipt.type === 'application/pdf' && (
+                            <Typography variant="caption" sx={{ display: 'block', mt: 2 }}>
+                                PDF Uploaded: {paymentReceipt.name}
+                            </Typography>
+                        )}
                     </Box>
 
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: { xs: 1, sm: 2 } }}>
@@ -4486,7 +4557,7 @@ const handleHourlyMemberType = (memberType) => {
                                     height: { xs: '40px', sm: '45px' }
                                 }}
                             >
-                                {memberType === 'Member' ? 'Book Now 5555' : 'Proceed to Payment'}
+                                {memberType === 'Member' ? 'Book Now' : 'Proceed to Payment'}
                             </Button>
                         </Box>
                     </Box>
