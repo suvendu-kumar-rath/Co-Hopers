@@ -1215,33 +1215,15 @@ const BookMeetingRoom = () => {
         }
 
         console.log('=== Starting handleFinalBooking ===');
+        console.log('Booking Type:', bookingType);
         
         // Debug token storage
         console.log('=== Token Debug Info ===');
-        // let token = null;
         
         try {
-            // Get token from localStorage
-            // token = localStorage.getItem('token');
             const userData = localStorage.getItem('userData');
             
             console.log('Raw userData from localStorage:', userData);
-
-            // Check if we're actually logged in
-            // if (!token) {
-            //     console.error('Authentication required - No token found');
-            //     alert('Please login to book a meeting room');
-            //     navigate('/login');
-            //     return;
-            // }
-
-            // Verify token format
-            // if (token.startsWith('"') && token.endsWith('"')) {
-            //     token = token.slice(1, -1); // Remove quotes if present
-            // }
-
-            // Comment out token usage to fix ESLint errors
-            // console.log('Final token being used:', token);
 
             if (selectedDate && selectedTimeSlots.length > 0) {
                 console.log('All required fields present, proceeding with booking');
@@ -1250,20 +1232,30 @@ const BookMeetingRoom = () => {
                 // For members, make API call
                 if (memberType === 'Member') {
                     try {
-                        // Validate time slots
-                        if (selectedTimeSlots.length > 7) {
-                            alert('For hourly bookings, you can only select up to 2 time slots (1 hour maximum).');
-                            return;
-                        }
-
                         // Format time slots to match API requirement
                         const formattedTimeSlots = selectedTimeSlots.map(slot => 
                             `${slot.start} - ${slot.end}`
                         );
 
-                        // Set duration strictly to '30 Minutes' or '1 Hour'
-                        const duration = selectedTimeSlots.length === 1 ? '30 Minutes' : '1 Hour';
+                        // Determine duration and bookingType based on bookingType state
+                        let duration;
+                        let apiBookingType;
+                        let totalAmount;
+
+                        if (bookingType === 'Whole Day') {
+                            // Whole day booking
+                            duration = 'Whole Day';
+                            apiBookingType = 'Whole Day';
+                            totalAmount = calculatedPrice.total;
+                        } else {
+                            // Hourly booking
+                            duration = selectedTimeSlots.length === 1 ? '30 Minutes' : '1 Hour';
+                            apiBookingType = 'Hourly';
+                            totalAmount = calculatedPrice.total;
+                        }
+
                         console.log('Using duration:', duration);
+                        console.log('Using bookingType:', apiBookingType);
 
                         // Prepare the request data exactly as per API requirement
                         const bookingData = {
@@ -1271,8 +1263,9 @@ const BookMeetingRoom = () => {
                             bookingDate: format(selectedDate, 'yyyy-MM-dd'),
                             timeSlots: formattedTimeSlots,
                             duration: duration,
-                            bookingType: 'Hourly',  // Always set to Hourly as per API requirement
+                            bookingType: apiBookingType,
                             memberType: memberType,
+                            totalAmount: totalAmount,
                             notes: selectedReason ? meetingReasons.find(r => r.id === selectedReason)?.name : ''
                         };
 
@@ -1280,7 +1273,7 @@ const BookMeetingRoom = () => {
                         console.log('API Endpoint:', 'https://api.boldtribe.in/api/meetingrooms/book');
                         console.log('Request Headers:', {
                              'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'multipart/form-data'
+                            'Content-Type': 'application/json'
                         });
                         console.log('Request Body:', bookingData);
 
@@ -1292,7 +1285,7 @@ const BookMeetingRoom = () => {
                             {
                                 headers: {
                                      'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'multipart/form-data'
+                                    'Content-Type': 'application/json'
                                 }
                             }
                         );
@@ -1307,6 +1300,7 @@ const BookMeetingRoom = () => {
                             setShowRoomSelectionModal(false);
                             setShowTimeSlotModal(false);
                             setShowBookingModal(false);
+                            setShowWholeDaySummaryModal(false);
                             
                             // Show the confirmation modal
                             setShowConfirmationModal(true);
@@ -2138,7 +2132,7 @@ const handleHourlyMemberType = (memberType) => {
     const [paymentAmount, setPaymentAmount] = useState(0);
 
     // Add new function to handle Non-Member booking submission
-    const handleNonMemberBooking = async () => {
+    const handleNonMemberBooking = async (memberType) => {
         try {
             // Get auth token from sessionStorage (where it's typically stored after login)
             const authToken = sessionStorage.getItem('authToken');
@@ -2176,8 +2170,8 @@ const handleHourlyMemberType = (memberType) => {
             formData.append('bookingDate', format(selectedDate, 'yyyy-MM-dd'));
             formattedTimeSlots.forEach(slot => formData.append('timeSlots[]', slot));
             formData.append('duration', duration);
-            formData.append('bookingType', 'Hourly');
-            formData.append('memberType', 'Non-Member');
+            formData.append('bookingType', bookingType);
+            formData.append('memberType', memberType);
             formData.append('notes', 'Meeting room booking');
             formData.append('totalAmount', calculatedPrice.total);
             formData.append('idProof', kycData.identityProof);
@@ -2352,7 +2346,7 @@ const handleHourlyMemberType = (memberType) => {
                             disabled={!paymentReceipt}
                             onClick={async () => {
                                 setShowSummaryModal(false);
-                                await handleNonMemberBooking();
+                                await handleNonMemberBooking(memberType);
                             }}
                         >
                             Proceed to Book
@@ -2404,7 +2398,16 @@ const handleHourlyMemberType = (memberType) => {
                                     <strong>Date:</strong> {lastBooking.booking.bookingDate}
                                 </Typography>
                                 <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
-                                    <strong>Time Slots:</strong> {lastBooking.booking.timeSlots.join(', ')}
+                                    <strong>Time Slots:</strong> {
+                                        Array.isArray(lastBooking.booking.timeSlots)
+                                            ? lastBooking.booking.timeSlots.join(', ')
+                                            : lastBooking.booking.timeSlots || 'Whole Day'
+                                    }
+                                </Typography>
+                                <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
+                                    <strong>Duration:</strong> {
+                                        lastBooking.booking.duration || 'Whole Day'
+                                    }
                                 </Typography>
                                 <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
                                     <strong>Total Amount:</strong> ₹{lastBooking.totalAmount}/-
@@ -3646,6 +3649,14 @@ const handleHourlyMemberType = (memberType) => {
                                         variant="contained"
                                         onClick={() => {
                                             console.log('Whole Day Book Now clicked - opening summary modal');
+                                            // Calculate the price for whole day booking
+                                            const basePrice = getBasePrice();
+                                            setCalculatedPrice({
+                                                duration: memberType === 'Member' ? 9.5 : 9,
+                                                subtotal: basePrice,
+                                                gst: 0,
+                                                total: basePrice
+                                            });
                                             setShowTimeSlotModal(false);
                                             setShowWholeDaySummaryModal(true);
                                         }}
@@ -4777,7 +4788,7 @@ const handleHourlyMemberType = (memberType) => {
                                                 WebkitBackgroundClip: 'text',
                                                 WebkitTextFillColor: 'transparent'
                                             }}>
-                                                ₹{pricingData ? Math.ceil(pricingData.total) : (selectedSeating === 'C2' ? (memberType === 'Member' ? '2,500' : '3,000') : (memberType === 'Member' ? '1,800' : '2,300'))}
+                                                ₹{calculatedPrice.total ? Math.ceil(calculatedPrice.total) : (selectedSeating === 'C2' ? (memberType === 'Member' ? '2,500' : '3,000') : (memberType === 'Member' ? '1,800' : '2,300'))}
                                             </Typography>
                                             <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
                                                 {memberType === 'Member' ? 'Premium Member Rate' : 'Standard Rate'}
@@ -4808,7 +4819,7 @@ const handleHourlyMemberType = (memberType) => {
                                     </Button>
                                     <Button
                                         variant="contained"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (memberType === 'Non-Member') {
                                                 // For non-members, open payment modal with KYC
                                                 setShowWholeDaySummaryModal(false);
@@ -4816,7 +4827,9 @@ const handleHourlyMemberType = (memberType) => {
                                             } else {
                                                 // For members, handle member booking logic
                                                 setShowWholeDaySummaryModal(false);
-                                                setShowTimeSlotModal(true);
+                                                await handleMemberBooking(memberType);
+                                                // setShowTimeSlotModal(true);
+                                                // console.log('Member booking logic');
                                             }
                                         }}
                                         sx={{
