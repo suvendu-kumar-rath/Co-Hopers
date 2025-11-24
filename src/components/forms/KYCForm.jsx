@@ -1120,10 +1120,6 @@ const KYCForm = () => {
                     <Grid item xs={12} md={6}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                         <DirectorFileUpload 
-                          type="paymentProof" 
-                          label="Payment Proof*" 
-                        />
-                        <DirectorFileUpload 
                           type="frontID" 
                           label="Director Photo ID Card Front Side (Aadhar/Driving License/Voter ID)*" 
                         />
@@ -1355,10 +1351,6 @@ const KYCForm = () => {
                         ml: { xs: 0, md: 8 }
                       }}>
                         <SigningAuthorityFileUpload 
-                          type="paymentProof" 
-                          label="Payment Proof*" 
-                        />
-                        <SigningAuthorityFileUpload 
                           type="photo" 
                           label="Signing Authority Photo*" 
                         />
@@ -1534,10 +1526,6 @@ const KYCForm = () => {
                     gap: 3,
                     ml: { xs: 0, md: 8 }
                   }}>
-                    <FreelancerFileUpload 
-                      type="paymentScreenshot" 
-                      label="Payment Screenshot*" 
-                    />
 
                     <FreelancerFileUpload 
                       type="memberPhoto" 
@@ -1585,7 +1573,7 @@ const KYCForm = () => {
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
                 <Button
                   variant="outlined"
-                  onClick={handleBackToKYCInfo}
+                  onClick={handleBackToCompanyKYC}
                   sx={{ 
                     color: '#75A5A3',
                     borderColor: '#75A5A3',

@@ -18,8 +18,9 @@ import LoginIcon from '@mui/icons-material/Login';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/authService';
 
-const LoginModal = ({ open, onClose, onLoginSuccess }) => {
+const LoginModal = ({ open, onClose, onLoginSuccess, onRegisterSuccess, allowRegister = false }) => {
     const { login } = useAuth();
+    // Registration mode controlled by allowRegister prop
     const [isRegisterMode, setIsRegisterMode] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -52,27 +53,23 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
     };
 
     const validateForm = () => {
-        if (isRegisterMode) {
+        if (allowRegister && isRegisterMode) {
             if (!formData.name || !formData.email || !formData.mobileNumber || !formData.password || !formData.confirmPassword) {
                 setError('Please fill in all fields');
                 return false;
             }
-            
             if (!validateEmail(formData.email)) {
                 setError('Please enter a valid email address');
                 return false;
             }
-            
             if (!validateMobile(formData.mobileNumber)) {
                 setError('Please enter a valid 10-digit mobile number');
                 return false;
             }
-            
             if (formData.password.length < 6) {
                 setError('Password must be at least 6 characters long');
                 return false;
             }
-            
             if (formData.password !== formData.confirmPassword) {
                 setError('Passwords do not match');
                 return false;
@@ -88,18 +85,14 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
         if (!validateForm()) {
             return;
         }
-
         setLoading(true);
         setError('');
-
         try {
             let result;
-            
-            if (isRegisterMode) {
+            if (allowRegister && isRegisterMode) {
                 result = await authService.register({
                     name: formData.name,
                     email: formData.email,
@@ -109,12 +102,8 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
             } else {
                 result = await authService.login(formData.mobileNumber, formData.password);
             }
-            
             if (result.success) {
-                // Update auth context
                 login(result.data, result.token);
-                
-                // Reset form
                 setFormData({ 
                     name: '',
                     email: '',
@@ -123,16 +112,24 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                     confirmPassword: ''
                 });
                 
-                // Call success callback
-                if (onLoginSuccess) {
-                    onLoginSuccess(result.data);
+                // Call appropriate callback based on mode
+                if (allowRegister && isRegisterMode) {
+                    // Registration mode
+                    if (onRegisterSuccess) {
+                        onRegisterSuccess(result.data);
+                    }
+                } else {
+                    // Login mode
+                    if (onLoginSuccess) {
+                        onLoginSuccess(result.data);
+                    }
                 }
             } else {
-                setError(result.message || (isRegisterMode ? 'Registration failed' : 'Login failed'));
+                setError(result.message || (allowRegister && isRegisterMode ? 'Registration failed' : 'Login failed'));
             }
         } catch (error) {
             setError('An error occurred. Please try again.');
-            console.error(isRegisterMode ? 'Registration error:' : 'Login error:', error);
+            console.error((allowRegister && isRegisterMode) ? 'Registration error:' : 'Login error:', error);
         } finally {
             setLoading(false);
         }
@@ -151,8 +148,9 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
         setIsRegisterMode(false);
         onClose();
     };
-
+    // Only show toggle if registration is allowed
     const toggleMode = () => {
+        if (!allowRegister) return;
         setIsRegisterMode(!isRegisterMode);
         setFormData({ 
             name: '',
@@ -163,6 +161,8 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
         });
         setError('');
     };
+
+
 
     return (
         <Modal
@@ -181,7 +181,7 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                     sx={{
                         position: 'relative',
                         width: '100%',
-                        maxWidth: isRegisterMode ? 450 : 400,
+                        maxWidth: allowRegister && isRegisterMode ? 450 : 400,
                         background: 'rgba(255, 255, 255, 0.95)',
                         backdropFilter: 'blur(20px)',
                         borderRadius: 4,
@@ -213,7 +213,7 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                     {/* Header */}
                     <Box sx={{ mb: 3, textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                            {isRegisterMode ? <PersonIcon sx={{ mr: 1, color: '#3b82f6' }} /> : <LoginIcon sx={{ mr: 1, color: '#3b82f6' }} />}
+                            {allowRegister && isRegisterMode ? <PersonIcon sx={{ mr: 1, color: '#3b82f6' }} /> : <LoginIcon sx={{ mr: 1, color: '#3b82f6' }} />}
                             <Typography
                                 variant="h4"
                                 sx={{
@@ -224,7 +224,7 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                                     fontWeight: 700
                                 }}
                             >
-                                {isRegisterMode ? 'Create Account' : 'Member Login'}
+                                {allowRegister && isRegisterMode ? 'Create Account' : 'Member Login'}
                             </Typography>
                         </Box>
                         <Typography
@@ -234,8 +234,8 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                                 fontSize: '1rem'
                             }}
                         >
-                            {isRegisterMode 
-                                ? 'Join us to book your perfect workspace' 
+                            {allowRegister && isRegisterMode
+                                ? 'Join us to book your perfect workspace'
                                 : 'Please login to continue with your booking'
                             }
                         </Typography>
@@ -259,7 +259,7 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
 
                     {/* Form */}
                     <form onSubmit={handleSubmit}>
-                        {isRegisterMode && (
+                        {allowRegister && isRegisterMode && (
                             <>
                                 <TextField
                                     fullWidth
@@ -344,9 +344,9 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                             onChange={handleInputChange}
                             margin="normal"
                             required
-                            helperText={isRegisterMode ? "Minimum 6 characters" : ""}
+                            helperText={allowRegister && isRegisterMode ? "Minimum 6 characters" : ""}
                             sx={{
-                                mb: isRegisterMode ? 2 : 3,
+                                mb: allowRegister && isRegisterMode ? 2 : 3,
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: 2,
                                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -360,7 +360,7 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                             }}
                         />
 
-                        {isRegisterMode && (
+                        {allowRegister && isRegisterMode && (
                             <TextField
                                 fullWidth
                                 label="Confirm Password"
@@ -413,35 +413,39 @@ const LoginModal = ({ open, onClose, onLoginSuccess }) => {
                             {loading ? (
                                 <CircularProgress size={24} color="inherit" />
                             ) : (
-                                isRegisterMode ? 'Create Account' : 'Login'
+                                allowRegister && isRegisterMode ? 'Create Account' : 'Login'
                             )}
                         </Button>
                     </form>
 
                     {/* Mode Toggle */}
-                    <Divider sx={{ my: 2 }} />
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" sx={{ mb: 1, color: 'rgba(0, 0, 0, 0.6)' }}>
-                            {isRegisterMode ? 'Already have an account?' : "Don't have an account?"}
-                        </Typography>
-                        <Link
-                            component="button"
-                            type="button"
-                            onClick={toggleMode}
-                            sx={{
-                                color: '#3b82f6',
-                                textDecoration: 'none',
-                                fontWeight: 600,
-                                fontSize: '0.95rem',
-                                '&:hover': {
-                                    color: '#1d4ed8',
-                                    textDecoration: 'underline'
-                                }
-                            }}
-                        >
-                            {isRegisterMode ? 'Login here' : 'Register here'}
-                        </Link>
-                    </Box>
+                    {allowRegister && (
+                        <>
+                            <Divider sx={{ my: 2 }} />
+                            <Box sx={{ textAlign: 'center' }}>
+                                <Typography variant="body2" sx={{ mb: 1, color: 'rgba(0, 0, 0, 0.6)' }}>
+                                    {isRegisterMode ? 'Already have an account?' : "Don't have an account?"}
+                                </Typography>
+                                <Link
+                                    component="button"
+                                    type="button"
+                                    onClick={toggleMode}
+                                    sx={{
+                                        color: '#3b82f6',
+                                        textDecoration: 'none',
+                                        fontWeight: 600,
+                                        fontSize: '0.95rem',
+                                        '&:hover': {
+                                            color: '#1d4ed8',
+                                            textDecoration: 'underline'
+                                        }
+                                    }}
+                                >
+                                    {isRegisterMode ? 'Login here' : 'Register here'}
+                                </Link>
+                            </Box>
+                        </>
+                    )}
                 </Box>
             </Fade>
         </Modal>

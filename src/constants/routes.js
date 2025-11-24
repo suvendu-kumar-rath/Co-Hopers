@@ -6,6 +6,7 @@ export const ROUTES = {
   FORM: '/form',
   PENDING_REVIEW: '/pending-review',
   SUCCESS: '/success',
+  PAYMENT_UPLOAD: '/payment-upload',
 };
 
 // External routes

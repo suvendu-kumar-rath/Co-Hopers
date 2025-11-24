@@ -10,7 +10,6 @@ import spaceImage4 from '../assets/images/03_Spaces 4.png';
 import spaceImage6 from '../assets/images/03_Spaces 6.png';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import QrCodeIcon from '@mui/icons-material/QrCode';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import directorKYCImage from '../assets/images/KYC.png';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KYCImage from '../assets/images/KYC.png';
@@ -53,10 +52,8 @@ const Services = () => {
 
   // Payment modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentStep, setPaymentStep] = useState(0); // 0: payment options, 1: upload screenshot
+  const [paymentStep, setPaymentStep] = useState(0); // 0: payment options
   const [paymentMethod, setPaymentMethod] = useState('scan'); // 'scan' or 'account'
-  const [uploadedScreenshot, setUploadedScreenshot] = useState(null);
-  const [screenshotPreview, setScreenshotPreview] = useState(null);
 
   // Debug payment step changes
   useEffect(() => {
@@ -74,6 +71,13 @@ const Services = () => {
 
   // Login modal state
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isRegistrationMode, setIsRegistrationMode] = useState(false);
+  
+  // KYC tracking
+  const [kycSubmitted, setKycSubmitted] = useState(false);
+  
+  // Booking ID state
+  const [currentBookingId, setCurrentBookingId] = useState(null);
 
   // Use API data if available, otherwise fallback to static data
   const privateOffices = spaces.length > 0 ? spaces : PRIVATE_OFFICES;
@@ -176,41 +180,115 @@ const Services = () => {
     setSelectedOffice(null);
   };
 
-  const handleProceedToPayment = () => {
+  const handleProceedToPayment = async () => {
     console.log('handleProceedToPayment called - isAuthenticated:', isAuthenticated);
     
     // Check if user is authenticated
     if (!isAuthenticated) {
-      // Close office modal first, then show login modal
+      // Close office modal first, then show login/register modal
       setShowOfficeModal(false);
       setShowLoginModal(true);
+      setIsRegistrationMode(false); // Allow both login and register
       return;
     }
     
-    // User is authenticated, proceed to payment
-    console.log('Opening payment modal with initial state');
-    setShowOfficeModal(false);
-    setShowPaymentModal(true);
-    setPaymentStep(0);
-    setPaymentMethod('scan');
-    setUploadedScreenshot(null);
-    setScreenshotPreview(null);
+    // User is authenticated (KYC already approved), create booking first
+    console.log('User authenticated, creating booking...');
+    
+    try {
+      const bookingData = {
+        spaceId: selectedOffice?.id || 1,
+        date: new Date().toISOString().split('T')[0],
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        amount: parseFloat(selectedOffice?.price?.replace(/[^\d.]/g, '') || '1500')
+      };
+
+      console.log('Creating booking with data:', bookingData);
+      
+      const { bookingService } = await import('../services');
+      const bookingResult = await bookingService.bookSpace(bookingData);
+      
+      if (bookingResult.success) {
+        console.log('Booking created successfully:', bookingResult.data);
+        const bookingId = bookingResult.data?.booking?.id || bookingResult.data?.id;
+        setCurrentBookingId(bookingId);
+        
+        // After successful booking creation, show payment modal
+        setShowOfficeModal(false);
+        setShowPaymentModal(true);
+        setPaymentStep(0);
+        setPaymentMethod('scan');
+      } else {
+        console.error('Booking creation failed:', bookingResult.message);
+        alert(`Booking creation failed: ${bookingResult.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Failed to create booking. Please try again.');
+    }
   };
 
   const handleShare = (office) => {
     shareToWhatsApp(office);
   };
 
-  // Login modal handlers
-  const handleLoginSuccess = (userData) => {
+  // Login/Register modal handlers
+  const handleLoginSuccess = async (userData) => {
     console.log('Login successful:', userData);
     setShowLoginModal(false);
-    // After successful login, proceed to payment
-    setShowPaymentModal(true);
-    setPaymentStep(0);
-    setPaymentMethod('scan');
-    setUploadedScreenshot(null);
-    setScreenshotPreview(null);
+    
+    // Check if user has KYC approved (you can check userData.kycRequired or similar)
+    // For now, assume if logging in, KYC is already approved
+    console.log('User logged in, KYC already approved, creating booking...');
+    
+    // Create booking immediately after login
+    try {
+      const bookingData = {
+        spaceId: selectedOffice?.id || 1,
+        date: new Date().toISOString().split('T')[0],
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        amount: parseFloat(selectedOffice?.price?.replace(/[^\d.]/g, '') || '1500')
+      };
+
+      console.log('Creating booking with data:', bookingData);
+      
+      const { bookingService } = await import('../services');
+      const bookingResult = await bookingService.bookSpace(bookingData);
+      
+      if (bookingResult.success) {
+        console.log('Booking created successfully:', bookingResult.data);
+        const bookingId = bookingResult.data?.booking?.id || bookingResult.data?.id;
+        setCurrentBookingId(bookingId);
+        
+        // After successful booking creation, show payment modal
+        setShowPaymentModal(true);
+        setPaymentStep(0);
+        setPaymentMethod('scan');
+      } else {
+        console.error('Booking creation failed:', bookingResult.message);
+        alert(`Booking creation failed: ${bookingResult.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Failed to create booking. Please try again.');
+    }
+  };
+  
+  const handleRegisterSuccess = (userData) => {
+    console.log('Registration successful:', userData);
+    setShowLoginModal(false);
+    
+    // After registration, navigate to KYC form
+    console.log('Redirecting new user to KYC form');
+    navigate(ROUTES.FORM, {
+      state: {
+        selectedOffice: selectedOffice,
+        fromRegistration: true,
+        userId: userData?.id || userData?.user?.id
+      }
+    });
   };
 
   const handleLoginClose = () => {
@@ -225,88 +303,37 @@ const Services = () => {
     setShowPaymentModal(false);
     setPaymentStep(0);
     setPaymentMethod('scan');
-    setUploadedScreenshot(null);
-    setScreenshotPreview(null);
-    setSelectedOffice(null); // Clear selected office when payment modal closes
+    setSelectedOffice(null);
+    setCurrentBookingId(null); // Clear booking ID when payment modal closes
   };
 
   const handleNextPaymentStep = async () => {
     console.log('=== handleNextPaymentStep DEBUG ===');
     console.log('Current paymentStep:', paymentStep);
     console.log('showPaymentModal:', showPaymentModal);
+    console.log('Current booking ID:', currentBookingId);
+    console.log('Payment method:', paymentMethod);
     
-    // Skip screenshot upload step - create booking and go to form
-    if (paymentStep === 0) {
-      try {
-        // Prepare booking data
-        const bookingData = {
-          spaceId: selectedOffice?.id || 1, // Use office ID or default to 1
-          date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
-          startDate: new Date().toISOString().split('T')[0], // Start from today
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // End date 30 days from now
-          amount: parseFloat(selectedOffice?.price?.replace(/[^\d.]/g, '') || '1500') // Extract numeric value from price
-        };
-
-        console.log('Creating booking with data:', bookingData);
-        
-        // Import and call booking service
-        const { bookingService } = await import('../services');
-        const bookingResult = await bookingService.bookSpace(bookingData);
-        
-        if (bookingResult.success) {
-          console.log('Booking created successfully:', bookingResult.data);
-          
-          // Navigate with state data including booking info for the KYC form
-          navigate(ROUTES.FORM, {
-            state: {
-              selectedOffice: selectedOffice,
-              paymentMethod: paymentMethod,
-              bookingFlow: true,
-              bookingId: bookingResult.data?.booking?.id || bookingResult.data?.id,
-              bookingData: bookingResult.data
-            }
-          });
-        } else {
-          console.error('Booking failed:', bookingResult.message);
-          // Show error to user - you might want to add a toast notification here
-          alert(`Booking failed: ${bookingResult.message}`);
-          return; // Don't close modal on error
-        }
-      } catch (error) {
-        console.error('Error creating booking:', error);
-        alert('Failed to create booking. Please try again.');
-        return; // Don't close modal on error
+    // Check if booking ID exists
+    if (!currentBookingId) {
+      console.error('Booking ID not found. currentBookingId:', currentBookingId);
+      alert('Booking ID not found. Please try booking again from the office selection.');
+      return;
+    }
+    
+    console.log('Navigating to payment upload page...');
+    
+    // Navigate to payment upload page with booking data
+    navigate(ROUTES.PAYMENT_UPLOAD, {
+      state: {
+        bookingId: currentBookingId,
+        officeData: selectedOffice,
+        paymentMethod: paymentMethod
       }
-      
-      // Reset modal state only after successful booking
-      setShowPaymentModal(false);
-      setPaymentStep(0);
-      setPaymentMethod('scan');
-      setUploadedScreenshot(null);
-      setScreenshotPreview(null);
-      setSelectedOffice(null);
-    }
-    console.log('=== END DEBUG ===');
-  };
-
-  const handleScreenshotUpload = (event) => {
-    const file = event.target.files[0];
-    console.log('handleScreenshotUpload called - file:', file?.name);
-    if (file) {
-      setUploadedScreenshot(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setScreenshotPreview(e.target.result);
-        console.log('Screenshot preview set');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const isNextButtonDisabled = () => {
-    // Since we only have step 0 (payment method selection), button is never disabled
-    console.log('isNextButtonDisabled - paymentStep:', paymentStep, 'disabled: false');
-    return false;
+    });
+    
+    // Close payment modal
+    setShowPaymentModal(false);
   };
 
   const handleNextSlide = () => {
@@ -1039,12 +1066,9 @@ const Services = () => {
         </Button>
         <Button
           onClick={handleNextPaymentStep}
-          disabled={isNextButtonDisabled()}
           variant="contained"
           sx={{
-            background: isNextButtonDisabled() 
-              ? 'linear-gradient(135deg, #ccc 0%, #999 100%)' 
-              : 'linear-gradient(135deg, #E53935 0%, #C62828 100%)',
+            background: 'linear-gradient(135deg, #E53935 0%, #C62828 100%)',
             color: 'white',
             px: { xs: 3, sm: 5 },
             py: 1.5,
@@ -1052,26 +1076,16 @@ const Services = () => {
             fontSize: '16px',
             borderRadius: '12px',
             textTransform: 'none',
-            boxShadow: isNextButtonDisabled() 
-              ? 'none' 
-              : '0 4px 12px rgba(229, 57, 53, 0.3)',
+            boxShadow: '0 4px 12px rgba(229, 57, 53, 0.3)',
             '&:hover': {
-              background: isNextButtonDisabled() 
-                ? 'linear-gradient(135deg, #ccc 0%, #999 100%)' 
-                : 'linear-gradient(135deg, #C62828 0%, #B71C1C 100%)',
-              boxShadow: isNextButtonDisabled() 
-                ? 'none' 
-                : '0 6px 16px rgba(229, 57, 53, 0.4)',
-              transform: isNextButtonDisabled() ? 'none' : 'translateY(-2px)'
-            },
-            '&:disabled': {
-              background: 'linear-gradient(135deg, #ccc 0%, #999 100%)',
-              color: '#666'
+              background: 'linear-gradient(135deg, #C62828 0%, #B71C1C 100%)',
+              boxShadow: '0 6px 16px rgba(229, 57, 53, 0.4)',
+              transform: 'translateY(-2px)'
             },
             transition: 'all 0.3s ease'
           }}
         >
-          Proceed to Form
+          Proceed to Payment Upload
         </Button>
       </DialogActions>
     </Dialog>
@@ -1403,6 +1417,8 @@ const Services = () => {
         open={showLoginModal}
         onClose={handleLoginClose}
         onLoginSuccess={handleLoginSuccess}
+        onRegisterSuccess={handleRegisterSuccess}
+        allowRegister={true}
       />
     </Box>
   );

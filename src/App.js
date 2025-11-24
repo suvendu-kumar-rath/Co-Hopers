@@ -9,6 +9,7 @@ import Services from './pages/Services';
 import BookMeetingRoom from './pages/BookMeetingRoom';
 import KYCForm from './components/forms/KYCForm';
 import SuccessPage from './pages/SuccessPage';
+import PaymentUpload from './pages/PaymentUpload';
 import theme from './styles/themes/theme';
 import { ROUTES } from './constants/routes';
 import { AuthProvider } from './context/AuthContext';
@@ -30,6 +31,7 @@ function App() {
                   <Route path={ROUTES.MEETING_ROOM} element={<BookMeetingRoom />} />
                   <Route path={ROUTES.FORM} element={<KYCForm />} />
                   <Route path={ROUTES.PENDING_REVIEW} element={<SuccessPage />} />
+                  <Route path={ROUTES.PAYMENT_UPLOAD} element={<PaymentUpload />} />
                 </Routes>
               </main>
               <Footer />

@@ -20,7 +20,8 @@ import {
     Divider,
     RadioGroup,
     Radio,
-    Input
+    Input,
+    Alert
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -51,6 +52,11 @@ const BookMeetingRoom = () => {
     
     // Login related states
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [loginModalAllowRegister, setLoginModalAllowRegister] = useState(true); // Always allow register
+    
+    // User status states (no KYC check needed for meeting room booking)
+    const [isCheckingUserStatus, setIsCheckingUserStatus] = useState(false);
+    const [userStatusMessage, setUserStatusMessage] = useState('');
     
     // Whole day booking states
     const [showWholeDaySummaryModal, setShowWholeDaySummaryModal] = useState(false);
@@ -1487,43 +1493,86 @@ const BookMeetingRoom = () => {
         }
     };
 
-    // Handle successful login for members
+    // Set member type from login response (backend provides memberType directly)
+    const setUserMemberType = (userData) => {
+        setIsCheckingUserStatus(true);
+        setUserStatusMessage('Verifying your account...');
+        
+        try {
+            // Check if KYC is required
+            if (userData?.kycRequired === true) {
+                setUserStatusMessage('KYC verification required. Redirecting...');
+                
+                setTimeout(() => {
+                    setIsCheckingUserStatus(false);
+                    setShowBookingModal(false);
+                    // Redirect to KYC form
+                    navigate('/form');
+                }, 1500);
+                return;
+            }
+            
+            // KYC is approved, proceed with member type
+            // Backend returns memberType in the response: 'member' or 'non-member'
+            const backendMemberType = userData?.memberType || 'non-member';
+            
+            // Convert to display format
+            let detectedMemberType = 'Non-Member'; // Default
+            
+            if (backendMemberType.toLowerCase() === 'member') {
+                detectedMemberType = 'Member';
+                setUserStatusMessage('Welcome back! You are a Member.');
+            } else {
+                setUserStatusMessage('Welcome! You are a Non-Member.');
+            }
+
+            setMemberType(detectedMemberType);
+            console.log('Member Type from backend:', backendMemberType, '-> Display:', detectedMemberType);
+            
+            // Fetch pricing data if booking type is selected
+            if (bookingType) {
+                fetchPricingData(detectedMemberType, bookingType, selectedSeating || 'C1');
+            }
+
+            // After 1.5 seconds, proceed to time slot selection
+            setTimeout(() => {
+                setIsCheckingUserStatus(false);
+                setShowBookingModal(false);
+                setShowTimeSlotModal(true);
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error setting member type:', error);
+            // Default to Non-Member on error
+            setMemberType('Non-Member');
+            setUserStatusMessage('Welcome! You are a Non-Member.');
+            
+            setTimeout(() => {
+                setIsCheckingUserStatus(false);
+                setShowBookingModal(false);
+                setShowTimeSlotModal(true);
+            }, 1500);
+        }
+    };
+
+    // Handle successful login - receive userData with memberType from backend
     const handleLoginSuccess = (userData) => {
         console.log('Login successful:', userData);
+        console.log('Member Type from backend:', userData?.memberType);
         console.log('Post-login booking type check:', bookingType);
         setShowLoginModal(false);
         
-        // If user was trying to select Non-Member, now set it after successful login
-        if (memberType !== 'Non-Member') {
-            console.log('Setting member type to Non-Member after login');
-            setMemberType('Non-Member');
-            
-            // Reset relevant states for new member type
-            setSelectedDate(null);
-            setSelectedSeating('');
-            setSelectedTimeSlots([]);
-            setAvailableTimeSlots([]);
-            setSelectedBookingDuration('manual');
-            
-            // Fetch pricing data if booking type is already selected
-            if (bookingType) {
-                fetchPricingData('Non-Member', bookingType, selectedSeating || 'C1');
-            }
-        }
-        
-        // After successful login, show time slot modal for date/seating selection
-        console.log('Opening time slot modal after login');
-        setShowTimeSlotModal(true);
+        // Set member type from the backend response
+        setUserMemberType(userData);
     };
 
     // Handle login modal close
     const handleLoginClose = () => {
         setShowLoginModal(false);
-        // If user was trying to select Non-Member but cancelled login, reset member type
-        // This ensures the dropdown doesn't show Non-Member selected when user is not authenticated
+        // If user cancelled login, reset booking type
         if (!isAuthenticated) {
-            console.log('Login cancelled, resetting member type selection');
-            setMemberType('');
+            console.log('Login cancelled, resetting booking flow');
+            setBookingType('');
         }
     };
 
@@ -1531,6 +1580,47 @@ const BookMeetingRoom = () => {
         const newBookingType = e.target.value;
         console.log('Booking type changed to:', newBookingType);
         setBookingType(newBookingType);
+        
+        // After selecting booking type, require login
+        if (newBookingType && !isAuthenticated) {
+            console.log('Booking type selected, opening login modal');
+            setShowLoginModal(true);
+        } else if (newBookingType && isAuthenticated) {
+            // User is already logged in, get member type from stored user data
+            setIsCheckingUserStatus(true);
+            setUserStatusMessage('Verifying your account...');
+            
+            try {
+                // Get user data from sessionStorage/localStorage
+                const userDataStr = sessionStorage.getItem('userData') || localStorage.getItem('userData');
+                
+                if (userDataStr) {
+                    const userData = JSON.parse(userDataStr);
+                    setUserMemberType(userData);
+                } else {
+                    // If no user data found, default to Non-Member
+                    console.warn('No user data found in storage, defaulting to Non-Member');
+                    setMemberType('Non-Member');
+                    setUserStatusMessage('Welcome! You are a Non-Member.');
+                    
+                    setTimeout(() => {
+                        setIsCheckingUserStatus(false);
+                        setShowBookingModal(false);
+                        setShowTimeSlotModal(true);
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error('Error getting user data:', error);
+                setMemberType('Non-Member');
+                setUserStatusMessage('Welcome! You are a Non-Member.');
+                
+                setTimeout(() => {
+                    setIsCheckingUserStatus(false);
+                    setShowBookingModal(false);
+                    setShowTimeSlotModal(true);
+                }, 1500);
+            }
+        }
         
         // Reset date and seating when booking type changes
         setSelectedDate(null);
@@ -1922,7 +2012,8 @@ const handleHourlyMemberType = (memberType) => {
         
         // Check if user selected Non-Member and is not authenticated
         if (selectedMemberType === 'Non-Member' && !isAuthenticated) {
-            console.log('Non-Member selected but user not authenticated, showing login modal');
+            console.log('Non-Member selected but user not authenticated, showing login/register modal');
+            setLoginModalAllowRegister(true);
             setShowLoginModal(true);
             return; // Don't proceed with member type change until user logs in
         }
@@ -2132,7 +2223,7 @@ const handleHourlyMemberType = (memberType) => {
     const [paymentAmount, setPaymentAmount] = useState(0);
 
     // Add new function to handle Non-Member booking submission
-    const handleNonMemberBooking = async (memberType) => {
+    const handleNonMemberBooking = async (type) => {
         try {
             // Get auth token from sessionStorage (where it's typically stored after login)
             const authToken = sessionStorage.getItem('authToken');
@@ -2140,18 +2231,19 @@ const handleHourlyMemberType = (memberType) => {
             // Check for valid token before proceeding
             if (!authToken || authToken === 'null' || authToken === 'undefined') {
                 alert('Authentication required. Please log in to continue.');
+                setLoginModalAllowRegister(false); // Login only for authentication
                 setShowLoginModal(true);
                 return;
             }
 
             // Validate KYC data - ID proof is mandatory for non-members
-            if (!kycData.identityProof) {
+            if (!kycData.identityProof && type === 'Non-Member') {
                 alert('ID proof is required for non-member bookings. Please upload your identity document.');
                 return;
             }
 
-            // Validate payment receipt
-            if (!paymentReceipt) {
+            // Validate payment receipt for Non-Members
+            if (!paymentReceipt && type === 'Non-Member') {
                 alert('Payment receipt is required. Please upload your payment screenshot.');
                 return;
             }
@@ -2171,7 +2263,7 @@ const handleHourlyMemberType = (memberType) => {
             formattedTimeSlots.forEach(slot => formData.append('timeSlots[]', slot));
             formData.append('duration', duration);
             formData.append('bookingType', bookingType);
-            formData.append('memberType', memberType);
+            formData.append('memberType', type);
             formData.append('notes', 'Meeting room booking');
             formData.append('totalAmount', calculatedPrice.total);
             formData.append('idProof', kycData.identityProof);
@@ -2346,7 +2438,7 @@ const handleHourlyMemberType = (memberType) => {
                             disabled={!paymentReceipt}
                             onClick={async () => {
                                 setShowSummaryModal(false);
-                                await handleNonMemberBooking(memberType);
+                                await handleNonMemberBooking('Non-Member');
                             }}
                         >
                             Proceed to Book
@@ -3251,92 +3343,108 @@ const handleHourlyMemberType = (memberType) => {
                                     '100%': { opacity: 1, transform: 'translateY(0)' }
                                 }
                             }}>
-                                <FormControl 
-                                    fullWidth 
-                                    sx={{ 
+                                {/* Show status message while checking user status */}
+                                {isCheckingUserStatus && (
+                                    <Box sx={{
+                                        p: 3,
                                         mb: 3,
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '16px',
-                                            background: 'rgba(255, 255, 255, 0.8)',
-                                            backdropFilter: 'blur(10px)',
-                                            border: '1px solid rgba(102, 126, 234, 0.2)',
-                                            transition: 'all 0.3s ease',
-                                            '&:hover': {
-                                                borderColor: 'rgba(102, 126, 234, 0.4)',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.15)'
-                                            },
-                                            '&.Mui-focused': {
-                                                borderColor: '#667eea',
-                                                boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)'
+                                        bgcolor: 'rgba(33, 150, 243, 0.1)',
+                                        border: '1px solid rgba(33, 150, 243, 0.3)',
+                                        borderRadius: '16px',
+                                        textAlign: 'center'
+                                    }}>
+                                        <Box sx={{
+                                            width: 50,
+                                            height: 50,
+                                            margin: '0 auto 16px',
+                                            borderRadius: '50%',
+                                            background: 'conic-gradient(from 0deg, #2196F3, #64B5F6, #2196F3)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            animation: 'spin 2s linear infinite',
+                                            '@keyframes spin': {
+                                                '0%': { transform: 'rotate(0deg)' },
+                                                '100%': { transform: 'rotate(360deg)' }
                                             }
-                                        },
-                                        '& .MuiInputLabel-root': {
-                                            color: '#667eea',
-                                            fontWeight: 500
-                                        }
-                                    }}
-                                >
-                                <InputLabel>Member Type</InputLabel>
-                                <Select
-                                    value={memberType}
-                                    onChange={handleMemberTypeChange}
-                                    label="Member Type"
-                                    disabled={isLoadingMemberTypes}
-                                        sx={{
-                                            '& .MuiSelect-select': {
-                                                padding: '16px',
-                                                fontSize: '1rem'
-                                            }
-                                        }}
-                                >
-                                    <MenuItem value="" disabled>
-                                            <Typography sx={{ color: '#999', fontStyle: 'italic' }}>
-                                        Select Member Type
+                                        }}>
+                                            <Box sx={{
+                                                width: 35,
+                                                height: 35,
+                                                borderRadius: '50%',
+                                                bgcolor: 'white',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                ⏳
+                                            </Box>
+                                        </Box>
+                                        <Typography variant="h6" sx={{ color: '#2196F3', fontWeight: 'bold', mb: 1 }}>
+                                            {userStatusMessage}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: '#666' }}>
+                                            Please wait...
+                                        </Typography>
+                                    </Box>
+                                )}
+
+                                {/* Show member type as read-only (auto-detected) */}
+                                {!isCheckingUserStatus && memberType && (
+                                    <Box sx={{
+                                        p: 3,
+                                        mb: 3,
+                                        bgcolor: memberType === 'Member' 
+                                            ? 'rgba(76, 175, 80, 0.1)' 
+                                            : 'rgba(255, 152, 0, 0.1)',
+                                        border: memberType === 'Member'
+                                            ? '1px solid rgba(76, 175, 80, 0.3)'
+                                            : '1px solid rgba(255, 152, 0, 0.3)',
+                                        borderRadius: '16px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ 
+                                                color: memberType === 'Member' ? '#2E7D32' : '#E65100',
+                                                fontWeight: 'bold',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '1px',
+                                                fontSize: '0.7rem'
+                                            }}>
+                                                Your Member Type
                                             </Typography>
-                                    </MenuItem>
-                                    {memberTypes && memberTypes.length > 0 ? (
-                                        memberTypes.map((type) => (
-                                                <MenuItem 
-                                                    key={type.id} 
-                                                    value={type.name}
-                                                    sx={{
-                                                        '&:hover': {
-                                                            background: 'rgba(102, 126, 234, 0.1)'
-                                                        }
-                                                    }}
-                                                >
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Box sx={{
-                                                            width: '8px',
-                                                            height: '8px',
-                                                            borderRadius: '50%',
-                                                            background: type.name === 'Member' 
-                                                                ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
-                                                                : 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
-                                                        }} />
-                                                {type.name}
-                                                    </Box>
-                                            </MenuItem>
-                                        ))
-                                    ) : (
-                                        <>
-                                                <MenuItem value="Member">
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Typography sx={{ fontSize: '1.2rem' }}>👤</Typography>
-                                                        Member
-                                                    </Box>
-                                                </MenuItem>
-                                                <MenuItem value="Non-Member">
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Typography sx={{ fontSize: '1.2rem' }}>👥</Typography>
-                                                        Non-Member
-                                                    </Box>
-                                                </MenuItem>
-                                        </>
-                                    )}
-                                </Select>
-                            </FormControl>
+                                            <Typography variant="h6" sx={{ 
+                                                color: memberType === 'Member' ? '#2E7D32' : '#E65100',
+                                                fontWeight: 'bold',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 1,
+                                                mt: 0.5
+                                            }}>
+                                                <Typography sx={{ fontSize: '1.5rem' }}>
+                                                    {memberType === 'Member' ? '👤' : '👥'}
+                                                </Typography>
+                                                {memberType}
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: '50%',
+                                            bgcolor: memberType === 'Member' 
+                                                ? 'rgba(76, 175, 80, 0.2)' 
+                                                : 'rgba(255, 152, 0, 0.2)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '1.2rem'
+                                        }}>
+                                            ✓
+                                        </Box>
+                                    </Box>
+                                )}
                             </Box>
                         )}
 
@@ -3415,6 +3523,7 @@ const handleHourlyMemberType = (memberType) => {
                                                 // Check if user is member and not authenticated
                                                 if (memberType === 'Member' && !isAuthenticated) {
                                                     console.log('Showing login modal for member authentication');
+                                                    setLoginModalAllowRegister(false); // Login only for members
                                                     setShowLoginModal(true);
                                                 } else {
                                                     // Always show time slot modal first for date/seating selection
@@ -4592,6 +4701,7 @@ const handleHourlyMemberType = (memberType) => {
                 open={showLoginModal}
                 onClose={handleLoginClose}
                 onLoginSuccess={handleLoginSuccess}
+                allowRegister={loginModalAllowRegister}
             />
 
             {/* Whole Day Booking Summary Modal */}
@@ -4825,9 +4935,11 @@ const handleHourlyMemberType = (memberType) => {
                                                 setShowWholeDaySummaryModal(false);
                                                 setShowPaymentModal(true);
                                             } else {
+                                                // alert('Finalizing booking for member...');
                                                 // For members, handle member booking logic
                                                 setShowWholeDaySummaryModal(false);
-                                                await handleMemberBooking(memberType);
+                                                 await handleNonMemberBooking('Member');
+                                
                                                 // setShowTimeSlotModal(true);
                                                 // console.log('Member booking logic');
                                             }

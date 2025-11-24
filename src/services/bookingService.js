@@ -417,7 +417,7 @@ export const bookingService = {
                 console.log(key, value);
             }
             
-            const response = await apiClient.post(`/booking/kyc/${bookingId}`, formData, {
+            const response = await apiClient.post(`/booking/kyc`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -451,6 +451,108 @@ export const bookingService = {
                 const errorMessage = error.response.data?.message || 
                                    error.response.data?.error || 
                                    'Invalid KYC data or request format';
+                return {
+                    success: false,
+                    message: errorMessage
+                };
+            }
+            
+            if (error.response?.data?.message) {
+                return {
+                    success: false,
+                    message: error.response.data.message
+                };
+            }
+            
+            return {
+                success: false,
+                message: error.message || 'Network error. Please try again.'
+            };
+        }
+    },
+
+    /**
+     * Submit payment screenshot for a booking
+     * @param {string} bookingId - Booking ID
+     * @param {Object} paymentData - Payment data including screenshot
+     * @returns {Promise} - API response
+     */
+    async submitPayment(bookingId, paymentData) {
+        try {
+            console.log('Submitting payment for booking:', bookingId);
+            
+            // Create FormData for multipart/form-data submission
+            const formData = new FormData();
+            
+            // Add payment method
+            if (paymentData.paymentMethod) {
+                formData.append('paymentMethod', paymentData.paymentMethod);
+            }
+            
+            // Add payment screenshot file
+            if (paymentData.paymentScreenshot) {
+                formData.append('paymentScreenshot', paymentData.paymentScreenshot);
+            }
+            
+            // Add any additional payment details
+            if (paymentData.amount) {
+                formData.append('amount', paymentData.amount);
+            }
+            
+            if (paymentData.transactionId) {
+                formData.append('transactionId', paymentData.transactionId);
+            }
+            
+            // Log FormData contents for debugging
+            console.log('Payment FormData contents:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value);
+            }
+            
+            const response = await apiClient.post(`/booking/${bookingId}/payment`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            
+            console.log('Payment submission response:', response.data);
+            
+            // Handle the response format: { message, booking: {...} }
+            if (response.data && response.data.message) {
+                return {
+                    success: true,
+                    data: {
+                        message: response.data.message,
+                        booking: response.data.booking
+                    },
+                    message: response.data.message
+                };
+            } else if (response.data) {
+                return {
+                    success: true,
+                    data: response.data,
+                    message: response.data.message || 'Payment submitted successfully'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: response.data?.message || 'Payment submission failed'
+                };
+            }
+        } catch (error) {
+            console.error('Payment submission error:', {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                headers: error.response?.headers,
+                config: error.config
+            });
+            
+            if (error.response?.status === 400) {
+                const errorMessage = error.response.data?.message || 
+                                   error.response.data?.error || 
+                                   'Invalid payment data or request format';
                 return {
                     success: false,
                     message: errorMessage
