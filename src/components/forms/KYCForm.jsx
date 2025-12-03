@@ -237,6 +237,38 @@ const KYCForm = () => {
       
       console.log('Submitting KYC data:', kycData);
       
+      // Check if this is from meeting room registration (no booking needed)
+      const skipBookingCreation = location.state?.skipBookingCreation || location.state?.fromMeetingRoom;
+      
+      if (skipBookingCreation) {
+        console.log('Meeting room registration detected - submitting KYC only, no booking creation');
+        
+        // For meeting room bookings, just submit KYC data without booking
+        // The actual room booking will be created later when they complete the meeting room booking flow
+        const kycOnlyResult = await bookingService.submitKYCOnly(kycData);
+        
+        if (!kycOnlyResult.success) {
+          throw new Error(kycOnlyResult.message || 'KYC submission failed');
+        }
+
+        console.log('KYC submitted successfully (meeting room):', kycOnlyResult.data);
+        
+        setSubmitSuccess(true);
+        
+        // Navigate to success page
+        setTimeout(() => {
+          navigate(ROUTES.PENDING_REVIEW, {
+            state: {
+              fromMeetingRoom: true,
+              kycId: kycOnlyResult.data?.kycId,
+              message: 'Your KYC has been submitted successfully! You can proceed with booking once approved.'
+            }
+          });
+        }, 2000);
+        
+        return; // Exit early - no booking creation needed
+      }
+      
       // Check if booking was already created (from Services page)
       const existingBookingId = location.state?.bookingId;
       

@@ -1566,6 +1566,27 @@ const BookMeetingRoom = () => {
         setUserMemberType(userData);
     };
 
+    // Handle successful registration - navigate to KYC form
+    const handleRegisterSuccess = (userData) => {
+        console.log('Registration successful:', userData);
+        setShowLoginModal(false);
+        
+        // After registration, navigate to KYC form
+        console.log('Redirecting new user to KYC form');
+        navigate('/form', {
+            state: {
+                fromRegistration: true,
+                fromMeetingRoom: true, // Flag to indicate this is meeting room booking
+                userId: userData?.id || userData?.user?.id,
+                bookingType: bookingType,
+                memberType: memberType,
+                selectedDate: selectedDate,
+                selectedSeating: selectedSeating,
+                skipBookingCreation: true // Don't create office space booking for meeting room users
+            }
+        });
+    };
+
     // Handle login modal close
     const handleLoginClose = () => {
         setShowLoginModal(false);
@@ -4701,6 +4722,7 @@ const handleHourlyMemberType = (memberType) => {
                 open={showLoginModal}
                 onClose={handleLoginClose}
                 onLoginSuccess={handleLoginSuccess}
+                onRegisterSuccess={handleRegisterSuccess}
                 allowRegister={loginModalAllowRegister}
             />
 

@@ -472,6 +472,137 @@ export const bookingService = {
     },
 
     /**
+     * Submit KYC data without booking (for meeting room registrations)
+     * @param {Object} kycData - KYC form data
+     * @returns {Promise} - API response
+     */
+    async submitKYCOnly(kycData) {
+        try {
+            console.log('Submitting KYC only (no booking) with data:', kycData);
+            
+            // Create FormData for multipart/form-data submission
+            const formData = new FormData();
+            
+            // Handle different KYC types
+            if (kycData.kycType === 'freelancer') {
+                // Freelancer KYC fields
+                formData.append('type', 'freelancer');
+                formData.append('name', kycData.freelancerData?.name || kycData.userName || '');
+                formData.append('email', kycData.freelancerData?.email || kycData.userEmail || '');
+                formData.append('mobile', kycData.freelancerData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
+                
+                // Freelancer files
+                if (kycData.freelancerFiles?.idFront?.file) {
+                    formData.append('idFront', kycData.freelancerFiles.idFront.file);
+                }
+                if (kycData.freelancerFiles?.idBack?.file) {
+                    formData.append('idBack', kycData.freelancerFiles.idBack.file);
+                }
+                if (kycData.freelancerFiles?.pan?.file) {
+                    formData.append('pan', kycData.freelancerFiles.pan.file);
+                }
+                if (kycData.freelancerFiles?.photo?.file) {
+                    formData.append('photo', kycData.freelancerFiles.photo.file);
+                }
+                
+            } else if (kycData.kycType === 'company') {
+                // Company KYC fields
+                formData.append('type', 'company');
+                formData.append('name', kycData.companyData?.directorName || kycData.userName || '');
+                formData.append('email', kycData.companyData?.email || kycData.userEmail || '');
+                formData.append('mobile', kycData.companyData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
+                formData.append('companyName', kycData.companyData?.companyName || '');
+                formData.append('gstNumber', kycData.companyData?.gstNumber || '');
+                formData.append('directorName', kycData.companyData?.directorName || '');
+                formData.append('din', kycData.companyData?.din || '');
+                
+                // Company files
+                if (kycData.uploadedFiles?.certificateOfIncorporation?.file) {
+                    formData.append('certificateOfIncorporation', kycData.uploadedFiles.certificateOfIncorporation.file);
+                }
+                if (kycData.uploadedFiles?.companyPAN?.file) {
+                    formData.append('companyPAN', kycData.uploadedFiles.companyPAN.file);
+                }
+                
+                // Director files (if director is signing authority)
+                if (kycData.signingAuthority === 'director' && kycData.directorFiles) {
+                    if (kycData.directorFiles?.directorPAN?.file) {
+                        formData.append('directorPAN', kycData.directorFiles.directorPAN.file);
+                    }
+                    if (kycData.directorFiles?.directorPhoto?.file) {
+                        formData.append('directorPhoto', kycData.directorFiles.directorPhoto.file);
+                    }
+                    if (kycData.directorFiles?.directorIdFront?.file) {
+                        formData.append('directorIdFront', kycData.directorFiles.directorIdFront.file);
+                    }
+                    if (kycData.directorFiles?.directorIdBack?.file) {
+                        formData.append('directorIdBack', kycData.directorFiles.directorIdBack.file);
+                    }
+                }
+            }
+            
+            // Log FormData contents for debugging
+            console.log('FormData contents (KYC only):');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value);
+            }
+            
+            // Submit to a separate endpoint for KYC-only submissions
+            const response = await apiClient.post(`/booking/kyc-only`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            
+            console.log('KYC-only submission response:', response.data);
+            
+            if (response.data) {
+                return {
+                    success: true,
+                    data: response.data,
+                    message: response.data.message || 'KYC submitted successfully'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: response.data?.message || 'KYC submission failed'
+                };
+            }
+        } catch (error) {
+            console.error('KYC-only submission error:', {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                headers: error.response?.headers,
+                config: error.config
+            });
+            
+            if (error.response?.status === 400) {
+                const errorMessage = error.response.data?.message || 
+                                   error.response.data?.error || 
+                                   'Invalid KYC data or request format';
+                return {
+                    success: false,
+                    message: errorMessage
+                };
+            }
+            
+            if (error.response?.data?.message) {
+                return {
+                    success: false,
+                    message: error.response.data.message
+                };
+            }
+            
+            return {
+                success: false,
+                message: error.message || 'Network error. Please try again.'
+            };
+        }
+    },
+
+    /**
      * Submit payment screenshot for a booking
      * @param {string} bookingId - Booking ID
      * @param {Object} paymentData - Payment data including screenshot
