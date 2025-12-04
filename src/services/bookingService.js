@@ -548,7 +548,7 @@ export const bookingService = {
             }
             
             // Submit to a separate endpoint for KYC-only submissions
-            const response = await apiClient.post(`/booking/kyc-only`, formData, {
+            const response = await apiClient.post(`/booking/kyc`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
