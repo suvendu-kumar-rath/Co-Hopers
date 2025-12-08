@@ -553,7 +553,7 @@ export const bookingService = {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            
+            //
             console.log('KYC-only submission response:', response.data);
             
             if (response.data) {
