@@ -2258,7 +2258,7 @@ const handleHourlyMemberType = (memberType) => {
             }
 
             // Validate KYC data - ID proof is mandatory for non-members
-            if (!kycData.identityProof && type === 'Non-Member') {
+            if (!kycData.identityProof && type === 'Non-Member')  {
                 alert('ID proof is required for non-member bookings. Please upload your identity document.');
                 return;
             }
@@ -2631,7 +2631,7 @@ const handleHourlyMemberType = (memberType) => {
                         ))}
                     </Box>
                     
-                    {/* KYC Section for Non-Members - MANDATORY */}
+                    {/* KYC Section for Non-Members - MANDATORY
                     {memberType === 'Non-Member' && (
                         <Box sx={{ mb: 3 }}>
                             <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 2, color: '#d32f2f' }}>
@@ -2704,9 +2704,9 @@ const handleHourlyMemberType = (memberType) => {
                                             Accepted: PAN Card, Aadhaar Card, Passport, Driving License
                                         </Typography>
                                     </Box>
-                                </Box>
+                                </Box> */}
                                 
-                                <Box sx={{ 
+                                {/* <Box sx={{ 
                                     mt: 2, 
                                     p: 1.5, 
                                     background: 'rgba(211, 47, 47, 0.1)', 
@@ -2724,7 +2724,7 @@ const handleHourlyMemberType = (memberType) => {
                                 </Box>
                             </Card>
                         </Box>
-                    )}
+                    )} */}
                     
                     <FormControl component="fieldset" fullWidth>
                         <RadioGroup
@@ -3381,7 +3381,7 @@ const handleHourlyMemberType = (memberType) => {
                                             borderRadius: '50%',
                                             background: 'conic-gradient(from 0deg, #2196F3, #64B5F6, #2196F3)',
                                             display: 'flex',
-                                            alignItems: 'center',
+                                            alignItems: 'center',               
                                             justifyContent: 'center',
                                             animation: 'spin 2s linear infinite',
                                             '@keyframes spin': {
