@@ -1,12 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import Header from '../components/layout/Header';
+import { useAuth } from '../context/AuthContext';
+import { ROUTES } from '../constants/routes';
 
 const SuccessPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Automatically log out the user and redirect to services page
+  useEffect(() => {
+    console.log('Success page loaded - automatically logging out user and redirecting to services');
+    logout();
+    
+    // Redirect to services page after 3 seconds (giving user time to see the success message)
+    const redirectTimer = setTimeout(() => {
+      navigate(ROUTES.SERVICES);
+    }, 3000);
+
+    // Cleanup timer on component unmount
+    return () => clearTimeout(redirectTimer);
+  }, [logout, navigate]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>

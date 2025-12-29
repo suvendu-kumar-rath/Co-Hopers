@@ -10,15 +10,21 @@ import {
     CircularProgress,
     Fade,
     Divider,
-    Link
+    Link,
+    InputAdornment
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/authService';
+import '../../styles/components/eyeBlink.css';
 
 const LoginModal = ({ open, onClose, onLoginSuccess, onRegisterSuccess, allowRegister = false }) => {
+        const passwordEyeRef = React.useRef(null);
+        const confirmPasswordEyeRef = React.useRef(null);
     const { login } = useAuth();
     // Registration mode controlled by allowRegister prop
     const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -31,6 +37,8 @@ const LoginModal = ({ open, onClose, onLoginSuccess, onRegisterSuccess, allowReg
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -339,25 +347,92 @@ const LoginModal = ({ open, onClose, onLoginSuccess, onRegisterSuccess, allowReg
                             fullWidth
                             label="Password"
                             name="password"
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={formData.password}
                             onChange={handleInputChange}
                             margin="normal"
                             required
                             helperText={allowRegister && isRegisterMode ? "Minimum 6 characters" : ""}
-                            sx={{
-                                mb: allowRegister && isRegisterMode ? 2 : 3,
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: 2,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                    '&:hover fieldset': {
-                                        borderColor: '#3b82f6'
-                                    },
-                                    '&.Mui-focused fieldset': {
-                                        borderColor: '#1d4ed8'
-                                    }
-                                }
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            ref={passwordEyeRef}
+                                            onClick={() => {
+                                                setShowPassword((prev) => !prev);
+                                                if (passwordEyeRef.current) {
+                                                    passwordEyeRef.current.classList.add('eye-blink');
+                                                    setTimeout(() => {
+                                                        if (passwordEyeRef.current) passwordEyeRef.current.classList.remove('eye-blink');
+                                                    }, 400);
+                                                }
+                                            }}
+                                            onMouseDown={e => e.preventDefault()}
+                                            edge="end"
+                                            sx={{
+                                                color: showPassword ? '#3b82f6' : '#64748b',
+                                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                    color: '#3b82f6',
+                                                    transform: 'scale(1.05)'
+                                                },
+                                                '& svg': {
+                                                    filter: showPassword 
+                                                        ? 'drop-shadow(0 0 2px rgba(59, 130, 246, 0.3))'
+                                                        : 'none',
+                                                    transition: 'all 0.3s ease'
+                                                }
+                                            }}
+                                        >
+                                            {showPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
                             }}
+                            sx={{color: showConfirmPassword ? '#3b82f6' : '#64748b',
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                        color: '#3b82f6',
+                                                        transform: 'scale(1.05)'
+                                                    },
+                                                    '&:active': {
+                                                        animation: 'eyeBlink 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                                                    },
+                                                    '@keyframes eyeBlink': {
+                                                        '0%': { 
+                                                            transform: 'scaleY(1) scaleX(1)',
+                                                            opacity: 1
+                                                        },
+                                                        '15%': { 
+                                                            transform: 'scaleY(0.15) scaleX(1.05)',
+                                                            opacity: 0.9
+                                                        },
+                                                        '30%': { 
+                                                            transform: 'scaleY(0.08) scaleX(1.1)',
+                                                            opacity: 0.85
+                                                        },
+                                                        '45%': { 
+                                                            transform: 'scaleY(0.2) scaleX(1.05)',
+                                                            opacity: 0.9
+                                                        },
+                                                        '60%': { 
+                                                            transform: 'scaleY(0.6) scaleX(1.02)',
+                                                            opacity: 0.95
+                                                        },
+                                                        '100%': { 
+                                                            transform: 'scaleY(1) scaleX(1)',
+                                                            opacity: 1
+                                                        }
+                                                    },
+                                                    '& svg': {
+                                                        filter: showConfirmPassword 
+                                                            ? 'drop-shadow(0 0 2px rgba(59, 130, 246, 0.3))'
+                                                            : 'none',
+                                                        transition: 'all 0.3s ease'
+                                                    }
+                                                }}
                         />
 
                         {allowRegister && isRegisterMode && (
@@ -365,11 +440,48 @@ const LoginModal = ({ open, onClose, onLoginSuccess, onRegisterSuccess, allowReg
                                 fullWidth
                                 label="Confirm Password"
                                 name="confirmPassword"
-                                type="password"
+                                type={showConfirmPassword ? "text" : "password"}
                                 value={formData.confirmPassword}
                                 onChange={handleInputChange}
                                 margin="normal"
                                 required
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                ref={confirmPasswordEyeRef}
+                                                onClick={() => {
+                                                    setShowConfirmPassword((prev) => !prev);
+                                                    if (confirmPasswordEyeRef.current) {
+                                                        confirmPasswordEyeRef.current.classList.add('eye-blink');
+                                                        setTimeout(() => {
+                                                            if (confirmPasswordEyeRef.current) confirmPasswordEyeRef.current.classList.remove('eye-blink');
+                                                        }, 400);
+                                                    }
+                                                }}
+                                                onMouseDown={e => e.preventDefault()}
+                                                edge="end"
+                                                sx={{
+                                                    color: showConfirmPassword ? '#3b82f6' : '#64748b',
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                        color: '#3b82f6',
+                                                        transform: 'scale(1.05)'
+                                                    },
+                                                    '& svg': {
+                                                        filter: showConfirmPassword 
+                                                            ? 'drop-shadow(0 0 2px rgba(59, 130, 246, 0.3))'
+                                                            : 'none',
+                                                        transition: 'all 0.3s ease'
+                                                    }
+                                                }}
+                                            >
+                                                {showConfirmPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    )
+                                }}
                                 sx={{
                                     mb: 3,
                                     '& .MuiOutlinedInput-root': {

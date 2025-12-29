@@ -481,8 +481,11 @@ const KYCForm = () => {
     );
   };
 
-  const DirectorFileUpload = ({ type, label, note }) => {
+  const DirectorFileUpload = ({ type, label,  e }) => {
     const file = directorFiles[type];
+
+    // Accept note as a prop
+    const note = e && e.note ? e.note : undefined;
 
     return (
       <Box>

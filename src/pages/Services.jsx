@@ -96,13 +96,31 @@ const Services = () => {
         
         // Check if response has the expected structure
         if (response && response.success && response.data) {
-          // Use API data directly without transformation
-          setSpaces(response.data);
-          console.log('Spaces data:', response.data);
+          // Transform API data to match UI expectations
+          const transformedSpaces = response.data.map(space => ({
+            ...space,
+            // Map availability fields - check multiple possible field names
+            isAvailable: space.isAvailable !== undefined 
+              ? space.isAvailable 
+              : (space.availability === 'Available' || space.isActive === true),
+            // Ensure other required fields are present
+            title: space.title || space.space_name || space.spaceName,
+            price: space.price || space.finalPrice || '₹0'
+          }));
+          setSpaces(transformedSpaces);
+          console.log('Transformed spaces data:', transformedSpaces);
         } else if (response && Array.isArray(response)) {
           // If response is directly an array of spaces
-          setSpaces(response);
-          console.log('Spaces data (direct array):', response);
+          const transformedSpaces = response.map(space => ({
+            ...space,
+            isAvailable: space.isAvailable !== undefined 
+              ? space.isAvailable 
+              : (space.availability === 'Available' || space.isActive === true),
+            title: space.title || space.space_name || space.spaceName,
+            price: space.price || space.finalPrice || '₹0'
+          }));
+          setSpaces(transformedSpaces);
+          console.log('Transformed spaces data (direct array):', transformedSpaces);
         } else {
           console.warn('Unexpected API response structure:', response);
           // Keep using fallback static data
@@ -121,37 +139,7 @@ const Services = () => {
     fetchSpaces();
   }, []);
 
-  // Virtual Office Data (commented out)
-  // const virtualOffices = [
-  //   {
-  //     id: 'virtual-basic',
-  //     title: 'Virtual Office Basic',
-  //     price: '₹5k + GST',
-  //     image: privateOfficeImage,
-  //     description: 'Basic virtual office services',
-  //     features: [
-  //       'Business address',
-  //       'Mail handling',
-  //       'Phone answering',
-  //       'Meeting room access'
-  //     ]
-  //   },
-  //   {
-  //     id: 'virtual-premium',
-  //     title: 'Virtual Office Premium',
-  //     price: '₹8k + GST',
-  //     image: privateOfficeImage,
-  //     description: 'Premium virtual office services',
-  //     features: [
-  //       'Business address',
-  //       'Mail handling',
-  //       'Phone answering',
-  //       'Meeting room access',
-  //       'Reception services'
-  //     ]
-  //   }
-  // ];
-
+  
   // Fetch space details from API when Book Now is clicked
   const handleOfficeClick = async (office) => {
     // If office has an id, fetch details from API

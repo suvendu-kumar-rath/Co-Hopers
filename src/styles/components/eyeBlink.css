@@ -1,0 +1,30 @@
+@keyframes eyeBlink {
+  0% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+  15% {
+    transform: scaleY(0.15) scaleX(1.05);
+    opacity: 0.9;
+  }
+  30% {
+    transform: scaleY(0.08) scaleX(1.1);
+    opacity: 0.85;
+  }
+  45% {
+    transform: scaleY(0.2) scaleX(1.05);
+    opacity: 0.9;
+  }
+  60% {
+    transform: scaleY(0.6) scaleX(1.02);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+}
+
+.eye-blink {
+  animation: eyeBlink 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
