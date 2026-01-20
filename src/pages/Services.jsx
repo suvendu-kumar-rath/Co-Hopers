@@ -19,6 +19,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import { PRIVATE_OFFICES } from '../constants/officeData';
 import { ROUTES } from '../constants/routes';
 import { shareToWhatsApp } from '../utils/helpers/shareUtils';
+import { getSpaceImageUrl } from '../utils/helpers/imageUtils';
 import PaymentModal from '../components/modals/PaymentModal';
 import { spacesService } from '../services';
 import { useAuth } from '../context/AuthContext';
@@ -427,19 +428,41 @@ const Services = () => {
               flex: 1,
           display: 'flex', 
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
+              bgcolor: '#f0f0f0',
+              borderRadius: '12px',
+              minHeight: '250px'
             }}>
-              <img 
-                src={selectedOffice.image} 
-                alt={selectedOffice.title}
+              {getSpaceImageUrl(selectedOffice) ? (
+                <img 
+                  src={getSpaceImageUrl(selectedOffice)} 
+                  alt={selectedOffice.title}
+                  onError={(e) => {
+                    console.error('[Services] Image failed to load:', e.target.src);
+                    console.log('[Services] Selected office data:', selectedOffice);
+                    e.target.style.display = 'none';
+                  }}
                   style={{ 
                     width: '100%',
                     maxWidth: '400px',
-                  height: 'auto',
-                  borderRadius: '12px',
-                  objectFit: 'cover'
+                    height: 'auto',
+                    borderRadius: '12px',
+                    objectFit: 'cover'
                   }} 
                 />
+              ) : (
+                <Box sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#999',
+                  p: 3
+                }}>
+                  <CameraAltIcon sx={{ fontSize: 60, mb: 1, opacity: 0.3 }} />
+                  <Typography variant="body2">Image not available</Typography>
+                </Box>
+              )}
               </Box>
 
             {/* Right Section - Content */}
@@ -1250,18 +1273,38 @@ const Services = () => {
               }}
             >
               {/* Background Image */}
-              <Box
-                component="img"
-                src={privateOfficeJpg}
-                alt="office background"
-                sx={{
+              {getSpaceImageUrl(office) ? (
+                <Box
+                  component="img"
+                  src={getSpaceImageUrl(office)}
+                  alt="office background"
+                  onError={(e) => {
+                    console.error('[Services] Card image failed to load:', e.target.src);
+                    console.log('[Services] Office data:', office);
+                    e.target.style.display = 'none';
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 0
+                  }}
+                />
+              ) : (
+                <Box sx={{
                   position: 'absolute',
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover',
+                  bgcolor: '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   zIndex: 0
-                }}
-              />
+                }}>
+                  <CameraAltIcon sx={{ fontSize: 80, opacity: 0.2, color: 'white' }} />
+                </Box>
+              )}
               {/* Dark Overlay */}
               <Box
                 sx={{

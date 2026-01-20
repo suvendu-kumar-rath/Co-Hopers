@@ -349,18 +349,18 @@ export const bookingService = {
                 formData.append('email', kycData.freelancerData?.email || kycData.userEmail || '');
                 formData.append('mobile', kycData.freelancerData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
                 
-                // Freelancer files
-                if (kycData.freelancerFiles?.idFront?.file) {
-                    formData.append('idFront', kycData.freelancerFiles.idFront.file);
+                // Freelancer files - match form field names
+                if (kycData.freelancerFiles?.frontID?.file) {
+                    formData.append('idFront', kycData.freelancerFiles.frontID.file);
                 }
-                if (kycData.freelancerFiles?.idBack?.file) {
-                    formData.append('idBack', kycData.freelancerFiles.idBack.file);
+                if (kycData.freelancerFiles?.backID?.file) {
+                    formData.append('idBack', kycData.freelancerFiles.backID.file);
                 }
-                if (kycData.freelancerFiles?.pan?.file) {
-                    formData.append('pan', kycData.freelancerFiles.pan.file);
+                if (kycData.freelancerFiles?.memberPAN?.file) {
+                    formData.append('pan', kycData.freelancerFiles.memberPAN.file);
                 }
-                if (kycData.freelancerFiles?.photo?.file) {
-                    formData.append('photo', kycData.freelancerFiles.photo.file);
+                if (kycData.freelancerFiles?.memberPhoto?.file) {
+                    formData.append('photo', kycData.freelancerFiles.memberPhoto.file);
                 }
                 if (kycData.freelancerFiles?.paymentScreenshot?.file) {
                     formData.append('paymentScreenshot', kycData.freelancerFiles.paymentScreenshot.file);
@@ -377,30 +377,30 @@ export const bookingService = {
                 formData.append('directorName', kycData.companyData?.directorName || '');
                 formData.append('din', kycData.companyData?.din || '');
                 
-                // Company files
-                if (kycData.uploadedFiles?.certificateOfIncorporation?.file) {
-                    formData.append('certificateOfIncorporation', kycData.uploadedFiles.certificateOfIncorporation.file);
+                // Company files - match form field names (coi, pan)
+                if (kycData.uploadedFiles?.coi?.file) {
+                    formData.append('certificateOfIncorporation', kycData.uploadedFiles.coi.file);
                 }
-                if (kycData.uploadedFiles?.companyPAN?.file) {
-                    formData.append('companyPAN', kycData.uploadedFiles.companyPAN.file);
+                if (kycData.uploadedFiles?.pan?.file) {
+                    formData.append('companyPAN', kycData.uploadedFiles.pan.file);
                 }
                 
-                // Director files (if director is signing authority)
+                // Director files (if director is signing authority) - match form field names
                 if (kycData.signingAuthority === 'director' && kycData.directorFiles) {
-                    if (kycData.directorFiles?.directorPAN?.file) {
-                        formData.append('directorPAN', kycData.directorFiles.directorPAN.file);
+                    if (kycData.directorFiles?.pan?.file) {
+                        formData.append('directorPAN', kycData.directorFiles.pan.file);
                     }
-                    if (kycData.directorFiles?.directorPhoto?.file) {
-                        formData.append('directorPhoto', kycData.directorFiles.directorPhoto.file);
+                    if (kycData.directorFiles?.photo?.file) {
+                        formData.append('directorPhoto', kycData.directorFiles.photo.file);
                     }
-                    if (kycData.directorFiles?.directorIdFront?.file) {
-                        formData.append('directorIdFront', kycData.directorFiles.directorIdFront.file);
+                    if (kycData.directorFiles?.frontID?.file) {
+                        formData.append('directorIdFront', kycData.directorFiles.frontID.file);
                     }
-                    if (kycData.directorFiles?.directorIdBack?.file) {
-                        formData.append('directorIdBack', kycData.directorFiles.directorIdBack.file);
+                    if (kycData.directorFiles?.backID?.file) {
+                        formData.append('directorIdBack', kycData.directorFiles.backID.file);
                     }
-                    if (kycData.directorFiles?.directorPaymentProof?.file) {
-                        formData.append('directorPaymentProof', kycData.directorFiles.directorPaymentProof.file);
+                    if (kycData.directorFiles?.paymentProof?.file) {
+                        formData.append('directorPaymentProof', kycData.directorFiles.paymentProof.file);
                     }
                 }
                 
@@ -491,18 +491,18 @@ export const bookingService = {
                 formData.append('email', kycData.freelancerData?.email || kycData.userEmail || '');
                 formData.append('mobile', kycData.freelancerData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
                 
-                // Freelancer files
-                if (kycData.freelancerFiles?.idFront?.file) {
-                    formData.append('idFront', kycData.freelancerFiles.idFront.file);
+                // Freelancer files - match form field names
+                if (kycData.freelancerFiles?.frontID?.file) {
+                    formData.append('idFront', kycData.freelancerFiles.frontID.file);
                 }
-                if (kycData.freelancerFiles?.idBack?.file) {
-                    formData.append('idBack', kycData.freelancerFiles.idBack.file);
+                if (kycData.freelancerFiles?.backID?.file) {
+                    formData.append('idBack', kycData.freelancerFiles.backID.file);
                 }
-                if (kycData.freelancerFiles?.pan?.file) {
-                    formData.append('pan', kycData.freelancerFiles.pan.file);
+                if (kycData.freelancerFiles?.memberPAN?.file) {
+                    formData.append('pan', kycData.freelancerFiles.memberPAN.file);
                 }
-                if (kycData.freelancerFiles?.photo?.file) {
-                    formData.append('photo', kycData.freelancerFiles.photo.file);
+                if (kycData.freelancerFiles?.memberPhoto?.file) {
+                    formData.append('photo', kycData.freelancerFiles.memberPhoto.file);
                 }
                 
             } else if (kycData.kycType === 'company') {
@@ -516,27 +516,27 @@ export const bookingService = {
                 formData.append('directorName', kycData.companyData?.directorName || '');
                 formData.append('din', kycData.companyData?.din || '');
                 
-                // Company files
-                if (kycData.uploadedFiles?.certificateOfIncorporation?.file) {
-                    formData.append('certificateOfIncorporation', kycData.uploadedFiles.certificateOfIncorporation.file);
+                // Company files - match form field names (coi, pan)
+                if (kycData.uploadedFiles?.coi?.file) {
+                    formData.append('certificateOfIncorporation', kycData.uploadedFiles.coi.file);
                 }
-                if (kycData.uploadedFiles?.companyPAN?.file) {
-                    formData.append('companyPAN', kycData.uploadedFiles.companyPAN.file);
+                if (kycData.uploadedFiles?.pan?.file) {
+                    formData.append('companyPAN', kycData.uploadedFiles.pan.file);
                 }
                 
-                // Director files (if director is signing authority)
+                // Director files (if director is signing authority) - match form field names
                 if (kycData.signingAuthority === 'director' && kycData.directorFiles) {
-                    if (kycData.directorFiles?.directorPAN?.file) {
-                        formData.append('directorPAN', kycData.directorFiles.directorPAN.file);
+                    if (kycData.directorFiles?.pan?.file) {
+                        formData.append('directorPAN', kycData.directorFiles.pan.file);
                     }
-                    if (kycData.directorFiles?.directorPhoto?.file) {
-                        formData.append('directorPhoto', kycData.directorFiles.directorPhoto.file);
+                    if (kycData.directorFiles?.photo?.file) {
+                        formData.append('directorPhoto', kycData.directorFiles.photo.file);
                     }
-                    if (kycData.directorFiles?.directorIdFront?.file) {
-                        formData.append('directorIdFront', kycData.directorFiles.directorIdFront.file);
+                    if (kycData.directorFiles?.frontID?.file) {
+                        formData.append('directorIdFront', kycData.directorFiles.frontID.file);
                     }
-                    if (kycData.directorFiles?.directorIdBack?.file) {
-                        formData.append('directorIdBack', kycData.directorFiles.directorIdBack.file);
+                    if (kycData.directorFiles?.backID?.file) {
+                        formData.append('directorIdBack', kycData.directorFiles.backID.file);
                     }
                 }
             }

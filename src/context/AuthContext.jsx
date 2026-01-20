@@ -13,12 +13,29 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkAuthStatus = () => {
             try {
-                const token = sessionStorage.getItem('authToken');
-                const userData = sessionStorage.getItem('userData');
+                // Try sessionStorage first, then localStorage as fallback
+                let token = sessionStorage.getItem('authToken');
+                let userData = sessionStorage.getItem('userData');
+                
+                // If not in sessionStorage, check localStorage
+                if (!token) {
+                    token = localStorage.getItem('authToken');
+                    userData = localStorage.getItem('userData');
+                    
+                    // If found in localStorage, restore to sessionStorage
+                    if (token && userData) {
+                        sessionStorage.setItem('authToken', token);
+                        sessionStorage.setItem('userData', userData);
+                    }
+                }
                 
                 if (token && userData) {
-                    setUser(JSON.parse(userData));
+                    const parsedUser = JSON.parse(userData);
+                    console.log('[AuthContext] Restored user session:', parsedUser);
+                    setUser(parsedUser);
                     setIsAuthenticated(true);
+                } else {
+                    console.log('[AuthContext] No valid session found');
                 }
             } catch (error) {
                 console.error('Error checking auth status:', error);
@@ -33,9 +50,13 @@ export const AuthProvider = ({ children }) => {
     // Login function
     const login = (userData, token) => {
         try {
-            // Store user data and token
+            console.log('[AuthContext] Logging in user:', userData);
+            
+            // Store user data and token in both sessionStorage and localStorage
             sessionStorage.setItem('authToken', token);
             sessionStorage.setItem('userData', JSON.stringify(userData));
+            localStorage.setItem('authToken', token);
+            localStorage.setItem('userData', JSON.stringify(userData));
             
             setUser(userData);
             setIsAuthenticated(true);
@@ -47,9 +68,13 @@ export const AuthProvider = ({ children }) => {
     // Logout function
     const logout = () => {
         try {
-            // Clear stored data
+            console.log('[AuthContext] Logging out user');
+            
+            // Clear stored data from both sessionStorage and localStorage
             sessionStorage.removeItem('authToken');
             sessionStorage.removeItem('userData');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
             
             setUser(null);
             setIsAuthenticated(false);

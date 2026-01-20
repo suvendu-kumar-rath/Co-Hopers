@@ -23,6 +23,7 @@ import {
     Input,
     Alert
 } from '@mui/material';
+import FileUpload from '../components/common/FileUpload';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -1698,18 +1699,7 @@ const BookMeetingRoom = () => {
 
     // Validate KYC requirements for non-members
     const isKYCValid = () => {
-        if (memberType !== 'Non-Member') return true; // KYC not required for members
-        
-        // Identity proof is mandatory for non-members
-        if (!kycData.identityProof) {
-            return false;
-        }
-        
-        // GST validation if provided
-        if (kycData.gstNumber && !validateGST(kycData.gstNumber)) {
-            return false;
-        }
-        
+        // No KYC validation needed for payment - only payment screenshot is required
         return true;
     };
 
@@ -2257,15 +2247,14 @@ const handleHourlyMemberType = (memberType) => {
                 return;
             }
 
-            // Validate KYC data - ID proof is mandatory for non-members
-            if (!kycData.identityProof && type === 'Non-Member')  {
-                alert('ID proof is required for non-member bookings. Please upload your identity document.');
+            // Validate payment receipt for Non-Members
+            if (!paymentReceipt && type === 'Non-Member') {
+                alert('Payment screenshot is required. Please upload your payment transaction proof.');
                 return;
             }
 
-            // Validate payment receipt for Non-Members
-            if (!paymentReceipt && type === 'Non-Member') {
-                alert('Payment receipt is required. Please upload your payment screenshot.');
+            if (paymentReceipt && !paymentReceipt.file && type === 'Non-Member') {
+                alert('Invalid payment receipt. Please upload a valid file.');
                 return;
             }
 
@@ -2287,8 +2276,7 @@ const handleHourlyMemberType = (memberType) => {
             formData.append('memberType', type);
             formData.append('notes', 'Meeting room booking');
             formData.append('totalAmount', calculatedPrice.total);
-            formData.append('idProof', kycData.identityProof);
-            formData.append('paymentScreenshot', paymentReceipt);
+            formData.append('paymentScreenshot', paymentReceipt?.file || paymentReceipt);
 
             // Log the request data (without the files)
             console.log('=== Booking Request Data (FormData) ===');
@@ -2414,36 +2402,38 @@ const handleHourlyMemberType = (memberType) => {
                             <strong>Amount Paid:</strong> ₹{paymentAmount}
                         </Typography>
 
-                        <Typography variant="body1" sx={{ mb: { xs: 1, sm: 2 } }}>
-                            <strong>Upload Payment Receipt:</strong>
-                        </Typography>
-                        <Input
-                            type="file"
-                            fullWidth
-                            onChange={(e) => setPaymentReceipt(e.target.files[0])}
-                            sx={{ mb: { xs: 2, sm: 3 } }}
-                            inputProps={{
-                                accept: 'image/*,.pdf'
-                            }}
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            Please upload a screenshot or photo of your payment transaction as proof.
+                        </Alert>
+
+                        <FileUpload
+                            label="Upload Payment Screenshot"
+                            note="Upload a clear screenshot of your payment transaction (UPI, Bank Transfer, etc.)"
+                            onFileUpload={(file) => setPaymentReceipt(file)}
+                            uploadedFile={paymentReceipt}
+                            onFileRemove={() => setPaymentReceipt(null)}
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            required={true}
                         />
-                        {/* Show preview if image is selected */}
-                        {paymentReceipt && paymentReceipt.type && paymentReceipt.type.startsWith('image/') && (
-                            <Box sx={{ mt: 2, mb: 2 }}>
-                                <img
-                                    src={URL.createObjectURL(paymentReceipt)}
-                                    alt="Payment Receipt Preview"
-                                    style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }}
-                                />
-                                <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-                                    {paymentReceipt.name}
+
+                        {/* Show image preview */}
+                        {paymentReceipt && paymentReceipt.preview && (
+                            <Box sx={{ mt: 2, mb: 2, textAlign: 'center' }}>
+                                <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
+                                    Preview:
                                 </Typography>
+                                <img
+                                    src={paymentReceipt.preview}
+                                    alt="Payment Receipt Preview"
+                                    style={{ 
+                                        maxWidth: '100%', 
+                                        maxHeight: 250, 
+                                        borderRadius: 8,
+                                        border: '2px solid #75A5A3',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                    }}
+                                />
                             </Box>
-                        )}
-                        {/* Show file name if PDF is selected */}
-                        {paymentReceipt && paymentReceipt.type && paymentReceipt.type === 'application/pdf' && (
-                            <Typography variant="caption" sx={{ display: 'block', mt: 2 }}>
-                                PDF Uploaded: {paymentReceipt.name}
-                            </Typography>
                         )}
                     </Box>
 
@@ -2813,33 +2803,14 @@ const handleHourlyMemberType = (memberType) => {
                                 });
                                 console.log('Selected Payment Method:', paymentMethod);
                                 console.log('Total Amount (Including GST):', calculatedPrice.total);
-                                
-                                // Log KYC data for non-members (now mandatory)
-                                if (memberType === 'Non-Member') {
-                                    console.log('=== KYC Details (Required) ===');
-                                    console.log('Identity Proof:', kycData.identityProof ? kycData.identityProof.name : 'Not provided');
-                                    console.log('GST Number:', kycData.gstNumber || 'Not provided');
-                                    console.log('Certificate of Incorporation:', kycData.certificateOfIncorporation ? kycData.certificateOfIncorporation.name : 'Not provided');
-                                    console.log('==============================');
-                                }
                                 console.log('============================');
                                 
                                 setPaymentAmount(calculatedPrice.total);
                                 setShowPaymentModal(false);
                                 setShowSummaryModal(true);
                             }}
-                            sx={{
-                                opacity: !isKYCValid() ? 0.6 : 1,
-                                '&.Mui-disabled': {
-                                    backgroundColor: '#ccc',
-                                    color: '#999'
-                                }
-                            }}
                         >
-                            {!isKYCValid() && memberType === 'Non-Member' 
-                                ? 'Upload Identity Proof to Pay' 
-                                : 'Proceed to Pay'
-                            }
+                            Proceed to Pay
                         </Button>
                     </Box>
                     </Box>
@@ -4296,7 +4267,7 @@ const handleHourlyMemberType = (memberType) => {
                                     </Box>
                                     
                                     {/* Whole Day Option - Separate and Prominent */}
-                                    <Box sx={{ mb: 2 }}>
+                                    {/* <Box sx={{ mb: 2 }}>
                                         <Button
                                             variant={selectedBookingDuration === 'wholeday' ? "contained" : "outlined"}
                                             onClick={() => {
@@ -4333,7 +4304,7 @@ const handleHourlyMemberType = (memberType) => {
                                         >
                                             🏢 Book Whole Day (7+ hours)
                                         </Button>
-                                    </Box>
+                                    </Box> */}
                                     
                                     {selectedBookingDuration && (
                                         <Box sx={{

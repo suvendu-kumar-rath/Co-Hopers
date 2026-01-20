@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ENV_CONFIG } from '../config/environment';
+import { getImageUrl } from '../utils/helpers/imageUtils';
 
 // Base URL for the API from environment configuration
 const BASE_URL = ENV_CONFIG.API_BASE_URL || 'https://api.boldtribe.in/api';
@@ -68,7 +69,44 @@ class SpacesService {
       console.log('Spaces API Response:', response.data);
       
       if (response.status === 200) {
-        return response.data;
+        // Process the response data to format image URLs correctly
+        const processedData = response.data;
+        
+        // If the response has a data array, process each space's image URL
+        if (processedData && processedData.data && Array.isArray(processedData.data)) {
+          processedData.data = processedData.data.map(space => {
+            // Extract first image from images array if available
+            const imageUrl = space.images && space.images.length > 0 
+              ? getImageUrl(space.images[0]) 
+              : (space.image ? getImageUrl(space.image) : null);
+            
+            return {
+              ...space,
+              image: imageUrl,
+              imagePath: imageUrl,
+              image_url: imageUrl,
+              imageUrl: imageUrl
+            };
+          });
+        } else if (Array.isArray(processedData)) {
+          // If response is directly an array of spaces
+          return processedData.map(space => {
+            // Extract first image from images array if available
+            const imageUrl = space.images && space.images.length > 0 
+              ? getImageUrl(space.images[0]) 
+              : (space.image ? getImageUrl(space.image) : null);
+            
+            return {
+              ...space,
+              image: imageUrl,
+              imagePath: imageUrl,
+              image_url: imageUrl,
+              imageUrl: imageUrl
+            };
+          });
+        }
+        
+        return processedData;
       } else {
         throw new Error(`API returned status ${response.status}`);
       }
@@ -100,16 +138,43 @@ class SpacesService {
       if (response.status === 200) {
         // Handle the actual API response structure
         if (response.data && response.data.success) {
+          // Process image URLs in the space data
+          const spaceData = response.data.data;
+          if (spaceData) {
+            // Extract first image from images array if available
+            const imageUrl = spaceData.images && spaceData.images.length > 0 
+              ? getImageUrl(spaceData.images[0]) 
+              : (spaceData.image ? getImageUrl(spaceData.image) : null);
+            
+            spaceData.image = imageUrl;
+            spaceData.imagePath = imageUrl;
+            spaceData.image_url = imageUrl;
+            spaceData.imageUrl = imageUrl;
+          }
+          
           return {
             success: response.data.success,
-            data: response.data.data,
+            data: spaceData,
             message: response.data.message
           };
         } else if (response.data) {
           // Handle cases where response.data exists but doesn't have success field
+          // Process image URLs
+          const spaceData = response.data;
+          
+          // Extract first image from images array if available
+          const imageUrl = spaceData.images && spaceData.images.length > 0 
+            ? getImageUrl(spaceData.images[0]) 
+            : (spaceData.image ? getImageUrl(spaceData.image) : null);
+          
+          spaceData.image = imageUrl;
+          spaceData.imagePath = imageUrl;
+          spaceData.image_url = imageUrl;
+          spaceData.imageUrl = imageUrl;
+          
           return {
             success: true,
-            data: response.data,
+            data: spaceData,
             message: 'Space details retrieved'
           };
         } else {
