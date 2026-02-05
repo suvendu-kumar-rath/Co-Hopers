@@ -158,7 +158,7 @@ const KYCForm = () => {
   };
 
   const handleSigningAuthorityFileUpload = (type) => (event) => {
-    const file = signingAuthorityFiles[type];
+    const file = event.target.files[0];
     if (file) {
       const isValidType = file.type === 'application/pdf' || 
                          file.type === 'image/jpeg' || 

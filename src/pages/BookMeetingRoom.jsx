@@ -428,6 +428,10 @@ const BookMeetingRoom = () => {
     const [selectedTotalDuration, setSelectedTotalDuration] = useState(30);
     // Add state for hover preview
     const [hoveredSlot, setHoveredSlot] = useState(null);
+    
+    // State for tracking available days from API
+    const [availableDays, setAvailableDays] = useState([]);
+    const [isLoadingAvailableDays, setIsLoadingAvailableDays] = useState(false);
 
     // Update timeSlots to include 30-minute and 1-hour intervals
     const timeSlots = Array.from({ length: 19 }, (_, i) => {
@@ -478,6 +482,41 @@ const BookMeetingRoom = () => {
             }
         }
         return dates;
+    };
+
+    // Check if a date is available for whole day booking
+    const isDateAvailableForBooking = (date) => {
+        // If we're not in whole day booking mode, all dates are available
+        if (bookingType !== 'Whole Day') {
+            return true;
+        }
+
+        // If seating is not selected yet, don't check availability
+        if (!selectedSeating) {
+            return true;
+        }
+
+        // If still loading available days, allow selection (optimistic)
+        if (isLoadingAvailableDays) {
+            return true;
+        }
+
+        // If no available days data, allow all dates (fallback)
+        if (!availableDays || availableDays.length === 0) {
+            return true;
+        }
+
+        // Check if the date is in the available days array
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const isAvailable = availableDays.includes(dateStr);
+        
+        console.log('Checking date availability:', {
+            date: dateStr,
+            isAvailable,
+            availableDaysCount: availableDays.length
+        });
+
+        return isAvailable;
     };
 
     // Add functions to navigate date window
@@ -587,32 +626,45 @@ const BookMeetingRoom = () => {
                     &lt;
                 </Button>
                 
-                {getAvailableDates().map((date) => (
-                    <Button
-                        key={format(date, 'yyyy-MM-dd')}
-                        variant={selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') 
-                            ? "contained" 
-                            : "outlined"
-                        }
-                        onClick={() => {
-                            console.log('Date selected:', {
-                                date: format(date, 'yyyy-MM-dd'),
-                                memberType,
-                                selectedSeating
-                            });
-                            setSelectedDate(date);
-                            // fetchAvailableSlots will be called by useEffect
-                        }}
-                        sx={{
-                            minWidth: 120,
-                            background: selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-                                ? 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)'
-                                : 'transparent'
-                        }}
-                    >
-                        {format(date, 'dd MMM yyyy')}
-                    </Button>
-                ))}
+                {getAvailableDates().map((date) => {
+                    const isAvailable = isDateAvailableForBooking(date);
+                    const isSelected = selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                    
+                    return (
+                        <Button
+                            key={format(date, 'yyyy-MM-dd')}
+                            variant={isSelected ? "contained" : "outlined"}
+                            disabled={!isAvailable}
+                            onClick={() => {
+                                if (isAvailable) {
+                                    console.log('Date selected:', {
+                                        date: format(date, 'yyyy-MM-dd'),
+                                        memberType,
+                                        selectedSeating
+                                    });
+                                    setSelectedDate(date);
+                                    // fetchAvailableSlots will be called by useEffect
+                                }
+                            }}
+                            sx={{
+                                minWidth: 120,
+                                background: isSelected
+                                    ? 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)'
+                                    : 'transparent',
+                                opacity: !isAvailable ? 0.5 : 1,
+                                cursor: !isAvailable ? 'not-allowed' : 'pointer',
+                                '&.Mui-disabled': {
+                                    opacity: 0.5,
+                                    color: 'rgba(0, 0, 0, 0.26)',
+                                    borderColor: 'rgba(0, 0, 0, 0.12)',
+                                    textDecoration: 'line-through'
+                                }
+                            }}
+                        >
+                            {format(date, 'dd MMM yyyy')}
+                        </Button>
+                    );
+                })}
                 
                 <Button
                     onClick={goToNextDates}
@@ -1939,6 +1991,84 @@ const handleHourlyMemberType = (memberType) => {
             fetchAvailableSlots(selectedDate);
         }
     }, [memberType, selectedSeating, selectedDate]);
+
+    // Fetch available days when seating capacity or date window changes
+    useEffect(() => {
+        const fetchAvailableDaysForBooking = async () => {
+            // Only fetch if we have the seating type selected and booking type is Whole Day
+            if (!selectedSeating || bookingType !== 'Whole Day') {
+                console.log('Skipping available days fetch - missing requirements:', {
+                    selectedSeating,
+                    bookingType
+                });
+                return;
+            }
+
+            setIsLoadingAvailableDays(true);
+            console.log('Fetching available days for whole day booking...');
+
+            try {
+                const currentDate = dateWindowStart || new Date();
+                const capacityType = selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater';
+                
+                // Fetch available days for current month and potentially next 2 months
+                // to cover the date picker's visible range
+                const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+                const currentYear = currentDate.getFullYear();
+                
+                const params = {
+                    capacityType,
+                    year: currentYear,
+                    month: currentMonth
+                };
+                
+                console.log('Fetching available days with params:', params);
+
+                const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/available-days', { params });
+                console.log('Available Days API Response:', response.data);
+
+                if (response.data.success && response.data.data) {
+                    console.log('Available days fetched successfully:', response.data.data);
+                    // Store available days as array of date strings (e.g., ["2025-10-01", "2025-10-02"])
+                    const days = response.data.data.availableDays || response.data.data || [];
+                    setAvailableDays(days);
+                    
+                    // Fetch next month's available days too for seamless experience
+                    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+                    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+                    
+                    const nextMonthParams = {
+                        capacityType,
+                        year: nextYear,
+                        month: nextMonth
+                    };
+                    
+                    const nextMonthResponse = await axios.get('https://api.boldtribe.in/api/meetingrooms/available-days', { params: nextMonthParams });
+                    
+                    if (nextMonthResponse.data.success && nextMonthResponse.data.data) {
+                        const nextMonthDays = nextMonthResponse.data.data.availableDays || nextMonthResponse.data.data || [];
+                        // Combine current and next month's available days
+                        setAvailableDays([...days, ...nextMonthDays]);
+                        console.log('Combined available days from 2 months:', days.length + nextMonthDays.length);
+                    }
+                } else {
+                    console.error('Failed to fetch available days. API returned:', response.data.message);
+                    setAvailableDays([]);
+                }
+            } catch (error) {
+                console.error('Error fetching available days:', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                });
+                setAvailableDays([]);
+            } finally {
+                setIsLoadingAvailableDays(false);
+            }
+        };
+
+        fetchAvailableDaysForBooking();
+    }, [selectedSeating, bookingType, dateWindowStart]);
 
     // Add useEffect to reset duration if it's incompatible with member type
     useEffect(() => {
@@ -3622,6 +3752,13 @@ const handleHourlyMemberType = (memberType) => {
                                     onChange={handleDateSelect}
                                     minDate={minDate}
                                     maxDate={maxDate}
+                                    shouldDisableDate={(date) => {
+                                        // Only disable dates for whole day booking
+                                        if (bookingType === 'Whole Day') {
+                                            return !isDateAvailableForBooking(date);
+                                        }
+                                        return false; // Don't disable any dates for hourly booking
+                                    }}
                                     renderInput={(params) => (
                                         <TextField
                                             {...params}
@@ -3667,6 +3804,25 @@ const handleHourlyMemberType = (memberType) => {
                                 />
                             </LocalizationProvider>
                         </Box>
+
+                        {/* Show loading or availability message for whole day booking */}
+                        {bookingType === 'Whole Day' && selectedSeating && (
+                            <Box sx={{ mb: 2 }}>
+                                {isLoadingAvailableDays ? (
+                                    <Alert severity="info" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                                        🔍 Checking available dates...
+                                    </Alert>
+                                ) : availableDays.length === 0 ? (
+                                    <Alert severity="warning" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                                        ⚠️ No dates available for whole day booking this month. Please try next month.
+                                    </Alert>
+                                ) : (
+                                    <Alert severity="success" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                                        ✅ {availableDays.length} date{availableDays.length !== 1 ? 's' : ''} available for booking. Unavailable dates are disabled in the calendar.
+                                    </Alert>
+                                )}
+                            </Box>
+                        )}
 
                         {selectedDate && (
                             <FormControl fullWidth sx={{ mb: { xs: 2, sm: 3 } }}>
