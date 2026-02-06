@@ -18,9 +18,8 @@ const KYCForm = () => {
   const location = useLocation();
   const { user } = useAuth();
   
-  // Get booking data from navigation state (passed from Services page)
-  const selectedOffice = location.state?.selectedOffice;
-  const paymentMethod = location.state?.paymentMethod;
+  // Note: KYC is now independent of any space booking
+  // No space ID or booking data is required during KYC submission
   
   const [expanded, setExpanded] = useState('panel1');
   const [selectedOption, setSelectedOption] = useState('Director');
@@ -237,136 +236,27 @@ const KYCForm = () => {
       
       console.log('Submitting KYC data:', kycData);
       
-      // Check if this is from meeting room registration (no booking needed)
-      const skipBookingCreation = location.state?.skipBookingCreation || location.state?.fromMeetingRoom;
+      // KYC submission is now always independent of booking
+      // No space ID or booking is created during KYC submission
+      // User can book any space after KYC approval
+      console.log('Submitting KYC only - no booking or space ID required');
       
-      if (skipBookingCreation) {
-        console.log('Meeting room registration detected - submitting KYC only, no booking creation');
-        
-        // For meeting room bookings, just submit KYC data without booking
-        // The actual room booking will be created later when they complete the meeting room booking flow
-        const kycOnlyResult = await bookingService.submitKYCOnly(kycData);
-        
-        if (!kycOnlyResult.success) {
-          throw new Error(kycOnlyResult.message || 'KYC submission failed');
-        }
-
-        console.log('KYC submitted successfully (meeting room):', kycOnlyResult.data);
-        
-        setSubmitSuccess(true);
-        
-        // Navigate to success page
-        setTimeout(() => {
-          navigate(ROUTES.PENDING_REVIEW, {
-            state: {
-              fromMeetingRoom: true,
-              kycId: kycOnlyResult.data?.kycId,
-              message: 'Your KYC has been submitted successfully! You can proceed with booking once approved.'
-            }
-          });
-        }, 2000);
-        
-        return; // Exit early - no booking creation needed
-      }
+      const kycOnlyResult = await bookingService.submitKYCOnly(kycData);
       
-      // Check if booking was already created (from Services page)
-      const existingBookingId = location.state?.bookingId;
-      
-      if (existingBookingId) {
-        console.log('Using existing booking ID:', existingBookingId);
-        
-        // Step: Submit KYC data with the existing booking ID
-        const kycResult = await bookingService.submitKYC(existingBookingId, kycData);
-        
-        if (!kycResult.success) {
-          throw new Error(kycResult.message || 'KYC submission failed');
-        }
-
-        console.log('KYC submitted successfully:', kycResult.data);
-        
-        setSubmitSuccess(true);
-        
-        // Navigate to success page after successful submission
-        setTimeout(() => {
-          navigate(ROUTES.PENDING_REVIEW, {
-            state: {
-              bookingId: existingBookingId,
-              kycId: kycResult.data?.kycId,
-              message: 'Your KYC and booking have been submitted successfully!'
-            }
-          });
-        }, 2000);
-        
-        return; // Exit early since we used existing booking
+      if (!kycOnlyResult.success) {
+        throw new Error(kycOnlyResult.message || 'KYC submission failed');
       }
 
-      // Step 1: Create booking first to get a valid booking ID (fallback for direct form access)
-      const today = new Date();
-      const endDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-      
-      // Parse amount from selectedOffice price or use default
-      let amount = 1500;
-      if (selectedOffice?.price) {
-        const priceMatch = selectedOffice.price.match(/[\d,]+/);
-        if (priceMatch) {
-          amount = parseFloat(priceMatch[0].replace(/,/g, ''));
-        }
-      }
-      
-      const bookingData = {
-        spaceId: parseInt(selectedOffice?.id) || 1,
-        date: today.toISOString().split('T')[0],
-        startDate: today.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
-        amount: amount
-      };
-      
-      // Validate booking data before sending
-      if (!bookingData.spaceId || !bookingData.date || !bookingData.startDate || !bookingData.endDate || !bookingData.amount) {
-        console.error('Invalid booking data:', bookingData);
-        throw new Error('Invalid booking data. Missing required fields.');
-      }
-      
-      console.log('Creating booking with data:', bookingData);
-      
-      const bookingResult = await bookingService.bookSpace(bookingData);
-      
-      console.log('Booking result:', bookingResult);
-      
-      if (!bookingResult.success) {
-        console.error('Booking failed:', bookingResult);
-        throw new Error(bookingResult.message || 'Booking creation failed');
-      }
-      
-      console.log('Booking created successfully:', bookingResult.data);
-      
-      // Get the real booking ID from the booking creation response
-      const bookingId = bookingResult.data?.booking?.id || bookingResult.data?.id;
-      
-      if (!bookingId) {
-        console.error('Booking result data:', bookingResult.data);
-        throw new Error('Booking ID not received from server. Cannot proceed with KYC submission.');
-      }
-      
-      // Step 2: Submit KYC data with the real booking ID
-      const kycResult = await bookingService.submitKYC(bookingId, kycData);
-
-      
-      if (!kycResult.success) {
-        throw new Error(kycResult.message || 'KYC submission failed');
-      }
-      
-      console.log('KYC submitted successfully 23444:', kycResult.data);
+      console.log('KYC submitted successfully:', kycOnlyResult.data);
       
       setSubmitSuccess(true);
       
-      // Navigate to success page after successful submission
+      // Navigate to success page
       setTimeout(() => {
         navigate(ROUTES.PENDING_REVIEW, {
           state: {
-            bookingId: bookingId,
-            kycId: kycResult.data?.kycId,
-            message: 'Your KYC and booking have been submitted successfully!'
+            kycId: kycOnlyResult.data?.kycId,
+            message: 'Your KYC has been submitted successfully! You can proceed with booking once approved.'
           }
         });
       }, 2000);
@@ -781,17 +671,6 @@ const KYCForm = () => {
         )}
         
         {/* Show booking info if available */}
-        {selectedOffice && (
-          <Alert 
-            severity="info" 
-            sx={{ mb: 3 }}
-          >
-            <Typography variant="body2">
-              <strong>Booking Details:</strong> {selectedOffice.title} - {selectedOffice.price} 
-              (Payment Method: {paymentMethod === 'scan' ? 'UPI/QR Code' : 'Bank Transfer'})
-            </Typography>
-          </Alert>
-        )}
         <Accordion 
           expanded={expanded === 'panel1'} 
           onChange={handleAccordionChange('panel1')}

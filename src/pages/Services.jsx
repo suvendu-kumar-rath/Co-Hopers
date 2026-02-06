@@ -181,41 +181,13 @@ const Services = () => {
       return;
     }
     
-    // User is authenticated (KYC already approved), create booking first
-    console.log('User authenticated, creating booking...');
-    
-    try {
-      const bookingData = {
-        spaceId: selectedOffice?.id || 1,
-        date: new Date().toISOString().split('T')[0],
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: parseFloat(selectedOffice?.price?.replace(/[^\d.]/g, '') || '1500')
-      };
-
-      console.log('Creating booking with data:', bookingData);
-      
-      const { bookingService } = await import('../services');
-      const bookingResult = await bookingService.bookSpace(bookingData);
-      
-      if (bookingResult.success) {
-        console.log('Booking created successfully:', bookingResult.data);
-        const bookingId = bookingResult.data?.booking?.id || bookingResult.data?.id;
-        setCurrentBookingId(bookingId);
-        
-        // After successful booking creation, show payment modal
-        setShowOfficeModal(false);
-        setShowPaymentModal(true);
-        setPaymentStep(0);
-        setPaymentMethod('scan');
-      } else {
-        console.error('Booking creation failed:', bookingResult.message);
-        alert(`Booking creation failed: ${bookingResult.message}`);
-      }
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      alert('Failed to create booking. Please try again.');
-    }
+    // User is authenticated (KYC already approved), open payment modal
+    // Booking will be created when user proceeds in the payment modal
+    console.log('User authenticated, opening payment modal...');
+    setShowOfficeModal(false);
+    setShowPaymentModal(true);
+    setPaymentStep(0);
+    setPaymentMethod('scan');
   };
 
   const handleShare = (office) => {
@@ -227,42 +199,12 @@ const Services = () => {
     console.log('Login successful:', userData);
     setShowLoginModal(false);
     
-    // Check if user has KYC approved (you can check userData.kycRequired or similar)
-    // For now, assume if logging in, KYC is already approved
-    console.log('User logged in, KYC already approved, creating booking...');
+    // After login, user can now proceed to book
+    // Booking will only be created when payment modal opens and user confirms
+    console.log('User logged in, KYC already approved, user can now click Book Now to proceed');
     
-    // Create booking immediately after login
-    try {
-      const bookingData = {
-        spaceId: selectedOffice?.id || 1,
-        date: new Date().toISOString().split('T')[0],
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: parseFloat(selectedOffice?.price?.replace(/[^\d.]/g, '') || '1500')
-      };
-
-      console.log('Creating booking with data:', bookingData);
-      
-      const { bookingService } = await import('../services');
-      const bookingResult = await bookingService.bookSpace(bookingData);
-      
-      if (bookingResult.success) {
-        console.log('Booking created successfully:', bookingResult.data);
-        const bookingId = bookingResult.data?.booking?.id || bookingResult.data?.id;
-        setCurrentBookingId(bookingId);
-        
-        // After successful booking creation, show payment modal
-        setShowPaymentModal(true);
-        setPaymentStep(0);
-        setPaymentMethod('scan');
-      } else {
-        console.error('Booking creation failed:', bookingResult.message);
-        alert(`Booking creation failed: ${bookingResult.message}`);
-      }
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      alert('Failed to create booking. Please try again.');
-    }
+    // Simply re-open the office modal so user can click "Book Now" to proceed to payment
+    setShowOfficeModal(true);
   };
   
   const handleRegisterSuccess = (userData) => {
@@ -270,10 +212,10 @@ const Services = () => {
     setShowLoginModal(false);
     
     // After registration, navigate to KYC form
+    // Do NOT pass space ID - KYC is independent of space selection
     console.log('Redirecting new user to KYC form');
     navigate(ROUTES.FORM, {
       state: {
-        selectedOffice: selectedOffice,
         fromRegistration: true,
         userId: userData?.id || userData?.user?.id
       }
@@ -302,27 +244,124 @@ const Services = () => {
     console.log('showPaymentModal:', showPaymentModal);
     console.log('Current booking ID:', currentBookingId);
     console.log('Payment method:', paymentMethod);
+    console.log('Selected office:', selectedOffice);
     
-    // Check if booking ID exists
-    if (!currentBookingId) {
-      console.error('Booking ID not found. currentBookingId:', currentBookingId);
-      alert('Booking ID not found. Please try booking again from the office selection.');
-      return;
-    }
-    
-    console.log('Navigating to payment upload page...');
-    
-    // Navigate to payment upload page with booking data
-    navigate(ROUTES.PAYMENT_UPLOAD, {
-      state: {
-        bookingId: currentBookingId,
-        officeData: selectedOffice,
-        paymentMethod: paymentMethod
+    // Create booking only when user proceeds to payment (first click of Next button)
+    if (!currentBookingId && selectedOffice) {
+      console.log('No booking ID found, creating booking now with space ID:', selectedOffice.id);
+      console.log('Selected office full object:', selectedOffice);
+      
+      try {
+        // Parse amount from selectedOffice - check multiple possible field names
+        let amount = 1500; // default fallback
+        
+        // Try different possible price field names from API
+        const priceValue = selectedOffice?.price || 
+                          selectedOffice?.finalPrice || 
+                          selectedOffice?.monthlyPrice || 
+                          selectedOffice?.amount ||
+                          selectedOffice?.monthly_price;
+        
+        console.log('Price value found:', priceValue, 'type:', typeof priceValue);
+        
+        if (priceValue) {
+          // If it's already a number, use it directly
+          if (typeof priceValue === 'number') {
+            amount = priceValue;
+          } 
+          // If it's a string, parse it
+          else if (typeof priceValue === 'string') {
+            // Remove currency symbols, commas, and 'k' notation, then extract numbers
+            let cleanPrice = priceValue.replace(/[₹$,+\sGST]/gi, '').trim();
+            
+            // Handle 'k' notation (e.g., "16k" = 16000)
+            if (cleanPrice.toLowerCase().includes('k')) {
+              const numMatch = cleanPrice.match(/[\d.]+/);
+              if (numMatch) {
+                const parsedAmount = parseFloat(numMatch[0]) * 1000;
+                if (!isNaN(parsedAmount) && parsedAmount > 0) {
+                  amount = parsedAmount;
+                }
+              }
+            } else {
+              // Regular number parsing
+              const numMatch = cleanPrice.match(/[\d.]+/);
+              if (numMatch) {
+                const parsedAmount = parseFloat(numMatch[0]);
+                if (!isNaN(parsedAmount) && parsedAmount > 0) {
+                  amount = parsedAmount;
+                }
+              }
+            }
+          }
+        }
+        
+        console.log('Final parsed amount:', amount, 'from price:', priceValue);
+        
+        const bookingData = {
+          spaceId: selectedOffice?.id || 1,
+          date: new Date().toISOString().split('T')[0],
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          amount: amount
+        };
+
+        // Validate booking data before sending
+        if (!bookingData.spaceId || !bookingData.date || !bookingData.startDate || !bookingData.endDate || !bookingData.amount) {
+          console.error('Invalid booking data - missing required fields:', bookingData);
+          alert('Invalid booking data. Please try again.');
+          return;
+        }
+
+        console.log('Creating booking with data:', bookingData);
+        
+        const { bookingService } = await import('../services');
+        const bookingResult = await bookingService.bookSpace(bookingData);
+        
+        if (bookingResult.success) {
+          console.log('Booking created successfully:', bookingResult.data);
+          const bookingId = bookingResult.data?.booking?.id || bookingResult.data?.id;
+          setCurrentBookingId(bookingId);
+          
+          // Now navigate to payment upload page with the booking ID
+          console.log('Navigating to payment upload page with booking ID:', bookingId);
+          navigate(ROUTES.PAYMENT_UPLOAD, {
+            state: {
+              bookingId: bookingId,
+              officeData: selectedOffice,
+              paymentMethod: paymentMethod
+            }
+          });
+          
+          // Close payment modal
+          setShowPaymentModal(false);
+        } else {
+          console.error('Booking creation failed:', bookingResult.message);
+          alert(`Booking creation failed: ${bookingResult.message}`);
+          return;
+        }
+      } catch (error) {
+        console.error('Error creating booking:', error);
+        alert('Failed to create booking. Please try again.');
+        return;
       }
-    });
-    
-    // Close payment modal
-    setShowPaymentModal(false);
+    } else if (currentBookingId) {
+      // Booking already exists, just navigate
+      console.log('Booking already exists, navigating to payment upload page...');
+      navigate(ROUTES.PAYMENT_UPLOAD, {
+        state: {
+          bookingId: currentBookingId,
+          officeData: selectedOffice,
+          paymentMethod: paymentMethod
+        }
+      });
+      
+      // Close payment modal
+      setShowPaymentModal(false);
+    } else {
+      console.error('No selected office found. Cannot create booking.');
+      alert('Please select a space before proceeding to payment.');
+    }
   };
 
   const handleNextSlide = () => {
