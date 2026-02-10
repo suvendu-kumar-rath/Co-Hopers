@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import Header from '../components/layout/Header';
 import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../constants/routes';
 

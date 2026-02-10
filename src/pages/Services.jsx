@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Grid, Card, CardContent, CardMedia, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, Paper, Fade, Input, Divider, TextField, InputAdornment, useTheme, useMediaQuery, IconButton, Stepper, Step, StepLabel, Avatar, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Grid, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, useTheme, useMediaQuery, IconButton, CircularProgress } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
 import ShareIcon from '@mui/icons-material/Share';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import privateOfficeJpg from '../assets/images/private office.jpg';
-import spaceImage4 from '../assets/images/03_Spaces 4.png';
-import spaceImage6 from '../assets/images/03_Spaces 6.png';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import QrCodeIcon from '@mui/icons-material/QrCode';
-import directorKYCImage from '../assets/images/KYC.png';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import KYCImage from '../assets/images/KYC.png';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
@@ -20,7 +14,6 @@ import { PRIVATE_OFFICES } from '../constants/officeData';
 import { ROUTES } from '../constants/routes';
 import { shareToWhatsApp } from '../utils/helpers/shareUtils';
 import { getSpaceImageUrl } from '../utils/helpers/imageUtils';
-import PaymentModal from '../components/modals/PaymentModal';
 import { spacesService } from '../services';
 import { useAuth } from '../context/AuthContext';
 import LoginModal from '../components/modals/LoginModal';
@@ -28,10 +21,8 @@ import LoginModal from '../components/modals/LoginModal';
 const Services = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
   const navigate = useNavigate();
-  const { officeType, id } = useParams();
+  const { id } = useParams();
   const { isAuthenticated, user } = useAuth();
 
   // Static features that will be shown for all spaces
@@ -72,10 +63,6 @@ const Services = () => {
 
   // Login modal state
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isRegistrationMode, setIsRegistrationMode] = useState(false);
-  
-  // KYC tracking
-  const [kycSubmitted, setKycSubmitted] = useState(false);
   
   // Booking ID state
   const [currentBookingId, setCurrentBookingId] = useState(null);
@@ -177,7 +164,6 @@ const Services = () => {
       // Close office modal first, then show login/register modal
       setShowOfficeModal(false);
       setShowLoginModal(true);
-      setIsRegistrationMode(false); // Allow both login and register
       return;
     }
     

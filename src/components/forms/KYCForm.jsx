@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, Typography, Button, Grid, Paper, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, FormControl, InputLabel, MenuItem, Select, CircularProgress, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { Box, Typography, Button, Grid, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -9,20 +9,17 @@ import ImageIcon from '@mui/icons-material/Image';
 import KYCImage from '../../assets/images/KYC.png';
 import FreelancerKYCImage from '../../assets/images/freelancer.png';
 import { ROUTES } from '../../constants/routes';
-import FileUpload from '../common/FileUpload';
 import { bookingService } from '../../services/bookingService';
 import { useAuth } from '../../context/AuthContext';
 
 const KYCForm = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   
   // Note: KYC is now independent of any space booking
   // No space ID or booking data is required during KYC submission
   
   const [expanded, setExpanded] = useState('panel1');
-  const [selectedOption, setSelectedOption] = useState('Director');
   const [companyKYCCompleted, setCompanyKYCCompleted] = useState(false);
   const [kycType, setKYCType] = useState('company');
   const [signingAuthority, setSigningAuthority] = useState('director');
@@ -77,10 +74,6 @@ const KYCForm = () => {
 
   const handleAccordionChange = (panel) => (event, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
-  };
-
-  const handleOptionChange = (event) => {
-    setSelectedOption(event.target.value);
   };
 
   const handleKYCTypeChange = (event) => {

@@ -1,11 +1,8 @@
 import React from 'react';
-import { Box, Container, Typography, Link, useTheme, useMediaQuery, Grid } from '@mui/material';
+import { Box, Container, Typography, Link, Grid } from '@mui/material';
 import ServiceImage from '../../assets/images/footer image.png';
 
 const Footer = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   return (
     <Box sx={{ 

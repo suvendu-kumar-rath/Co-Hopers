@@ -49,9 +49,11 @@ export const generateShareableLink = (office) => {
   return `${baseUrl}/services?office=${office.id}`;
 };
 
-export default {
+const shareUtils = {
   generateWhatsAppShareUrl,
   shareToWhatsApp,
   copyToClipboard,
   generateShareableLink,
 };
+
+export default shareUtils;

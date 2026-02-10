@@ -298,7 +298,7 @@ class SpacesService {
         try {
           // Remove brackets and quotes, split by comma if multiple dates
           let dateStr = dateObj.date
-            .replace(/[\[\]"]/g, '') // Remove brackets and quotes
+            .replace(/[\]"]/g, '') // Remove brackets and quotes
             .trim();
           
           // Split by comma if multiple dates in one string

@@ -5,3 +5,4 @@ export { default as kycService } from './kycService';
 export { default as paymentService } from './paymentService';
 export { default as officeService } from './officeService';
 export { default as spacesService } from './spacesService';
+export { default as userService } from './userService';

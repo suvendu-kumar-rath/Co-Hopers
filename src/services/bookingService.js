@@ -702,6 +702,39 @@ export const bookingService = {
                 message: error.message || 'Network error. Please try again.'
             };
         }
+    },
+    /**
+     * Get available days for meeting rooms
+     * @param {Object} params - Query params: capacityType, year, month
+     * @returns {Promise} - API response
+     */
+    async getAvailableMeetingRoomDays({ capacityType, year, month }) {
+        try {
+            const query = new URLSearchParams({
+                capacityType,
+                year,
+                month
+            }).toString();
+            const response = await apiClient.get(`/meetingrooms/available-days?${query}`);
+            if (response.data && response.data.success !== false) {
+                return {
+                    success: true,
+                    data: response.data.data,
+                    message: response.data.message || 'Available days fetched successfully'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: response.data?.message || 'Failed to fetch available days'
+                };
+            }
+        } catch (error) {
+            console.error('Get available meeting room days error:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || error.message || 'Network error. Please try again.'
+            };
+        }
     }
 };
 

@@ -88,13 +88,29 @@ export const AuthProvider = ({ children }) => {
         return sessionStorage.getItem('authToken');
     };
 
+    // Update user data
+    const updateUser = (userData) => {
+        try {
+            console.log('[AuthContext] Updating user data:', userData);
+            
+            // Update user data in storage
+            sessionStorage.setItem('userData', JSON.stringify(userData));
+            localStorage.setItem('userData', JSON.stringify(userData));
+            
+            setUser(userData);
+        } catch (error) {
+            console.error('Error updating user data:', error);
+        }
+    };
+
     const value = {
         user,
         isAuthenticated,
         loading,
         login,
         logout,
-        getToken
+        getToken,
+        updateUser
     };
 
     return (

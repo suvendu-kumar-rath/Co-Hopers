@@ -76,8 +76,10 @@ export const getSpaceImageUrl = (space) => {
   return getImageUrl(imagePath);
 };
 
-export default {
+const imageUtils = {
   getImageBaseUrl,
   getImageUrl,
   getSpaceImageUrl
 };
+
+export default imageUtils;

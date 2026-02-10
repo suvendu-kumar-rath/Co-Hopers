@@ -26,16 +26,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { NAV_ITEMS } from '../../constants/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/AuthContext';
+import UserProfileModal from '../modals/UserProfileModal';
+import userService from '../../services/userService';
 
 const Header = () => {
   const [activeLink, setActiveLink] = useState('SERVICES');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, updateUser } = useAuth();
 
   // Set active link based on current route
   useEffect(() => {
@@ -52,6 +55,32 @@ const Header = () => {
       navigate(ROUTES.SERVICES);
     }
   }, [navigate, location.pathname]);
+
+  // Fetch user profile when authenticated
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const response = await userService.getUserProfile();
+          if (response.success && response.data) {
+            // Update user context with fresh profile data
+            const updatedUser = {
+              ...user,
+              ...response.data,
+              username: response.data.companyOrFreelancerName || response.data.name || user.username,
+              name: response.data.companyOrFreelancerName || response.data.name,
+              mobile: response.data.phone || response.data.mobile
+            };
+            updateUser(updatedUser);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [isAuthenticated]); // Only run when authentication status changes
 
   const handleNavigation = (item) => {
     setActiveLink(item.label);
@@ -74,6 +103,11 @@ const Header = () => {
 
   const handleProfileClose = () => {
     setProfileAnchorEl(null);
+  };
+
+  const handleViewProfile = () => {
+    setProfileModalOpen(true);
+    handleProfileClose();
   };
 
   const handleLogout = () => {
@@ -282,7 +316,7 @@ const Header = () => {
             
             {/* Profile Option */}
             <MenuItem 
-              onClick={handleProfileClose}
+              onClick={handleViewProfile}
               sx={{ 
                 py: 1.5, 
                 px: 2,
@@ -321,6 +355,12 @@ const Header = () => {
         </Box>
       </Toolbar>
       {mobileMenu}
+      
+      {/* User Profile Modal */}
+      <UserProfileModal 
+        open={profileModalOpen} 
+        onClose={() => setProfileModalOpen(false)} 
+      />
     </AppBar>
   );
 };
