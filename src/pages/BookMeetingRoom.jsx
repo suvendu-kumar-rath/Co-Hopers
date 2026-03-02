@@ -39,10 +39,11 @@ import PendingIcon from '@mui/icons-material/Pending';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LoginModal from '../components/modals/LoginModal';
+import { getUserProfile } from '../services/userService';
 
 const BookMeetingRoom = () => {
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, updateUser } = useAuth();
     
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
@@ -1660,40 +1661,67 @@ const BookMeetingRoom = () => {
             console.log('Booking type selected, opening login modal');
             setShowLoginModal(true);
         } else if (newBookingType && isAuthenticated) {
-            // User is already logged in, get member type from stored user data
+            // User is already logged in — fetch fresh profile from the API so that
+            // any membership status change (e.g. KYC approval during this session)
+            // is picked up immediately without requiring a logout/login cycle.
             setIsCheckingUserStatus(true);
             setUserStatusMessage('Verifying your account...');
-            
-            try {
-                // Get user data from sessionStorage/localStorage
-                const userDataStr = sessionStorage.getItem('userData') || localStorage.getItem('userData');
-                
-                if (userDataStr) {
-                    const userData = JSON.parse(userDataStr);
-                    setUserMemberType(userData);
-                } else {
-                    // If no user data found, default to Non-Member
-                    console.warn('No user data found in storage, defaulting to Non-Member');
-                    setMemberType('Non-Member');
-                    setUserStatusMessage('Welcome! You are a Non-Member.');
-                    
-                    setTimeout(() => {
-                        setIsCheckingUserStatus(false);
-                        setShowBookingModal(false);
-                        setShowTimeSlotModal(true);
-                    }, 1500);
-                }
-            } catch (error) {
-                console.error('Error getting user data:', error);
-                setMemberType('Non-Member');
-                setUserStatusMessage('Welcome! You are a Non-Member.');
-                
-                setTimeout(() => {
-                    setIsCheckingUserStatus(false);
-                    setShowBookingModal(false);
-                    setShowTimeSlotModal(true);
-                }, 1500);
-            }
+
+            getUserProfile()
+                .then((result) => {
+                    if (result.success && result.data) {
+                        const freshUserData = result.data;
+                        console.log('[BookMeetingRoom] Fresh profile fetched:', freshUserData);
+
+                        // Persist the refreshed data so subsequent reads are also current
+                        sessionStorage.setItem('userData', JSON.stringify(freshUserData));
+                        localStorage.setItem('userData', JSON.stringify(freshUserData));
+                        updateUser(freshUserData);
+
+                        setUserMemberType(freshUserData);
+                    } else {
+                        // API call failed — fall back to cached storage data
+                        console.warn('[BookMeetingRoom] Failed to fetch fresh profile, falling back to cached data:', result.message);
+                        const userDataStr = sessionStorage.getItem('userData') || localStorage.getItem('userData');
+                        if (userDataStr) {
+                            setUserMemberType(JSON.parse(userDataStr));
+                        } else {
+                            setMemberType('Non-Member');
+                            setUserStatusMessage('Welcome! You are a Non-Member.');
+                            setTimeout(() => {
+                                setIsCheckingUserStatus(false);
+                                setShowBookingModal(false);
+                                setShowTimeSlotModal(true);
+                            }, 1500);
+                        }
+                    }
+                })
+                .catch((error) => {
+                    console.error('[BookMeetingRoom] Error fetching fresh profile:', error);
+                    // Fall back to cached storage data on network error
+                    try {
+                        const userDataStr = sessionStorage.getItem('userData') || localStorage.getItem('userData');
+                        if (userDataStr) {
+                            setUserMemberType(JSON.parse(userDataStr));
+                        } else {
+                            setMemberType('Non-Member');
+                            setUserStatusMessage('Welcome! You are a Non-Member.');
+                            setTimeout(() => {
+                                setIsCheckingUserStatus(false);
+                                setShowBookingModal(false);
+                                setShowTimeSlotModal(true);
+                            }, 1500);
+                        }
+                    } catch (parseError) {
+                        setMemberType('Non-Member');
+                        setUserStatusMessage('Welcome! You are a Non-Member.');
+                        setTimeout(() => {
+                            setIsCheckingUserStatus(false);
+                            setShowBookingModal(false);
+                            setShowTimeSlotModal(true);
+                        }, 1500);
+                    }
+                });
         }
         
         // Reset date and seating when booking type changes
