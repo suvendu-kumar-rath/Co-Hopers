@@ -13,8 +13,6 @@ export const getImageBaseUrl = () => {
   const apiBaseUrl = ENV_CONFIG.API_BASE_URL || 'https://api.boldtribe.in/api';
   const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
   
-  console.log('[imageUtils] getImageBaseUrl: API Base URL:', apiBaseUrl, '-> Image Base URL:', baseUrl);
-  
   // Remove /api suffix if present to get the domain base URL
   return baseUrl;
 };
@@ -28,13 +26,17 @@ export const getImageBaseUrl = () => {
  */
 export const getImageUrl = (imagePath) => {
   if (!imagePath) {
-    console.log('[imageUtils] getImageUrl: No image path provided');
+    return '';
+  }
+
+  // Ensure imagePath is a string
+  if (typeof imagePath !== 'string') {
+    console.warn('[imageUtils] getImageUrl: Invalid image path type:', typeof imagePath, imagePath);
     return '';
   }
 
   // If already a full URL, return as is
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    console.log('[imageUtils] getImageUrl: Already a full URL:', imagePath);
     return imagePath;
   }
 
@@ -45,7 +47,6 @@ export const getImageUrl = (imagePath) => {
   
   // Construct full URL
   const fullUrl = `${baseUrl}${normalizedPath}`;
-  console.log('[imageUtils] getImageUrl: Constructed URL:', fullUrl, 'from path:', imagePath);
   return fullUrl;
 };
 
@@ -64,14 +65,45 @@ export const getSpaceImageUrl = (space) => {
   // Check images array first (API stores images in an array)
   let imagePath = null;
   
-  if (space.images && Array.isArray(space.images) && space.images.length > 0) {
-    imagePath = space.images[0];
-  } else {
+  // Parse images if it's a JSON string
+  let imagesArray = space.images;
+  if (typeof imagesArray === 'string') {
+    try {
+      imagesArray = JSON.parse(imagesArray);
+    } catch (e) {
+      // Not valid JSON, skip
+      imagesArray = null;
+    }
+  }
+  
+  if (imagesArray && Array.isArray(imagesArray) && imagesArray.length > 0) {
+    // Get the first image, but ensure it's a string (not a nested array)
+    let firstImage = imagesArray[0];
+    
+    // If it's an array, try to get the first element from it
+    if (Array.isArray(firstImage) && firstImage.length > 0) {
+      firstImage = firstImage[0];
+    }
+    
+    // Only use it if it's a string
+    if (typeof firstImage === 'string') {
+      imagePath = firstImage;
+    }
+  }
+  
+  // If images array didn't provide a valid path, check other fields
+  if (!imagePath) {
     imagePath = space.image || space.imagePath || space.image_url || space.imageUrl;
   }
   
-  console.log('[imageUtils] getSpaceImageUrl: Space object:', space);
-  console.log('[imageUtils] getSpaceImageUrl: Found image path:', imagePath);
+  if (!imagePath) {
+    console.warn('[imageUtils] getSpaceImageUrl: No valid image found for space:', {
+      title: space.title || space.space_name,
+      images: space.images,
+      image: space.image,
+      imagePath: space.imagePath
+    });
+  }
   
   return getImageUrl(imagePath);
 };

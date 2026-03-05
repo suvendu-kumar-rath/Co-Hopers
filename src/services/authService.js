@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ENV_CONFIG } from '../config/environment';
 
 // Base URL for the API from environment configuration
-const BASE_URL = ENV_CONFIG.API_BASE_URL || 'https://api.boldtribe.in';
+const BASE_URL = ENV_CONFIG.API_BASE_URL || 'https://api.boldtribe.in/api';
 
 // Debug logging for API configuration
 if (ENV_CONFIG.ENABLE_DEBUG_LOGS) {

@@ -67,6 +67,10 @@ class SpacesService {
       const response = await apiClient.get('/spaces/spaces');
 
       console.log('Spaces API Response:', response.data);
+      console.log('Spaces API Response - First Space:', response.data?.data?.[0]);
+      console.log('First Space Images:', response.data?.data?.[0]?.images);
+      console.log('Spaces API Response - First Space:', response.data?.data?.[0]);
+      console.log('First Space Images:', response.data?.data?.[0]?.images);
       
       if (response.status === 200) {
         // Process the response data to format image URLs correctly
@@ -76,9 +80,43 @@ class SpacesService {
         if (processedData && processedData.data && Array.isArray(processedData.data)) {
           processedData.data = processedData.data.map(space => {
             // Extract first image from images array if available
-            const imageUrl = space.images && space.images.length > 0 
-              ? getImageUrl(space.images[0]) 
-              : (space.image ? getImageUrl(space.image) : null);
+            let imagePath = null;
+            
+            console.log('[spacesService] Processing space:', space.title || space.space_name);
+            console.log('[spacesService] Space images field:', space.images);
+            console.log('[spacesService] Space image field:', space.image);
+            
+            // Parse images if it's a JSON string
+            let imagesArray = space.images;
+            if (typeof imagesArray === 'string') {
+              try {
+                imagesArray = JSON.parse(imagesArray);
+                console.log('[spacesService] Parsed images JSON:', imagesArray);
+              } catch (e) {
+                console.warn('[spacesService] Failed to parse images JSON:', e);
+                imagesArray = null;
+              }
+            }
+            
+            if (imagesArray && Array.isArray(imagesArray) && imagesArray.length > 0) {
+              let firstImage = imagesArray[0];
+              console.log('[spacesService] First image value:', firstImage, 'Type:', typeof firstImage);
+              // Handle nested arrays - extract the actual string value
+              while (Array.isArray(firstImage) && firstImage.length > 0) {
+                firstImage = firstImage[0];
+                console.log('[spacesService] Unwrapped to:', firstImage, 'Type:', typeof firstImage);
+              }
+              // Only use if it's a valid string
+              if (typeof firstImage === 'string' && firstImage.trim()) {
+                imagePath = firstImage;
+              }
+            } else if (space.image) {
+              imagePath = space.image;
+            }
+            
+            console.log('[spacesService] Final imagePath:', imagePath);
+            
+            const imageUrl = imagePath ? getImageUrl(imagePath) : null;
             
             return {
               ...space,
@@ -92,9 +130,33 @@ class SpacesService {
           // If response is directly an array of spaces
           return processedData.map(space => {
             // Extract first image from images array if available
-            const imageUrl = space.images && space.images.length > 0 
-              ? getImageUrl(space.images[0]) 
-              : (space.image ? getImageUrl(space.image) : null);
+            let imagePath = null;
+            
+            // Parse images if it's a JSON string
+            let imagesArray = space.images;
+            if (typeof imagesArray === 'string') {
+              try {
+                imagesArray = JSON.parse(imagesArray);
+              } catch (e) {
+                imagesArray = null;
+              }
+            }
+            
+            if (imagesArray && Array.isArray(imagesArray) && imagesArray.length > 0) {
+              let firstImage = imagesArray[0];
+              // Handle nested arrays - extract the actual string value
+              while (Array.isArray(firstImage) && firstImage.length > 0) {
+                firstImage = firstImage[0];
+              }
+              // Only use if it's a valid string
+              if (typeof firstImage === 'string' && firstImage.trim()) {
+                imagePath = firstImage;
+              }
+            } else if (space.image) {
+              imagePath = space.image;
+            }
+            
+            const imageUrl = imagePath ? getImageUrl(imagePath) : null;
             
             return {
               ...space,
@@ -142,9 +204,40 @@ class SpacesService {
           const spaceData = response.data.data;
           if (spaceData) {
             // Extract first image from images array if available
-            const imageUrl = spaceData.images && spaceData.images.length > 0 
-              ? getImageUrl(spaceData.images[0]) 
-              : (spaceData.image ? getImageUrl(spaceData.image) : null);
+            let imagePath = null;
+            
+            // Parse images if it's a JSON string
+            let imagesArray = spaceData.images;
+            if (typeof imagesArray === 'string') {
+              try {
+                imagesArray = JSON.parse(imagesArray);
+                console.log('[spacesService] getSpaceById - Parsed images JSON:', imagesArray);
+              } catch (e) {
+                console.warn('[spacesService] getSpaceById - Failed to parse images JSON:', e);
+                imagesArray = null;
+              }
+            }
+            
+            if (imagesArray && Array.isArray(imagesArray) && imagesArray.length > 0) {
+              let firstImage = imagesArray[0];
+              console.log('[spacesService] getSpaceById - First image value:', firstImage, 'Type:', typeof firstImage);
+              // Handle nested arrays - extract the actual string value
+              while (Array.isArray(firstImage) && firstImage.length > 0) {
+                firstImage = firstImage[0];
+                console.log('[spacesService] getSpaceById - Unwrapped to:', firstImage, 'Type:', typeof firstImage);
+              }
+              // Only use if it's a valid string
+              if (typeof firstImage === 'string' && firstImage.trim()) {
+                imagePath = firstImage;
+              }
+            } else if (spaceData.image) {
+              console.log('[spacesService] getSpaceById - Using space.image:', spaceData.image);
+              imagePath = spaceData.image;
+            }
+            
+            console.log('[spacesService] getSpaceById - Final imagePath:', imagePath);
+            
+            const imageUrl = imagePath ? getImageUrl(imagePath) : null;
             
             spaceData.image = imageUrl;
             spaceData.imagePath = imageUrl;
@@ -163,9 +256,33 @@ class SpacesService {
           const spaceData = response.data;
           
           // Extract first image from images array if available
-          const imageUrl = spaceData.images && spaceData.images.length > 0 
-            ? getImageUrl(spaceData.images[0]) 
-            : (spaceData.image ? getImageUrl(spaceData.image) : null);
+          let imagePath = null;
+          
+          // Parse images if it's a JSON string
+          let imagesArray = spaceData.images;
+          if (typeof imagesArray === 'string') {
+            try {
+              imagesArray = JSON.parse(imagesArray);
+            } catch (e) {
+              imagesArray = null;
+            }
+          }
+          
+          if (imagesArray && Array.isArray(imagesArray) && imagesArray.length > 0) {
+            let firstImage = imagesArray[0];
+            // Handle nested arrays - extract the actual string value
+            while (Array.isArray(firstImage) && firstImage.length > 0) {
+              firstImage = firstImage[0];
+            }
+            // Only use if it's a valid string
+            if (typeof firstImage === 'string' && firstImage.trim()) {
+              imagePath = firstImage;
+            }
+          } else if (spaceData.image) {
+            imagePath = spaceData.image;
+          }
+          
+          const imageUrl = imagePath ? getImageUrl(imagePath) : null;
           
           spaceData.image = imageUrl;
           spaceData.imagePath = imageUrl;
