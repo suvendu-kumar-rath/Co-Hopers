@@ -610,18 +610,29 @@ const BookMeetingRoom = () => {
             {/* Date Selection Tabs with Navigation */}
             <Box sx={{ 
                 display: 'flex', 
-                gap: 2, 
+                gap: { xs: 1, sm: 2 }, 
                 mb: 4,
                 justifyContent: 'center',
-                alignItems: 'center'
+                alignItems: 'center',
+                flexWrap: { xs: 'nowrap', sm: 'nowrap' },
+                overflowX: { xs: 'auto', sm: 'visible' },
+                px: { xs: 1, sm: 0 },
+                '&::-webkit-scrollbar': {
+                    height: '6px'
+                },
+                '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    borderRadius: '3px'
+                }
             }}>
                 <Button
                     onClick={goToPreviousDates}
                     variant="outlined"
                     sx={{ 
-                        minWidth: 40, 
+                        minWidth: { xs: 32, sm: 40 }, 
                         borderRadius: '50%',
-                        p: 1
+                        p: { xs: 0.5, sm: 1 },
+                        flexShrink: 0
                     }}
                 >
                     &lt;
@@ -648,7 +659,10 @@ const BookMeetingRoom = () => {
                                 }
                             }}
                             sx={{
-                                minWidth: 120,
+                                minWidth: { xs: 90, sm: 110, md: 120 },
+                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                px: { xs: 1, sm: 2 },
+                                flexShrink: 0,
                                 background: isSelected
                                     ? 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)'
                                     : 'transparent',
@@ -671,9 +685,10 @@ const BookMeetingRoom = () => {
                     onClick={goToNextDates}
                     variant="outlined"
                     sx={{ 
-                        minWidth: 40, 
+                        minWidth: { xs: 32, sm: 40 }, 
                         borderRadius: '50%',
-                        p: 1
+                        p: { xs: 0.5, sm: 1 },
+                        flexShrink: 0
                     }}
                 >
                     &gt;
@@ -3101,8 +3116,10 @@ const handleHourlyMemberType = (memberType) => {
                             src={logo} 
                             alt="Logo" 
                             style={{
-                                height: '120px',
-                                width: 'auto',
+                                height: 'auto',
+                                width: '100%',
+                                maxWidth: '120px',
+                                maxHeight: '120px',
                                 filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))',
                                 animation: 'logoFloat 4s ease-in-out infinite'
                             }}
