@@ -1227,8 +1227,8 @@ const BookMeetingRoom = () => {
                 </Box>
             )}
 
-            {/* Add Reason Dropdown for Member Type */}
-            {memberType === 'Member' && selectedTimeSlots.length > 0 && (
+            {/* Add Reason Dropdown for both Member and Non-Member Types */}
+            {selectedTimeSlots.length > 0 && (
                 <FormControl fullWidth sx={{ mt: 3 }}>
                     <InputLabel>Select Reason</InputLabel>
                     <Select
@@ -1262,7 +1262,7 @@ const BookMeetingRoom = () => {
                 <Button
                     variant="contained"
                     onClick={handleFinalBooking}
-                    disabled={!selectedDate || selectedTimeSlots.length === 0 || (memberType === 'Member' && !selectedReason)}
+                    disabled={!selectedDate || selectedTimeSlots.length === 0 || !selectedReason}
                     sx={{
                         background: 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)',
                         '&:hover': {
@@ -1395,9 +1395,7 @@ const BookMeetingRoom = () => {
                         alert(errorMessage);
                         
                         if (error.response?.status === 401) {
-                            localStorage.removeItem('token');
-                            localStorage.removeItem('userData');
-                            navigate('/login');
+                            // Session termination and login redirect removed. Show error only.
                         }
                     }
                 } else {
@@ -2720,6 +2718,7 @@ const handleHourlyMemberType = (memberType) => {
             onClose={() => {
                 setShowPaymentModal(false);
                 resetKYCData();
+                setPaymentReceipt(null); // Clear payment screenshot on close
             }}
             aria-labelledby="payment-modal"
             aria-describedby="payment-modal-description"
@@ -2795,99 +2794,7 @@ const handleHourlyMemberType = (memberType) => {
                     </Box>
                     
                     {/* KYC Section for Non-Members - MANDATORY
-                    {memberType === 'Non-Member' && (
-                        <Box sx={{ mb: 3 }}>
-                            <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 2, color: '#d32f2f' }}>
-                                📋 KYC Details Required *
-                            </Typography>
-                            
-                            <Card sx={{
-                                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
-                                border: '1px solid rgba(102, 126, 234, 0.2)',
-                                borderRadius: 2,
-                                p: 2,
-                                mb: 2
-                            }}>
-                                <Typography variant="subtitle1" gutterBottom sx={{ 
-                                    fontWeight: 'bold',
-                                    color: '#667eea',
-                                    mb: 2
-                                }}>
-                                    🏢 Business Information
-                                </Typography>
-                                
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <Box>
-                                        <Typography variant="body2" sx={{ mb: 1, fontWeight: '500' }}>
-                                            🆔 Identity Proof (PAN/Aadhaar/Any ID) *
-                                        </Typography>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            sx={{
-                                                borderColor: '#667eea',
-                                                color: '#667eea',
-                                                '&:hover': {
-                                                    borderColor: '#764ba2',
-                                                    backgroundColor: 'rgba(102, 126, 234, 0.04)'
-                                                }
-                                            }}
-                                        >
-                                            {kycData.identityProof 
-                                                ? `Selected: ${kycData.identityProof.name}`
-                                                : 'Upload Identity Proof *'
-                                            }
-                                            <input
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                type="file"
-                                                onChange={(e) => {
-                                                    if (e.target.files[0]) {
-                                                        setKycData({...kycData, identityProof: e.target.files[0]});
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                        {kycData.identityProof && (
-                                            <Typography variant="caption" sx={{ 
-                                                display: 'block', 
-                                                mt: 1, 
-                                                color: '#667eea' 
-                                            }}>
-                                                ✅ File selected: {kycData.identityProof.name}
-                                            </Typography>
-                                        )}
-                                        <Typography variant="caption" sx={{ 
-                                            display: 'block', 
-                                            mt: 1, 
-                                            color: '#666',
-                                            fontStyle: 'italic'
-                                        }}>
-                                            Accepted: PAN Card, Aadhaar Card, Passport, Driving License
-                                        </Typography>
-                                    </Box>
-                                </Box> */}
-                                
-                                {/* <Box sx={{ 
-                                    mt: 2, 
-                                    p: 1.5, 
-                                    background: 'rgba(211, 47, 47, 0.1)', 
-                                    borderRadius: 1,
-                                    border: '1px solid rgba(211, 47, 47, 0.2)'
-                                }}>
-                                    <Typography variant="caption" sx={{ 
-                                        color: '#d32f2f',
-                                        display: 'block',
-                                        lineHeight: 1.4,
-                                        fontWeight: 'bold'
-                                    }}>
-                                        ⚠️ <strong>Important:</strong> Identity proof upload is mandatory for all non-member bookings. You cannot proceed to payment without uploading a valid identity document (PAN/Aadhaar/Passport/Driving License).
-                                    </Typography>
-                                </Box>
-                            </Card>
-                        </Box>
-                    )} */}
+                    {/* KYC Section for Non-Members is NOT required during payment. */}
                     
                     <FormControl component="fieldset" fullWidth>
                         <RadioGroup
@@ -2959,6 +2866,7 @@ const handleHourlyMemberType = (memberType) => {
                             onClick={() => {
                                 setShowPaymentModal(false);
                                 resetKYCData();
+                                setPaymentReceipt(null); // Clear payment screenshot on Cancel
                             }}
                         >
                             Cancel

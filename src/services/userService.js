@@ -134,11 +134,43 @@ export const updateUserProfile = async (profileData) => {
 };
 
 /**
+ * Get user history (meeting rooms, spaces, payments)
+ * @param {Object} params - Optional query params (page, limit)
+ * @returns {Promise} User history data
+ */
+export const getUserHistory = async (params = {}) => {
+    try {
+        const response = await apiClient.get('/user/history', {
+            params
+        });
+
+        if (ENV_CONFIG.ENABLE_DEBUG_LOGS) {
+            console.log('[UserService] History fetched:', response.data);
+        }
+
+        return {
+            success: true,
+            data: response.data.data,
+            message: response.data.message
+        };
+    } catch (error) {
+        console.error('[UserService] Error fetching history:', error);
+
+        return {
+            success: false,
+            message: error.response?.data?.message || 'Failed to fetch history',
+            error: error.response?.data || error.message
+        };
+    }
+};
+
+/**
  * Export all user-related services
  */
 const userService = {
     getUserProfile,
-    updateUserProfile
+    updateUserProfile,
+    getUserHistory
 };
 
 export default userService;

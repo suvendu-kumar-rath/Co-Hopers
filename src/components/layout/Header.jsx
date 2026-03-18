@@ -20,6 +20,7 @@ import {
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import MenuIcon from '@mui/icons-material/Menu';
 import PersonIcon from '@mui/icons-material/Person';
+import HistoryIcon from '@mui/icons-material/History';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Logo from '../../assets/images/Logo.png';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -27,6 +28,7 @@ import { NAV_ITEMS } from '../../constants/navigation';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/AuthContext';
 import UserProfileModal from '../modals/UserProfileModal';
+import UserHistoryModal from '../modals/UserHistoryModal';
 import userService from '../../services/userService';
 
 const Header = () => {
@@ -34,6 +36,7 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -116,6 +119,11 @@ const Header = () => {
     navigate(ROUTES.SERVICES);
   };
 
+  const handleViewHistory = () => {
+    setHistoryModalOpen(true);
+    handleProfileClose();
+  };
+
   const mobileMenu = (
     <Drawer
       anchor="right"
@@ -149,6 +157,20 @@ const Header = () => {
               </Box>
             </ListItem>
             <Divider sx={{ bgcolor: 'rgba(255,255,255,0.2)', mb: 1 }} />
+            <ListItem 
+              onClick={() => {
+                setHistoryModalOpen(true);
+                handleMobileMenuToggle();
+              }}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
+                color: '#00e5ff'
+              }}
+            >
+              <HistoryIcon sx={{ mr: 2, fontSize: 20 }} />
+              <ListItemText primary="History" />
+            </ListItem>
           </>
         )}
 
@@ -326,6 +348,18 @@ const Header = () => {
               <PersonIcon sx={{ mr: 2, color: '#666' }} />
               <Typography>View Profile</Typography>
             </MenuItem>
+
+            <MenuItem 
+              onClick={handleViewHistory}
+              sx={{ 
+                py: 1.5, 
+                px: 2,
+                '&:hover': { bgcolor: '#f5f5f5' }
+              }}
+            >
+              <HistoryIcon sx={{ mr: 2, color: '#666' }} />
+              <Typography>History</Typography>
+            </MenuItem>
             
             {/* Logout Option */}
             <MenuItem 
@@ -360,6 +394,10 @@ const Header = () => {
       <UserProfileModal 
         open={profileModalOpen} 
         onClose={() => setProfileModalOpen(false)} 
+      />
+      <UserHistoryModal
+        open={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
       />
     </AppBar>
   );
