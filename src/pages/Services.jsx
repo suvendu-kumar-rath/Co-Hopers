@@ -170,6 +170,11 @@ const Services = () => {
 
   // Auto-rotate images for each space (inner carousel)
   useEffect(() => {
+    // Pause background carousel while any modal is open to avoid flicker behind overlays.
+    if (showLoginModal || showOfficeModal || showPaymentModal) {
+      return;
+    }
+
     const interval = setInterval(() => {
       setSpaceImageIndexes(prev => {
         const newIndexes = { ...prev };
@@ -187,7 +192,7 @@ const Services = () => {
     }, 3000); // Change image every 3 seconds
 
     return () => clearInterval(interval);
-  }, [privateOffices]);
+  }, [privateOffices, showLoginModal, showOfficeModal, showPaymentModal]);
 
   
   // Fetch space details from API when Book Now is clicked
