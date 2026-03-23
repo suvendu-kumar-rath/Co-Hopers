@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Grid, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Button, Grid, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert, Snackbar } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -28,6 +28,7 @@ const KYCForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [companyData, setCompanyData] = useState({
     companyName: '',
     directorName: '',
@@ -243,6 +244,7 @@ const KYCForm = () => {
       console.log('KYC submitted successfully:', kycOnlyResult.data);
       
       setSubmitSuccess(true);
+      setShowSuccessPopup(true);
       
       // Navigate to success page
       setTimeout(() => {
@@ -252,7 +254,7 @@ const KYCForm = () => {
             message: 'Your KYC has been submitted successfully! You can proceed with booking once approved.'
           }
         });
-      }, 2000);
+      }, 2500);
       
     } catch (error) {
       console.error('Submission error:', error);
@@ -654,14 +656,20 @@ const KYCForm = () => {
           </Alert>
         )}
         
-        {submitSuccess && (
-          <Alert 
-            severity="success" 
-            sx={{ mb: 3 }}
+        <Snackbar
+          open={showSuccessPopup}
+          autoHideDuration={2500}
+          onClose={() => setShowSuccessPopup(false)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            severity="success"
+            onClose={() => setShowSuccessPopup(false)}
+            sx={{ width: '100%' }}
           >
-            KYC and booking submitted successfully! Redirecting to confirmation page...
+            Thank you for the submission. Please wait until the admin approves.
           </Alert>
-        )}
+        </Snackbar>
         
         {/* Show booking info if available */}
         <Accordion 
