@@ -141,12 +141,30 @@ const UserProfileModal = ({ open, onClose }) => {
                 setSuccess('Profile updated successfully!');
                 
                 // Update user context
+                const responseData = response.data || {};
+                const resolvedName =
+                    responseData.companyOrFreelancerName ||
+                    responseData.name ||
+                    responseData.userName ||
+                    responseData.username ||
+                    profileData.name;
+                const resolvedMobile =
+                    responseData.phone ||
+                    responseData.mobile ||
+                    responseData.mobileNumber ||
+                    profileData.mobile ||
+                    profileData.phone;
+
                 const updatedUserData = {
                     ...user,
-                    ...response.data,
-                    username: response.data.companyOrFreelancerName || response.data.name,
-                    name: response.data.companyOrFreelancerName || response.data.name,
-                    mobile: response.data.phone || response.data.mobile
+                    ...responseData,
+                    username: resolvedName,
+                    userName: responseData.userName || resolvedName,
+                    name: resolvedName,
+                    companyOrFreelancerName: responseData.companyOrFreelancerName || resolvedName,
+                    mobile: resolvedMobile,
+                    phone: responseData.phone || resolvedMobile,
+                    profilePhoto: responseData.profilePhoto || profilePhotoPreview || user?.profilePhoto || null
                 };
                 
                 updateUser(updatedUserData);

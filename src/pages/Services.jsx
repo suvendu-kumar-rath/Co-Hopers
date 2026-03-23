@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, Grid, List, ListItem, ListItemIcon, ListItemText, Dialog, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, useTheme, useMediaQuery, IconButton, CircularProgress } from '@mui/material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import CheckIcon from '@mui/icons-material/Check';
 import ShareIcon from '@mui/icons-material/Share';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -23,6 +23,7 @@ const Services = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const { isAuthenticated, user } = useAuth();
 
@@ -73,6 +74,19 @@ const Services = () => {
   
   // Booking ID state
   const [currentBookingId, setCurrentBookingId] = useState(null);
+
+  // Trigger the same auth modal flow used by "Book Now" when requested from navbar.
+  useEffect(() => {
+    if (location.state?.openBookNowAuth) {
+      setShowOfficeModal(false);
+      setShowPaymentModal(false);
+      setSelectedOffice(null);
+      setShowLoginModal(true);
+
+      // Clear one-time state to avoid reopening modal on refresh/back navigation.
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Use API data if available, otherwise fallback to static data
   const privateOffices = spaces.length > 0 ? spaces : PRIVATE_OFFICES;
@@ -261,7 +275,9 @@ const Services = () => {
     console.log('User logged in, KYC already approved, user can now click Book Now to proceed');
     
     // Simply re-open the office modal so user can click "Book Now" to proceed to payment
-    setShowOfficeModal(true);
+    if (selectedOffice) {
+      setShowOfficeModal(true);
+    }
   };
   
   const handleRegisterSuccess = (userData) => {
@@ -282,7 +298,9 @@ const Services = () => {
   const handleLoginClose = () => {
     setShowLoginModal(false);
     // Re-open office modal if user cancels login
-    setShowOfficeModal(true);
+    if (selectedOffice) {
+      setShowOfficeModal(true);
+    }
   };
 
   // Payment modal handlers
@@ -422,63 +440,11 @@ const Services = () => {
   };
 
   const handleNextSlide = () => {
-    setCurrentSlide((prev) => {
-      const next = (prev + 1) % privateOffices.length;
-      const container = document.querySelector('.slider-container');
-      const currentPage = container.children[prev];
-      const nextPage = container.children[next];
-      
-      // Current page animation
-      currentPage.style.transform = 'rotateY(-180deg)';
-      currentPage.style.transformOrigin = 'right';
-      currentPage.style.zIndex = '2';
-      
-      // Next page animation
-      nextPage.style.transform = 'rotateY(0deg)';
-      nextPage.style.transformOrigin = 'left';
-      nextPage.style.zIndex = '1';
-      
-      // Reset after animation
-      setTimeout(() => {
-        currentPage.style.zIndex = '1';
-        Array.from(container.children).forEach(child => {
-          child.style.transform = '';
-          child.style.transformOrigin = '';
-        });
-      }, 800);
-      
-      return next;
-    });
+    setCurrentSlide((prev) => (prev + 1) % privateOffices.length);
   };
 
   const handlePrevSlide = () => {
-    setCurrentSlide((prev) => {
-      const next = (prev - 1 + privateOffices.length) % privateOffices.length;
-      const container = document.querySelector('.slider-container');
-      const currentPage = container.children[prev];
-      const prevPage = container.children[next];
-      
-      // Current page animation
-      currentPage.style.transform = 'rotateY(180deg)';
-      currentPage.style.transformOrigin = 'left';
-      currentPage.style.zIndex = '2';
-      
-      // Previous page animation
-      prevPage.style.transform = 'rotateY(0deg)';
-      prevPage.style.transformOrigin = 'right';
-      prevPage.style.zIndex = '1';
-      
-      // Reset after animation
-      setTimeout(() => {
-        currentPage.style.zIndex = '1';
-        Array.from(container.children).forEach(child => {
-          child.style.transform = '';
-          child.style.transformOrigin = '';
-        });
-      }, 800);
-      
-      return next;
-    });
+    setCurrentSlide((prev) => (prev - 1 + privateOffices.length) % privateOffices.length);
   };
 
   const OfficeModal = () => (
@@ -1322,7 +1288,7 @@ const Services = () => {
   }
 
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'white' }}>
+    <Box sx={{ width: '100%', bgcolor: 'white' }}>
       {/* Show error message if API fails but still show fallback data */}
       {error && (
         <Box sx={{ 
@@ -1361,7 +1327,7 @@ const Services = () => {
       <Box sx={{
         position: 'relative',
         width: '100%',
-        height: '100vh',
+        height: 'calc(100vh - 84px)',
         overflow: 'hidden',
         backgroundColor: '#f5f5f5',
       }}>
@@ -1408,7 +1374,7 @@ const Services = () => {
           <ChevronRightIcon sx={{ fontSize: { xs: 20, sm: 28, md: 30 } }} />
         </IconButton>
 
-        {/* Slides Container with Page Turn Animation */}
+        {/* Slides Container */}
         <Box 
           className="slider-container"
           sx={{ 
@@ -1416,10 +1382,8 @@ const Services = () => {
             width: '100%',
             height: '100%',
             transform: `translateX(-${currentSlide * 100}%)`,
-            transition: 'all 0.8s cubic-bezier(0.645, 0.045, 0.355, 1)',
+            transition: 'transform 0.6s ease-in-out',
             position: 'relative',
-            transformStyle: 'preserve-3d',
-            perspective: '2000px'
           }}
         >
           {privateOffices.map((office, index) => (
@@ -1482,7 +1446,7 @@ const Services = () => {
                         top: 0,
                         left: 0,
                         width: '100vw',
-                        height: '100vh',
+                        height: '100%',
                         objectFit: 'cover',
                         zIndex: 0
                       }}
@@ -1499,7 +1463,7 @@ const Services = () => {
                       top: 0,
                       left: 0,
                       width: '100vw',
-                      height: '100vh',
+                      height: '100%',
                       zIndex: 0
                     }}>
                       {images.map((image, imgIndex) => {
@@ -1522,7 +1486,7 @@ const Services = () => {
                               top: 0,
                               left: 0,
                               width: '100vw',
-                              height: '100vh',
+                              height: '100%',
                               objectFit: 'cover',
                               opacity: imgIndex === currentImageIndex ? 1 : 0,
                               transition: 'opacity 1s ease-in-out',
@@ -1581,7 +1545,7 @@ const Services = () => {
                   top: 0,
                   left: 0,
                   width: '100vw',
-                  height: '100vh',
+                  height: '100%',
                   backgroundColor: 'rgba(0, 0, 0, 0.5)',
                   zIndex: 1
                 }}
@@ -1592,12 +1556,13 @@ const Services = () => {
                 top: 0,
                 left: 0,
                 width: '100vw',
-                height: '100vh',
+                height: '100%',
                 zIndex: 2,
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                p: { xs: 3, sm: 4 }
+                p: { xs: 3, sm: 4 },
+                pb: { xs: 5, sm: 6, md: 7 }
               }}>
                 {/* Availability Label */}
                 <Box
@@ -1655,13 +1620,14 @@ const Services = () => {
                     px: { xs: 2, sm: 0 }
                   }}
                 >
-                  {office.space_name}
+                  {office.space_name || office.title || office.spaceName || 'Workspace'}
                 </Typography>
                 <Box sx={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 3
+                  gap: 3,
+                  mb: { xs: 2, sm: 3, md: 4 }
                 }}>
                   <Typography
                     variant="h4"

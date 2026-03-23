@@ -2439,6 +2439,7 @@ const handleHourlyMemberType = (memberType) => {
 
             // Prepare FormData for file upload
             const formData = new FormData();
+            const proofFile = paymentReceipt?.file || paymentReceipt;
             formData.append('capacityType', selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater');
             formData.append('bookingDate', format(selectedDate, 'yyyy-MM-dd'));
             formattedTimeSlots.forEach(slot => formData.append('timeSlots[]', slot));
@@ -2447,7 +2448,15 @@ const handleHourlyMemberType = (memberType) => {
             formData.append('memberType', type);
             formData.append('notes', 'Meeting room booking');
             formData.append('totalAmount', calculatedPrice.total);
-            formData.append('paymentScreenshot', paymentReceipt?.file || paymentReceipt);
+
+            // Send uploaded proof with multiple key names for backend compatibility.
+            // Some APIs validate "identityProof"/"idProof" for non-members,
+            // while others expect "paymentScreenshot".
+            if (proofFile) {
+                formData.append('paymentScreenshot', proofFile);
+                formData.append('identityProof', proofFile);
+                formData.append('idProof', proofFile);
+            }
 
             // Log the request data (without the files)
             console.log('=== Booking Request Data (FormData) ===');

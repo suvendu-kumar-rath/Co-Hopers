@@ -40,6 +40,25 @@ apiClient.interceptors.response.use(
     }
 );
 
+// Normalize user payload from different API response shapes/field names.
+const normalizeUserPayload = (apiData = {}) => {
+    const raw = apiData?.user || apiData?.profile || apiData?.data || apiData || {};
+    const resolvedName =
+        raw.companyOrFreelancerName || raw.name || raw.userName || raw.username || '';
+    const resolvedMobile = raw.phone || raw.mobile || raw.mobileNumber || '';
+
+    return {
+        ...raw,
+        username: raw.username || resolvedName,
+        userName: raw.userName || resolvedName,
+        name: raw.name || resolvedName,
+        companyOrFreelancerName: raw.companyOrFreelancerName || resolvedName,
+        mobile: resolvedMobile,
+        phone: raw.phone || resolvedMobile,
+        profilePhoto: raw.profilePhoto || raw.avatar || raw.image || null,
+    };
+};
+
 /**
  * Get user profile
  * @returns {Promise} User profile data
@@ -52,9 +71,11 @@ export const getUserProfile = async () => {
             console.log('[UserService] Profile fetched:', response.data);
         }
         
+        const normalizedUser = normalizeUserPayload(response.data.data);
+
         return {
             success: true,
-            data: response.data.data,
+            data: normalizedUser,
             message: response.data.message
         };
     } catch (error) {
@@ -117,9 +138,11 @@ export const updateUserProfile = async (profileData) => {
             console.log('[UserService] Profile updated:', response.data);
         }
         
+        const normalizedUser = normalizeUserPayload(response.data.data);
+
         return {
             success: true,
-            data: response.data.data,
+            data: normalizedUser,
             message: response.data.message || 'Profile updated successfully'
         };
     } catch (error) {

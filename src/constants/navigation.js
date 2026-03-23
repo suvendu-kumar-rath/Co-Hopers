@@ -23,6 +23,11 @@ export const NAV_ITEMS = [
     external: false,
   },
   {
+    label: 'GALLERY',
+    path: EXTERNAL_ROUTES.COHOPERS_GALLERY,
+    external: true,
+  },
+  {
     label: 'CONTACT US',
     path: EXTERNAL_ROUTES.COHOPERS_CONTACT,
     external: true,

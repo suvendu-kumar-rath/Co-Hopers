@@ -42,6 +42,8 @@ const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated, logout, updateUser } = useAuth();
+  const showHeaderActions =
+    location.pathname === ROUTES.SERVICES || location.pathname === ROUTES.MEETING_ROOM;
 
   // Set active link based on current route
   useEffect(() => {
@@ -66,13 +68,17 @@ const Header = () => {
         try {
           const response = await userService.getUserProfile();
           if (response.success && response.data) {
+            const profile = response.data;
             // Update user context with fresh profile data
             const updatedUser = {
               ...user,
-              ...response.data,
-              username: response.data.companyOrFreelancerName || response.data.name || user.username,
-              name: response.data.companyOrFreelancerName || response.data.name,
-              mobile: response.data.phone || response.data.mobile
+              ...profile,
+              username: profile.username || profile.companyOrFreelancerName || profile.name || user.username,
+              name: profile.name || profile.companyOrFreelancerName || user.name,
+              companyOrFreelancerName:
+                profile.companyOrFreelancerName || profile.name || user.companyOrFreelancerName,
+              mobile: profile.mobile || profile.phone || user.mobile,
+              phone: profile.phone || profile.mobile || user.phone,
             };
             updateUser(updatedUser);
           }
@@ -122,6 +128,15 @@ const Header = () => {
   const handleViewHistory = () => {
     setHistoryModalOpen(true);
     handleProfileClose();
+  };
+
+  const handleSignUp = () => {
+    setMobileMenuOpen(false);
+    navigate(ROUTES.SERVICES, {
+      state: {
+        openBookNowAuth: true
+      }
+    });
   };
 
   const mobileMenu = (
@@ -195,6 +210,21 @@ const Header = () => {
           </ListItem>
         ))}
 
+        {showHeaderActions && (
+          <ListItem
+            onClick={handleSignUp}
+            sx={{
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
+            }}
+          >
+            <ListItemText
+              primary="Sign Up"
+              sx={{ color: 'white', fontWeight: 'bold' }}
+            />
+          </ListItem>
+        )}
+
         {/* Logout for Mobile */}
         {isAuthenticated && (
           <>
@@ -224,9 +254,12 @@ const Header = () => {
 
   return (
     <AppBar 
-      position="static" 
+      position="fixed" 
       sx={{ 
-        background: 'linear-gradient(to bottom, #2d2d2d, #5d5d5d)',
+        backgroundColor: '#000000',
+        top: 0,
+        left: 0,
+        right: 0,
       }}
     >
       <Toolbar sx={{ 
@@ -268,7 +301,7 @@ const Header = () => {
                 onClick={() => handleNavigation(item)}
                 sx={{
                   transition: 'all 0.3s ease-in-out',
-                  fontSize: { sm: '0.9rem', md: '1.1rem' },
+                  fontSize: { sm: '0.75rem', md: '0.85rem' },
                   whiteSpace: 'nowrap',
                   ...(activeLink === item.label 
                     ? { color: 'white', fontWeight: 'bold' } 
@@ -283,14 +316,36 @@ const Header = () => {
 
         {/* Right side icons */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {showHeaderActions && !isMobile && (
+            <Button
+              color="inherit"
+              variant="outlined"
+              onClick={handleSignUp}
+              sx={{
+                borderColor: '#00e5ff',
+                color: 'white',
+                fontSize: '0.75rem',
+                textTransform: 'none',
+                '&:hover': {
+                  borderColor: '#00e5ff',
+                  backgroundColor: 'rgba(0, 229, 255, 0.12)'
+                }
+              }}
+            >
+              Sign Up
+            </Button>
+          )}
+
           {/* Profile Button - Only show if authenticated */}
-          {isAuthenticated && (
+          {showHeaderActions && (
             <IconButton 
               color="inherit"
               onClick={handleProfileClick}
+              disabled={!isAuthenticated}
               sx={{ 
                 display: { xs: 'none', sm: 'flex' },
-                marginLeft: 2
+                marginLeft: 2,
+                opacity: isAuthenticated ? 1 : 0.55
               }}
             >
               <AccountCircle sx={{ fontSize: { xs: 28, sm: 35 } }} />
