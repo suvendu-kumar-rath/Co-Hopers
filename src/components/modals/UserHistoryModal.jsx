@@ -152,7 +152,6 @@ const UserHistoryModal = ({ open, onClose }) => {
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                                 <Chip label={`Meeting Rooms: ${summary.totalMeetingRoomBookings || 0}`} />
                                 <Chip label={`Spaces: ${summary.totalSpaceBookings || 0}`} />
-                                <Chip label={`Payments: ${summary.totalPayments || 0}`} />
                             </Box>
                         )}
 
@@ -178,27 +177,6 @@ const UserHistoryModal = ({ open, onClose }) => {
                                 </Typography>
                             )}
 
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                            Payments
-                        </Typography>
-                        {historyData.payments?.length ? (
-                            historyData.payments.map((payment) => (
-                                <Card key={`payment-${payment.id}`} sx={{ mb: 2, boxShadow: 1 }}>
-                                    <CardContent>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Amount: {payment.amount || 'N/A'}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Status: {payment.status || 'N/A'}
-                                        </Typography>
-                                    </CardContent>
-                                </Card>
-                            ))
-                        ) : (
-                            <Typography variant="body2" color="text.secondary">
-                                No payments found.
-                            </Typography>
-                        )}
 
                         {pagination && (
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>

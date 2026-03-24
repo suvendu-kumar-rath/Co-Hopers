@@ -132,6 +132,15 @@ const Header = () => {
 
   const handleSignUp = () => {
     setMobileMenuOpen(false);
+    if (location.pathname === ROUTES.MEETING_ROOM) {
+      navigate(ROUTES.MEETING_ROOM, {
+        state: {
+          openMeetingRoomAuth: true
+        }
+      });
+      return;
+    }
+
     navigate(ROUTES.SERVICES, {
       state: {
         openBookNowAuth: true
@@ -219,7 +228,7 @@ const Header = () => {
             }}
           >
             <ListItemText
-              primary="Sign Up"
+              primary="Sign Up/Sign In"
               sx={{ color: 'white', fontWeight: 'bold' }}
             />
           </ListItem>
@@ -253,18 +262,37 @@ const Header = () => {
   );
 
   return (
-    <AppBar 
-      position="fixed" 
-      sx={{ 
+    <AppBar
+      position="fixed"
+      sx={{
         backgroundColor: '#000000',
         top: 0,
         left: 0,
         right: 0,
+        boxShadow: 'none'
       }}
     >
-      <Toolbar sx={{ 
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: { xs: 1.5, sm: 2.5, md: 4 },
+          py: 0.4,
+          backgroundColor: '#2a2a2a',
+          color: '#ffffff',
+          fontSize: { xs: '0.7rem', sm: '0.8rem' },
+          letterSpacing: '0.02em'
+        }}
+      >
+        <Typography sx={{ fontSize: 'inherit' }}>info@cohopers.in</Typography>
+        <Typography sx={{ fontSize: 'inherit' }}>(+91) 83288 30398</Typography>
+      </Box>
+
+      <Toolbar sx={{
         justifyContent: 'space-between',
-        padding: { xs: '0.5rem', sm: '0.5rem 1rem', md: '0.5rem 2rem' }
+        padding: { xs: '0.5rem 1rem', sm: '0.6rem 2rem', md: '0.75rem 3rem' },
+        minHeight: { xs: 64, md: 72 }
       }}>
         {/* Logo */}
         <Box 
@@ -280,17 +308,16 @@ const Header = () => {
             src={Logo} 
             alt="CoHoppers Logo" 
             style={{ 
-              height: isMobile ? '50px' : '70px',
-              marginRight: '10px'
+              height: isMobile ? '38px' : '48px'
             }} 
           />
         </Box>
 
         {/* Desktop Navigation Links */}
         {!isMobile && (
-          <Box sx={{ 
-            display: 'flex', 
-            gap: { sm: 2, md: 4 },
+          <Box sx={{
+            display: 'flex',
+            gap: { sm: 2.5, md: 4.5 },
             justifyContent: 'center',
             flexGrow: 1
           }}>
@@ -300,12 +327,13 @@ const Header = () => {
                 color="inherit" 
                 onClick={() => handleNavigation(item)}
                 sx={{
-                  transition: 'all 0.3s ease-in-out',
-                  fontSize: { sm: '0.75rem', md: '0.85rem' },
+                  transition: 'all 0.2s ease-in-out',
+                  fontSize: { sm: '0.78rem', md: '0.9rem' },
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
                   whiteSpace: 'nowrap',
-                  ...(activeLink === item.label 
-                    ? { color: 'white', fontWeight: 'bold' } 
-                    : { color: '#00e5ff' })
+                  color: '#ffffff',
+                  fontWeight: activeLink === item.label ? 700 : 500
                 }}
               >
                 {item.label}
@@ -315,40 +343,36 @@ const Header = () => {
         )}
 
         {/* Right side icons */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {showHeaderActions && !isMobile && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {!isMobile && showHeaderActions && (
             <Button
               color="inherit"
               variant="outlined"
               onClick={handleSignUp}
               sx={{
-                borderColor: '#00e5ff',
-                color: 'white',
+                borderColor: 'rgba(255, 255, 255, 0.7)',
+                color: '#ffffff',
                 fontSize: '0.75rem',
-                textTransform: 'none',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                px: 2,
+                py: 0.6,
                 '&:hover': {
-                  borderColor: '#00e5ff',
-                  backgroundColor: 'rgba(0, 229, 255, 0.12)'
+                  borderColor: '#ffffff',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)'
                 }
               }}
             >
-              Sign Up
+              Sign Up/Sign In
             </Button>
           )}
 
-          {/* Profile Button - Only show if authenticated */}
-          {showHeaderActions && (
-            <IconButton 
+          {!isMobile && showHeaderActions && isAuthenticated && (
+            <IconButton
               color="inherit"
               onClick={handleProfileClick}
-              disabled={!isAuthenticated}
-              sx={{ 
-                display: { xs: 'none', sm: 'flex' },
-                marginLeft: 2,
-                opacity: isAuthenticated ? 1 : 0.55
-              }}
             >
-              <AccountCircle sx={{ fontSize: { xs: 28, sm: 35 } }} />
+              <AccountCircle sx={{ fontSize: 28 }} />
             </IconButton>
           )}
 

@@ -36,13 +36,15 @@ import logo from '../assets/images/BoldTribe Logo-3.png'; // Make sure you have 
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import axios from 'axios';
 import PendingIcon from '@mui/icons-material/Pending';
-import { useNavigate } from 'react-router-dom';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LoginModal from '../components/modals/LoginModal';
 import { getUserProfile } from '../services/userService';
 
 const BookMeetingRoom = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { isAuthenticated, updateUser } = useAuth();
     
     const [showBookingModal, setShowBookingModal] = useState(false);
@@ -75,6 +77,19 @@ const BookMeetingRoom = () => {
 
     // Error states for debounced validation
     const [gstError, setGstError] = useState('');
+
+    useEffect(() => {
+        if (location.state?.openMeetingRoomAuth) {
+            setShowBookingModal(false);
+            setShowTimeSlotModal(false);
+            setShowRoomSelectionModal(false);
+            setLoginModalAllowRegister(true);
+            setShowLoginModal(true);
+
+            // Clear one-time state so it does not reopen on back/refresh.
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, location.pathname, navigate]);
     
     const seatingOptions = [
         { id: 'C1', name: '4-6 Seater', capacity: 4-6 },
@@ -2346,27 +2361,22 @@ const handleHourlyMemberType = (memberType) => {
                     </IconButton>
 
                     <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-                        <PendingIcon sx={{ 
-                            fontSize: { xs: '3rem', sm: '4rem', md: '60px' }, 
-                            color: '#FFA500',
-                            animation: 'spin 2s linear infinite',
-                            '@keyframes spin': {
-                                '0%': { transform: 'rotate(0deg)' },
-                                '100%': { transform: 'rotate(360deg)' }
-                            }
+                        <CheckCircleIcon sx={{
+                            fontSize: { xs: '3rem', sm: '4rem', md: '60px' },
+                            color: '#2E7D32'
                         }} />
                     </Box>
 
                     <Typography variant="h5" component="h2" sx={{ 
                         mb: { xs: 2, sm: 3 },
-                        color: '#FFA500',
+                        color: '#2E7D32',
                         fontWeight: 'bold'
                     }}>
-                        Pending
+                        Booking Confirmed
                     </Typography>
 
                     <Typography variant="body1" sx={{ mb: { xs: 2, sm: 3 } }}>
-                        You will receive a confirmation email for the booking of the meeting room within an hour.
+                        Your meeting room booking is confirmed. A confirmation email has been sent.
                     </Typography>
 
                     <Button
@@ -2383,9 +2393,9 @@ const handleHourlyMemberType = (memberType) => {
                             setShowRoomSelectionModal(false);
                         }}
                         sx={{
-                            background: 'linear-gradient(135deg, #FFA500 0%, #FF8C00 100%)',
+                            background: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)',
                             '&:hover': {
-                                background: 'linear-gradient(135deg, #FF8C00 0%, #FF7F00 100%)'
+                                background: 'linear-gradient(135deg, #1B5E20 0%, #145A1F 100%)'
                             }
                         }}
                     >
@@ -2920,8 +2930,8 @@ const handleHourlyMemberType = (memberType) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    mb: { xs: 1, sm: 2 },
-                    pb: { xs: 0.5, sm: 1 },
+                    mb: 0,
+                    pb: 0,
                     overflow: 'hidden',
                     '&::before': {
                         content: '""',
@@ -3902,7 +3912,7 @@ const handleHourlyMemberType = (memberType) => {
                             </Card>
                         )}
 
-                        {bookingType && memberType && bookingType !== 'Whole Day' && (
+                        {bookingType !== 'Whole Day' && selectedDate && selectedSeating && (
                             <Box sx={{
                                 mt: 4,
                                 animation: 'slideUp 0.4s ease-out',
@@ -3910,13 +3920,13 @@ const handleHourlyMemberType = (memberType) => {
                                     '0%': { opacity: 0, transform: 'translateY(20px)' },
                                     '100%': { opacity: 1, transform: 'translateY(0)' }
                                 }
-                            }}>-
-                        <Button
-                            fullWidth
-                            variant="contained"
-                            onClick={handleBookingSubmit}
-                                    disabled={!bookingType || !memberType}
-                            sx={{
+                            }}>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    onClick={handleBookingSubmit}
+                                    disabled={!bookingType}
+                                    sx={{
                                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                         height: '56px',
                                         fontSize: '1.1rem',
@@ -3938,7 +3948,7 @@ const handleHourlyMemberType = (memberType) => {
                                             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
                                             transition: 'left 0.5s ease',
                                         },
-                                '&:hover': {
+                                        '&:hover': {
                                             background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
                                             transform: 'translateY(-2px)',
                                             boxShadow: '0 15px 35px rgba(102, 126, 234, 0.4)',
@@ -3948,20 +3958,20 @@ const handleHourlyMemberType = (memberType) => {
                                         },
                                         '&:active': {
                                             transform: 'translateY(0px)',
-                                },
-                                '&:disabled': {
+                                        },
+                                        '&:disabled': {
                                             background: 'linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)',
                                             color: '#999',
                                             boxShadow: 'none',
                                             transform: 'none'
-                                }
-                            }}
-                        >
+                                        }
+                                    }}
+                                >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <span>Continue</span>
                                         <Typography sx={{ fontSize: '1.2rem' }}>→</Typography>
                                     </Box>
-                        </Button>
+                                </Button>
                             </Box>
                         )}
                     </Box>

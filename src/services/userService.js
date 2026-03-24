@@ -46,9 +46,15 @@ const normalizeUserPayload = (apiData = {}) => {
     const resolvedName =
         raw.companyOrFreelancerName || raw.name || raw.userName || raw.username || '';
     const resolvedMobile = raw.phone || raw.mobile || raw.mobileNumber || '';
+    const resolvedMemberType =
+        raw.memberType || apiData?.memberType || apiData?.membershipType || apiData?.membership || null;
+    const resolvedKycRequired =
+        raw.kycRequired ?? apiData?.kycRequired ?? apiData?.kyc_required ?? null;
 
     return {
         ...raw,
+        memberType: resolvedMemberType,
+        kycRequired: resolvedKycRequired,
         username: raw.username || resolvedName,
         userName: raw.userName || resolvedName,
         name: raw.name || resolvedName,
