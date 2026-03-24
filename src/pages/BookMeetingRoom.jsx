@@ -3784,10 +3784,6 @@ const handleHourlyMemberType = (memberType) => {
                                     <Alert severity="info" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
                                         🔍 Checking available dates...
                                     </Alert>
-                                ) : availableDays.length === 0 ? (
-                                    <Alert severity="warning" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
-                                        ⚠️ No dates available for whole day booking this month. Please try next month.
-                                    </Alert>
                                 ) : (
                                     <Alert severity="success" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
                                         ✅ {availableDays.length} date{availableDays.length !== 1 ? 's' : ''} available for booking. Unavailable dates are disabled in the calendar.

@@ -73,6 +73,10 @@ const Header = () => {
             const updatedUser = {
               ...user,
               ...profile,
+              ...(profile.memberType ? { memberType: profile.memberType } : { memberType: user.memberType }),
+              ...(profile.kycRequired !== null && profile.kycRequired !== undefined
+                ? { kycRequired: profile.kycRequired }
+                : { kycRequired: user.kycRequired }),
               username: profile.username || profile.companyOrFreelancerName || profile.name || user.username,
               name: profile.name || profile.companyOrFreelancerName || user.name,
               companyOrFreelancerName:

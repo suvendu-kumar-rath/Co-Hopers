@@ -1497,43 +1497,6 @@ const Services = () => {
                       })}
                     </Box>
                     
-                    {/* Image Indicators (Dots) - Only show if multiple images */}
-                    {images.length > 1 && (
-                      <Box sx={{
-                        position: 'absolute',
-                        bottom: { xs: 80, sm: 100, md: 120 },
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        display: 'flex',
-                        gap: 1,
-                        zIndex: 5,
-                        bgcolor: 'rgba(0, 0, 0, 0.3)',
-                        borderRadius: '20px',
-                        p: 1,
-                        backdropFilter: 'blur(5px)'
-                      }}>
-                        {images.map((_, imgIndex) => (
-                          <Box
-                            key={imgIndex}
-                            sx={{
-                              width: imgIndex === currentImageIndex ? 24 : 8,
-                              height: 8,
-                              borderRadius: '4px',
-                              bgcolor: imgIndex === currentImageIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSpaceImageIndexes(prev => ({
-                                ...prev,
-                                [office.id]: imgIndex
-                              }));
-                            }}
-                          />
-                        ))}
-                      </Box>
-                    )}
                   </>
                 );
               })()}
