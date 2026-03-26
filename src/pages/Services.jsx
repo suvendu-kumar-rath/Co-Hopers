@@ -1327,7 +1327,7 @@ const Services = () => {
       <Box sx={{
         position: 'relative',
         width: '100%',
-        height: 'calc(100vh - 84px)',
+        height: 'calc(100vh - 160px)',
         overflow: 'hidden',
         backgroundColor: '#f5f5f5',
       }}>
@@ -1497,7 +1497,7 @@ const Services = () => {
                       })}
                     </Box>
                     
-                  </>
+                    </>
                 );
               })()}
               

@@ -47,6 +47,7 @@ const BookMeetingRoom = () => {
     const location = useLocation();
     const { isAuthenticated, updateUser } = useAuth();
     
+    const [showPricingModal, setShowPricingModal] = useState(false);
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
     const [showRoomSelectionModal, setShowRoomSelectionModal] = useState(false);
@@ -1497,7 +1498,7 @@ const BookMeetingRoom = () => {
     };
 
     const handleBookNowClick = () => {
-        setShowBookingModal(true);
+        setShowPricingModal(true);
     };
 
     const [roomTypes, setRoomTypes] = useState([]);
@@ -1575,7 +1576,6 @@ const BookMeetingRoom = () => {
         }
     };
 
-    // Set member type from login response (backend provides memberType directly)
     const setUserMemberType = (userData) => {
         setIsCheckingUserStatus(true);
         setUserStatusMessage('Verifying your account...');
@@ -1594,14 +1594,23 @@ const BookMeetingRoom = () => {
                 return;
             }
             
-            // KYC is approved, proceed with member type
-            // Backend returns memberType in the response: 'member' or 'non-member'
-            const backendMemberType = userData?.memberType || 'non-member';
-            
-            // Convert to display format
-            let detectedMemberType = 'Non-Member'; // Default
-            
-            if (backendMemberType.toLowerCase() === 'member') {
+            // KYC is approved, proceed with member type.
+            const rawMemberType =
+                userData?.memberType ??
+                userData?.membershipType ??
+                userData?.membership ??
+                userData?.member_type ??
+                userData?.member ??
+                'non-member';
+
+            const normalizedMemberType = String(rawMemberType)
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/_+/g, '-');
+
+            let detectedMemberType = 'Non-Member';
+
+            if (normalizedMemberType === 'member') {
                 detectedMemberType = 'Member';
                 setUserStatusMessage('Welcome back! You are a Member.');
             } else {
@@ -1609,7 +1618,7 @@ const BookMeetingRoom = () => {
             }
 
             setMemberType(detectedMemberType);
-            console.log('Member Type from backend:', backendMemberType, '-> Display:', detectedMemberType);
+            console.log('Member Type from backend:', rawMemberType, '-> Display:', detectedMemberType);
             
             // Fetch pricing data if booking type is selected
             if (bookingType) {
@@ -1638,13 +1647,28 @@ const BookMeetingRoom = () => {
     };
 
     // Handle successful login - receive userData with memberType from backend
-    const handleLoginSuccess = (userData) => {
+    const handleLoginSuccess = async (userData) => {
         console.log('Login successful:', userData);
         console.log('Member Type from backend:', userData?.memberType);
         console.log('Post-login booking type check:', bookingType);
         setShowLoginModal(false);
-        
-        // Set member type from the backend response
+
+        try {
+            const profileResult = await getUserProfile();
+            if (profileResult.success && profileResult.data) {
+                const freshUserData = profileResult.data;
+                sessionStorage.setItem('userData', JSON.stringify(freshUserData));
+                localStorage.setItem('userData', JSON.stringify(freshUserData));
+                updateUser(freshUserData);
+                setUserMemberType(freshUserData);
+                return;
+            }
+            console.warn('[BookMeetingRoom] Profile fetch failed after login:', profileResult.message);
+        } catch (error) {
+            console.error('[BookMeetingRoom] Error fetching profile after login:', error);
+        }
+
+        // Fall back to login payload when profile fetch fails.
         setUserMemberType(userData);
     };
 
@@ -2464,8 +2488,8 @@ const handleHourlyMemberType = (memberType) => {
             // while others expect "paymentScreenshot".
             if (proofFile) {
                 formData.append('paymentScreenshot', proofFile);
-                formData.append('identityProof', proofFile);
-                formData.append('idProof', proofFile);
+                // formData.append('identityProof', proofFile);
+                // formData.append('idProof', proofFile);
             }
 
             // Log the request data (without the files)
@@ -3215,6 +3239,222 @@ const handleHourlyMemberType = (memberType) => {
                     </Button>
                 </Box>
             </Box>
+
+            {/* Pricing Preview Modal */}
+            <Modal
+                open={showPricingModal}
+                onClose={() => setShowPricingModal(false)}
+                closeAfterTransition
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(12px)'
+                }}
+            >
+                <Fade in={showPricingModal}>
+                    <Box sx={{
+                        position: 'relative',
+                        width: { xs: '92%', sm: '460px', md: '520px' },
+                        maxHeight: '90vh',
+                        overflow: 'auto',
+                        background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 248, 255, 0.98) 45%, rgba(255, 246, 240, 0.98) 100%)',
+                        backdropFilter: 'blur(24px)',
+                        borderRadius: '28px',
+                        border: '1px solid rgba(255, 255, 255, 0.5)',
+                        boxShadow: '0 30px 60px rgba(24, 36, 64, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+                        p: { xs: 3, sm: 4 },
+                        overflow: 'hidden',
+                        animation: 'modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: -120,
+                            right: -160,
+                            width: 320,
+                            height: 320,
+                            background: 'radial-gradient(circle, rgba(255, 107, 107, 0.25) 0%, rgba(255, 107, 107, 0) 70%)',
+                            borderRadius: '50%',
+                            zIndex: 0
+                        },
+                        '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            bottom: -140,
+                            left: -180,
+                            width: 360,
+                            height: 360,
+                            background: 'radial-gradient(circle, rgba(102, 126, 234, 0.25) 0%, rgba(102, 126, 234, 0) 70%)',
+                            borderRadius: '50%',
+                            zIndex: 0
+                        }
+                    }}>
+                        <IconButton
+                            onClick={() => setShowPricingModal(false)}
+                            sx={{
+                                position: 'absolute',
+                                right: 12,
+                                top: 12,
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                backdropFilter: 'blur(10px)',
+                                color: '#666',
+                                '&:hover': {
+                                    background: 'rgba(255, 255, 255, 0.9)',
+                                    color: '#333',
+                                    transform: 'scale(1.1)'
+                                },
+                                transition: 'all 0.3s ease'
+                            }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+
+                        <Box sx={{ textAlign: 'center', mb: 3, pt: 1, position: 'relative', zIndex: 1 }}>
+                            <Box sx={{
+                                width: 64,
+                                height: 64,
+                                borderRadius: '18px',
+                                mx: 'auto',
+                                mb: 1.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #54a0ff 100%)',
+                                boxShadow: '0 12px 24px rgba(255, 107, 107, 0.35)'
+                            }}>
+                                <Typography sx={{ fontSize: '1.6rem' }}>💡</Typography>
+                            </Box>
+                            <Typography
+                                variant="h4"
+                                sx={{
+                                    color: '#333',
+                                    fontWeight: 800,
+                                    mb: 1,
+                                    fontSize: { xs: '1.5rem', sm: '1.9rem' },
+                                    letterSpacing: '0.3px'
+                                }}
+                            >
+                                Pricing Overview
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#666' }}>
+                                Compare member and non-member rates before booking
+                            </Typography>
+                        </Box>
+
+                        <Box sx={{
+                            p: 2.5,
+                            borderRadius: '18px',
+                            border: '1px solid rgba(52, 152, 219, 0.2)',
+                            background: 'linear-gradient(135deg, rgba(52, 152, 219, 0.08) 0%, rgba(255, 255, 255, 0.9) 100%)',
+                            mb: 2.5,
+                            position: 'relative',
+                            zIndex: 1,
+                            boxShadow: '0 10px 24px rgba(52, 152, 219, 0.15)'
+                        }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, alignItems: 'center' }}>
+                                <Typography sx={{ fontWeight: 800, color: '#1f3a5f' }}>Hourly</Typography>
+                                <Box sx={{
+                                    px: 1.5,
+                                    py: 0.5,
+                                    borderRadius: '999px',
+                                    background: 'rgba(52, 152, 219, 0.15)',
+                                    color: '#1f6fb2',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700
+                                }}>
+                                    Per hour
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography sx={{ color: '#555' }}>Member</Typography>
+                                <Typography sx={{ fontWeight: 700, color: '#1f3a5f' }}>₹200</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography sx={{ color: '#555' }}>Non-Member</Typography>
+                                <Typography sx={{ fontWeight: 700, color: '#1f3a5f' }}>₹250</Typography>
+                            </Box>
+                        </Box>
+
+                        <Box sx={{
+                            p: 2.5,
+                            borderRadius: '18px',
+                            border: '1px solid rgba(46, 204, 113, 0.25)',
+                            background: 'linear-gradient(135deg, rgba(46, 204, 113, 0.08) 0%, rgba(255, 255, 255, 0.9) 100%)',
+                            mb: 2.5,
+                            position: 'relative',
+                            zIndex: 1,
+                            boxShadow: '0 10px 24px rgba(46, 204, 113, 0.15)'
+                        }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, alignItems: 'center' }}>
+                                <Typography sx={{ fontWeight: 800, color: '#1d5e3f' }}>Whole Day</Typography>
+                                <Box sx={{
+                                    px: 1.5,
+                                    py: 0.5,
+                                    borderRadius: '999px',
+                                    background: 'rgba(46, 204, 113, 0.18)',
+                                    color: '#1d8f4f',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700
+                                }}>
+                                    Includes GST
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography sx={{ color: '#555' }}>Member</Typography>
+                                <Typography sx={{ fontWeight: 700, color: '#1d5e3f' }}>₹1,800</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography sx={{ color: '#555' }}>Non-Member</Typography>
+                                <Typography sx={{ fontWeight: 700, color: '#1d5e3f' }}>₹2,300</Typography>
+                            </Box>
+                        </Box>
+
+                        <Box sx={{
+                            p: 2.5,
+                            borderRadius: '14px',
+                            background: 'linear-gradient(135deg, rgba(255, 217, 102, 0.35) 0%, rgba(255, 244, 214, 0.9) 100%)',
+                            border: '1px dashed rgba(255, 152, 0, 0.4)',
+                            mb: 3,
+                            position: 'relative',
+                            zIndex: 1
+                        }}>
+                            <Typography sx={{ color: '#2980b9', fontSize: '0.9rem', fontWeight: 600, mb: 0.5 }}>
+                                Minimum booking duration
+                            </Typography>
+                            <Typography sx={{ color: '#2c3e50', fontSize: '0.9rem' }}>
+                                Members: 30 minutes minimum
+                            </Typography>
+                            <Typography sx={{ color: '#2c3e50', fontSize: '0.9rem' }}>
+                                Non-Members: 1 hour minimum
+                            </Typography>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, position: 'relative', zIndex: 1 }}>
+                            <Button
+                                variant="outlined"
+                                onClick={() => setShowPricingModal(false)}
+                            >
+                                Close
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={() => {
+                                    setShowPricingModal(false);
+                                    setShowBookingModal(true);
+                                }}
+                                sx={{
+                                    background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #ff5252 0%, #e53935 100%)'
+                                    }
+                                }}
+                            >
+                                Continue
+                            </Button>
+                        </Box>
+                    </Box>
+                </Fade>
+            </Modal>
 
             {/* Modern Booking Type Modal */}
             <Modal 
