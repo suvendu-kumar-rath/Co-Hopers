@@ -323,7 +323,7 @@ const BookMeetingRoom = () => {
                 newSelectedSlots = selectedTimeSlots.filter((_, index) => index !== slotIndex);
             } else {
                 // Check if adding this slot would exceed the maximum allowed slots
-                const maxSlots = memberType === 'member' ? 3 : 4; // Max 3 slots for members, 4 for non-members
+                const maxSlots = isMember(memberType) ? 3 : 4; // Max 3 slots for members, 4 for non-members
                 
                 if (selectedTimeSlots.length >= maxSlots) {
                     // Maximum slots already selected, don't add more
@@ -594,10 +594,11 @@ const BookMeetingRoom = () => {
         
         // If in hourly booking mode, set up time slots based on member type
         if (bookingType === 'hourly' && memberType) {
-            if (memberType === 'member') {
+            const apiMemberType = resolveApiMemberType(memberType);
+            if (apiMemberType === 'member') {
                 setAvailableTimeSlots(generateTimeSlots(selectedDuration, 'member'));
-            } else if (memberType === 'non_member') {
-                setAvailableTimeSlots(generateTimeSlots('1hour', 'non_member'));
+            } else {
+                setAvailableTimeSlots(generateTimeSlots('1hour', 'non-member'));
             }
         }
     };
@@ -1295,12 +1296,47 @@ const BookMeetingRoom = () => {
     // Add new state for confirmation modal
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
+    const resolveApiMemberType = (type) => {
+        const normalized = String(type || '')
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/_+/g, '-');
+
+        if (normalized === 'member') return 'member';
+        if (normalized === 'non-member' || normalized === 'nonmember' || normalized === 'non_member') {
+            return 'non-member';
+        }
+
+        return normalized.includes('member') && !normalized.includes('non') ? 'member' : 'non-member';
+    };
+
+    const toDisplayMemberType = (type) =>
+        resolveApiMemberType(type) === 'member' ? 'Member' : 'Non-Member';
+
+    const isMember = (type) => resolveApiMemberType(type) === 'member';
+
     // Update handleFinalBooking function
     const handleFinalBooking = async () => {
     const token = sessionStorage.getItem('authToken');
     console.log('Retrieved token from sessionStorage:', token);
 
-        if (memberType === 'Non-Member') {
+    let storedMemberType = null;
+    try {
+        const storedUserData = JSON.parse(localStorage.getItem('userData') || '{}');
+        storedMemberType = storedUserData?.memberType || storedUserData?.user?.memberType || null;
+    } catch (error) {
+        storedMemberType = null;
+    }
+
+    const effectiveMemberType = memberType || storedMemberType;
+    const apiMemberType = resolveApiMemberType(effectiveMemberType);
+    console.log('Resolved member type:', {
+        stateMemberType: memberType,
+        storedMemberType,
+        apiMemberType
+    });
+
+        if (apiMemberType === 'non-member') {
             setShowPaymentModal(true);
             return;
         }
@@ -1321,7 +1357,7 @@ const BookMeetingRoom = () => {
                 console.log('Selected time slots:', selectedTimeSlots);
                 
                 // For members, make API call
-                if (memberType === 'Member') {
+                if (apiMemberType === 'member') {
                     try {
                         // Format time slots to match API requirement
                         const formattedTimeSlots = selectedTimeSlots.map(slot => 
@@ -1355,7 +1391,9 @@ const BookMeetingRoom = () => {
                             timeSlots: formattedTimeSlots,
                             duration: duration,
                             bookingType: apiBookingType,
-                            memberType: memberType,
+                            memberType: toDisplayMemberType(apiMemberType),
+                            membershipType: toDisplayMemberType(apiMemberType),
+                            isMember: apiMemberType === 'member',
                             totalAmount: totalAmount,
                             notes: selectedReason ? meetingReasons.find(r => r.id === selectedReason)?.name : ''
                         };
@@ -1460,16 +1498,19 @@ const BookMeetingRoom = () => {
 
     // Get base price based on member type and seating capacity
     const getBasePrice = () => {
+        const apiMemberType = resolveApiMemberType(memberType);
+        const member = apiMemberType === 'member';
+
         // For whole day booking
         if (bookingType === 'Whole Day') {
             if (selectedSeating === 'C2') { // 10-12 Seater
-                return memberType === 'member' ? 2500 : 3000;
+                return member ? 2500 : 3000;
             }
-            return memberType === 'member' ? 1800 : 2300; // Default whole day pricing for 4-6 seater
+            return member ? 1800 : 2300; // Default whole day pricing for 4-6 seater
         }
         
         // For hourly booking
-        if (memberType === 'member') {
+        if (member) {
             // For members, price depends on seating capacity
             if (selectedSeating === 'C1') { // 4-6 Seater
                 return 200;
@@ -1481,7 +1522,7 @@ const BookMeetingRoom = () => {
         }
         
         // For non-members, price depends on seating capacity
-        if (memberType === 'non_member') {
+        if (apiMemberType === 'non-member') {
             if (selectedSeating === 'C1') { // 4-6 Seater
                 return 250;
             } else if (selectedSeating === 'C2') { // 10-12 Seater
@@ -1603,15 +1644,9 @@ const BookMeetingRoom = () => {
                 userData?.member ??
                 'non-member';
 
-            const normalizedMemberType = String(rawMemberType)
-                .toLowerCase()
-                .replace(/\s+/g, '-')
-                .replace(/_+/g, '-');
+            const detectedMemberType = toDisplayMemberType(rawMemberType);
 
-            let detectedMemberType = 'Non-Member';
-
-            if (normalizedMemberType === 'member') {
-                detectedMemberType = 'Member';
+            if (isMember(rawMemberType)) {
                 setUserStatusMessage('Welcome back! You are a Member.');
             } else {
                 setUserStatusMessage('Welcome! You are a Non-Member.');
@@ -1625,11 +1660,17 @@ const BookMeetingRoom = () => {
                 fetchPricingData(detectedMemberType, bookingType, selectedSeating || 'C1');
             }
 
-            // After 1.5 seconds, proceed to time slot selection
+            // After 1.5 seconds, route to the correct next step
             setTimeout(() => {
                 setIsCheckingUserStatus(false);
-                setShowBookingModal(false);
-                setShowTimeSlotModal(true);
+
+                if (bookingType) {
+                    setShowBookingModal(false);
+                    setShowTimeSlotModal(true);
+                } else {
+                    setShowTimeSlotModal(false);
+                    setShowBookingModal(true);
+                }
             }, 1500);
 
         } catch (error) {
@@ -1640,8 +1681,14 @@ const BookMeetingRoom = () => {
             
             setTimeout(() => {
                 setIsCheckingUserStatus(false);
-                setShowBookingModal(false);
-                setShowTimeSlotModal(true);
+
+                if (bookingType) {
+                    setShowBookingModal(false);
+                    setShowTimeSlotModal(true);
+                } else {
+                    setShowTimeSlotModal(false);
+                    setShowBookingModal(true);
+                }
             }, 1500);
         }
     };
@@ -1657,10 +1704,17 @@ const BookMeetingRoom = () => {
             const profileResult = await getUserProfile();
             if (profileResult.success && profileResult.data) {
                 const freshUserData = profileResult.data;
-                sessionStorage.setItem('userData', JSON.stringify(freshUserData));
-                localStorage.setItem('userData', JSON.stringify(freshUserData));
-                updateUser(freshUserData);
-                setUserMemberType(freshUserData);
+                const mergedUserData = {
+                    ...freshUserData,
+                    memberType: freshUserData.memberType || userData?.memberType,
+                    kycRequired: freshUserData.kycRequired ?? userData?.kycRequired,
+                    token: freshUserData.token || userData?.token,
+                };
+
+                sessionStorage.setItem('userData', JSON.stringify(mergedUserData));
+                localStorage.setItem('userData', JSON.stringify(mergedUserData));
+                updateUser(mergedUserData);
+                setUserMemberType(mergedUserData);
                 return;
             }
             console.warn('[BookMeetingRoom] Profile fetch failed after login:', profileResult.message);
@@ -1723,14 +1777,34 @@ const BookMeetingRoom = () => {
                 .then((result) => {
                     if (result.success && result.data) {
                         const freshUserData = result.data;
-                        console.log('[BookMeetingRoom] Fresh profile fetched:', freshUserData);
+                        const cachedUserDataStr =
+                            sessionStorage.getItem('userData') || localStorage.getItem('userData');
+                        let cachedUserData = {};
+
+                        if (cachedUserDataStr) {
+                            try {
+                                cachedUserData = JSON.parse(cachedUserDataStr);
+                            } catch (parseError) {
+                                cachedUserData = {};
+                            }
+                        }
+
+                        const mergedUserData = {
+                            ...cachedUserData,
+                            ...freshUserData,
+                            memberType: freshUserData.memberType || cachedUserData.memberType,
+                            kycRequired: freshUserData.kycRequired ?? cachedUserData.kycRequired,
+                            token: freshUserData.token || cachedUserData.token,
+                        };
+
+                        console.log('[BookMeetingRoom] Fresh profile fetched:', mergedUserData);
 
                         // Persist the refreshed data so subsequent reads are also current
-                        sessionStorage.setItem('userData', JSON.stringify(freshUserData));
-                        localStorage.setItem('userData', JSON.stringify(freshUserData));
-                        updateUser(freshUserData);
+                        sessionStorage.setItem('userData', JSON.stringify(mergedUserData));
+                        localStorage.setItem('userData', JSON.stringify(mergedUserData));
+                        updateUser(mergedUserData);
 
-                        setUserMemberType(freshUserData);
+                        setUserMemberType(mergedUserData);
                     } else {
                         // API call failed — fall back to cached storage data
                         console.warn('[BookMeetingRoom] Failed to fetch fresh profile, falling back to cached data:', result.message);
@@ -1861,14 +1935,15 @@ const BookMeetingRoom = () => {
         const startHour = 9;
         const endHour = 18;
         const endMinute = 30; 
-       console.log("memberType",memberType);
-       console.log("duration",duration);
+        const apiMemberType = resolveApiMemberType(memberType);
+        console.log("memberType", memberType);
+        console.log("duration", duration);
         // For members, show 30-minute and 1-hour slots between 9am-6pm
         // if (memberType === 'member') {
             
         // }
         // For non-members, only show 1-hour slots between 9am-6pm
-        if (memberType === 'non_member') {
+        if (apiMemberType === 'non-member') {
             for (let hour = startHour; hour < endHour; hour++) {
                 const startTime = `${hour.toString().padStart(2, '0')}:00`;
                 const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
@@ -1929,9 +2004,10 @@ const BookMeetingRoom = () => {
         return slots;
     };
 const handleHourlyMemberType = (memberType) => {
-     
-    if (memberType === 'member') {
-        setMemberType('member'); // we need to check why this state not updating on time
+    const apiMemberType = resolveApiMemberType(memberType);
+
+    if (apiMemberType === 'member') {
+        setMemberType('Member');
         setSelectedDuration('30min');
         setAvailableTimeSlots(generateTimeSlots('30min', 'member'));
         // Clear selected time slots when changing member type
@@ -1942,9 +2018,9 @@ const handleHourlyMemberType = (memberType) => {
         setSelectedSeating('');
 
     } else {
-        setMemberType('non_member');
+        setMemberType('Non-Member');
         setSelectedDuration('1hour');
-        setAvailableTimeSlots(generateTimeSlots('1hour', 'non_member'));
+        setAvailableTimeSlots(generateTimeSlots('1hour', 'non-member'));
         // Clear selected time slots when changing member type
         setSelectedTimeSlots([]);
         setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
@@ -2181,11 +2257,12 @@ const handleHourlyMemberType = (memberType) => {
         setIsLoadingPricing(true);
         console.log('Fetching pricing data...');
         try {
+            const apiMemberType = resolveApiMemberType(memberType);
             // Format the parameters correctly
             const params = {
                 capacityType: seatingCapacity === 'C1' ? '4-6 Seater' : '10-12 Seater',
                 bookingType: bookingType,
-                memberType: memberType
+                memberType: apiMemberType
             };
             
             console.log('Fetching pricing with params:', params);
@@ -2289,7 +2366,7 @@ const handleHourlyMemberType = (memberType) => {
         const params = {
             date: format(date, 'yyyy-MM-dd'),
             capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
-            memberType: memberType === 'Member' ? 'member' : 'non-member'
+            memberType: resolveApiMemberType(memberType)
         };
         
         console.log('API Parameters:', params);
@@ -2453,12 +2530,14 @@ const handleHourlyMemberType = (memberType) => {
             }
 
             // Validate payment receipt for Non-Members
-            if (!paymentReceipt && type === 'Non-Member') {
+            const apiMemberType = resolveApiMemberType(type);
+
+            if (!paymentReceipt && apiMemberType === 'non-member') {
                 alert('Payment screenshot is required. Please upload your payment transaction proof.');
                 return;
             }
 
-            if (paymentReceipt && !paymentReceipt.file && type === 'Non-Member') {
+            if (paymentReceipt && !paymentReceipt.file && apiMemberType === 'non-member') {
                 alert('Invalid payment receipt. Please upload a valid file.');
                 return;
             }
@@ -2479,7 +2558,9 @@ const handleHourlyMemberType = (memberType) => {
             formattedTimeSlots.forEach(slot => formData.append('timeSlots[]', slot));
             formData.append('duration', duration);
             formData.append('bookingType', bookingType);
-            formData.append('memberType', type);
+            formData.append('memberType', toDisplayMemberType(apiMemberType));
+            formData.append('membershipType', toDisplayMemberType(apiMemberType));
+            formData.append('isMember', apiMemberType === 'member');
             formData.append('notes', 'Meeting room booking');
             formData.append('totalAmount', calculatedPrice.total);
 
@@ -3584,202 +3665,235 @@ const handleHourlyMemberType = (memberType) => {
                             </Typography>
                         </Box>
 
-                        <FormControl 
-                            fullWidth 
-                            sx={{ 
-                                mb: 3,
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: '16px',
-                                    background: 'rgba(255, 255, 255, 0.8)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(102, 126, 234, 0.2)',
-                                    transition: 'all 0.3s ease',
-                                    '&:hover': {
-                                        borderColor: 'rgba(102, 126, 234, 0.4)',
-                                        transform: 'translateY(-2px)',
-                                        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.15)'
-                                    },
-                                    '&.Mui-focused': {
-                                        borderColor: '#667eea',
-                                        boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)'
-                                    }
-                                },
-                                '& .MuiInputLabel-root': {
-                                    color: '#667eea',
-                                    fontWeight: 500
-                                }
-                            }}
-                        >
-                            <InputLabel>Booking Type</InputLabel>
-                            <Select
-                                value={bookingType}
-                                onChange={handleBookingTypeChange}
-                                label="Booking Type"
-                                disabled={isLoadingBookingTypes}
-                                sx={{
-                                    '& .MuiSelect-select': {
-                                        padding: '16px',
-                                        fontSize: '1rem'
-                                    }
-                                }}
-                            >
-                                <MenuItem value="" disabled>
-                                    <Typography sx={{ color: '#999', fontStyle: 'italic' }}>
-                                    Select Booking Type
-                                    </Typography>
-                                </MenuItem>
-                                {bookingTypes && bookingTypes.length > 0 ? (
-                                    bookingTypes.map((type) => (
-                                        <MenuItem 
-                                            key={type.id} 
-                                            value={type.name}
-                                            sx={{
-                                                '&:hover': {
-                                                    background: 'rgba(102, 126, 234, 0.1)'
-                                                }
-                                            }}
-                                        >
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                <Box sx={{
-                                                    width: '8px',
-                                                    height: '8px',
-                                                    borderRadius: '50%',
-                                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                                }} />
-                                            {type.name}
-                                            </Box>
-                                        </MenuItem>
-                                    ))
-                                ) : (
-                                    <>
-                                        <MenuItem value="Hourly">
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                <Typography sx={{ fontSize: '1.2rem' }}>⏰</Typography>
-                                                Hourly
-                                            </Box>
-                                        </MenuItem>
-                                        <MenuItem value="Whole Day">
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                <Typography sx={{ fontSize: '1.2rem' }}>📅</Typography>
-                                                Whole Day
-                                            </Box>
-                                        </MenuItem>
-                                    </>
-                                )}
-                            </Select>
-                        </FormControl>
-
-                        {bookingType && (
+                        {!isAuthenticated ? (
                             <Box sx={{
-                                animation: 'slideDown 0.3s ease-out',
-                                '@keyframes slideDown': {
-                                    '0%': { opacity: 0, transform: 'translateY(-10px)' },
-                                    '100%': { opacity: 1, transform: 'translateY(0)' }
-                                }
+                                mb: 3,
+                                p: 3,
+                                borderRadius: '16px',
+                                background: 'rgba(102, 126, 234, 0.08)',
+                                border: '1px solid rgba(102, 126, 234, 0.2)',
+                                textAlign: 'center'
                             }}>
-                                {/* Show status message while checking user status */}
-                                {isCheckingUserStatus && (
-                                    <Box sx={{
-                                        p: 3,
-                                        mb: 3,
-                                        bgcolor: 'rgba(33, 150, 243, 0.1)',
-                                        border: '1px solid rgba(33, 150, 243, 0.3)',
-                                        borderRadius: '16px',
-                                        textAlign: 'center'
-                                    }}>
-                                        <Box sx={{
-                                            width: 50,
-                                            height: 50,
-                                            margin: '0 auto 16px',
-                                            borderRadius: '50%',
-                                            background: 'conic-gradient(from 0deg, #2196F3, #64B5F6, #2196F3)',
-                                            display: 'flex',
-                                            alignItems: 'center',               
-                                            justifyContent: 'center',
-                                            animation: 'spin 2s linear infinite',
-                                            '@keyframes spin': {
-                                                '0%': { transform: 'rotate(0deg)' },
-                                                '100%': { transform: 'rotate(360deg)' }
-                                            }
-                                        }}>
-                                            <Box sx={{
-                                                width: 35,
-                                                height: 35,
-                                                borderRadius: '50%',
-                                                bgcolor: 'white',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center'
-                                            }}>
-                                                ⏳
-                                            </Box>
-                                        </Box>
-                                        <Typography variant="h6" sx={{ color: '#2196F3', fontWeight: 'bold', mb: 1 }}>
-                                            {userStatusMessage}
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ color: '#666' }}>
-                                            Please wait...
-                                        </Typography>
-                                    </Box>
-                                )}
-
-                                {/* Show member type as read-only (auto-detected) */}
-                                {!isCheckingUserStatus && memberType && (
-                                    <Box sx={{
-                                        p: 3,
-                                        mb: 3,
-                                        bgcolor: memberType === 'Member' 
-                                            ? 'rgba(76, 175, 80, 0.1)' 
-                                            : 'rgba(255, 152, 0, 0.1)',
-                                        border: memberType === 'Member'
-                                            ? '1px solid rgba(76, 175, 80, 0.3)'
-                                            : '1px solid rgba(255, 152, 0, 0.3)',
-                                        borderRadius: '16px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between'
-                                    }}>
-                                        <Box>
-                                            <Typography variant="caption" sx={{ 
-                                                color: memberType === 'Member' ? '#2E7D32' : '#E65100',
-                                                fontWeight: 'bold',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '1px',
-                                                fontSize: '0.7rem'
-                                            }}>
-                                                Your Member Type
-                                            </Typography>
-                                            <Typography variant="h6" sx={{ 
-                                                color: memberType === 'Member' ? '#2E7D32' : '#E65100',
-                                                fontWeight: 'bold',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 1,
-                                                mt: 0.5
-                                            }}>
-                                                <Typography sx={{ fontSize: '1.5rem' }}>
-                                                    {memberType === 'Member' ? '👤' : '👥'}
-                                                </Typography>
-                                                {memberType}
-                                            </Typography>
-                                        </Box>
-                                        <Box sx={{
-                                            width: 40,
-                                            height: 40,
-                                            borderRadius: '50%',
-                                            bgcolor: memberType === 'Member' 
-                                                ? 'rgba(76, 175, 80, 0.2)' 
-                                                : 'rgba(255, 152, 0, 0.2)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '1.2rem'
-                                        }}>
-                                            ✓
-                                        </Box>
-                                    </Box>
-                                )}
+                                <Typography sx={{ color: '#4f5bd5', fontWeight: 600, mb: 1 }}>
+                                    Please log in to continue
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
+                                    Login is required before selecting a booking type.
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => {
+                                        setShowBookingModal(false);
+                                        setShowLoginModal(true);
+                                    }}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        textTransform: 'none'
+                                    }}
+                                >
+                                    Login / Register
+                                </Button>
                             </Box>
+                        ) : (
+                            <>
+                                <FormControl 
+                                    fullWidth 
+                                    sx={{ 
+                                        mb: 3,
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: '16px',
+                                            background: 'rgba(255, 255, 255, 0.8)',
+                                            backdropFilter: 'blur(10px)',
+                                            border: '1px solid rgba(102, 126, 234, 0.2)',
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                borderColor: 'rgba(102, 126, 234, 0.4)',
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.15)'
+                                            },
+                                            '&.Mui-focused': {
+                                                borderColor: '#667eea',
+                                                boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)'
+                                            }
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            color: '#667eea',
+                                            fontWeight: 500
+                                        }
+                                    }}
+                                >
+                                    <InputLabel>Booking Type</InputLabel>
+                                    <Select
+                                        value={bookingType}
+                                        onChange={handleBookingTypeChange}
+                                        label="Booking Type"
+                                        disabled={isLoadingBookingTypes}
+                                        sx={{
+                                            '& .MuiSelect-select': {
+                                                padding: '16px',
+                                                fontSize: '1rem'
+                                            }
+                                        }}
+                                    >
+                                        <MenuItem value="" disabled>
+                                            <Typography sx={{ color: '#999', fontStyle: 'italic' }}>
+                                            Select Booking Type
+                                            </Typography>
+                                        </MenuItem>
+                                        {bookingTypes && bookingTypes.length > 0 ? (
+                                            bookingTypes.map((type) => (
+                                                <MenuItem 
+                                                    key={type.id} 
+                                                    value={type.name}
+                                                    sx={{
+                                                        '&:hover': {
+                                                            background: 'rgba(102, 126, 234, 0.1)'
+                                                        }
+                                                    }}
+                                                >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Box sx={{
+                                                            width: '8px',
+                                                            height: '8px',
+                                                            borderRadius: '50%',
+                                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                        }} />
+                                                    {type.name}
+                                                    </Box>
+                                                </MenuItem>
+                                            ))
+                                        ) : (
+                                            <>
+                                                <MenuItem value="Hourly">
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Typography sx={{ fontSize: '1.2rem' }}>⏰</Typography>
+                                                        Hourly
+                                                    </Box>
+                                                </MenuItem>
+                                                <MenuItem value="Whole Day">
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Typography sx={{ fontSize: '1.2rem' }}>📅</Typography>
+                                                        Whole Day
+                                                    </Box>
+                                                </MenuItem>
+                                            </>
+                                        )}
+                                    </Select>
+                                </FormControl>
+
+                                {bookingType && (
+                                    <Box sx={{
+                                        animation: 'slideDown 0.3s ease-out',
+                                        '@keyframes slideDown': {
+                                            '0%': { opacity: 0, transform: 'translateY(-10px)' },
+                                            '100%': { opacity: 1, transform: 'translateY(0)' }
+                                        }
+                                    }}>
+                                        {/* Show status message while checking user status */}
+                                        {isCheckingUserStatus && (
+                                            <Box sx={{
+                                                p: 3,
+                                                mb: 3,
+                                                bgcolor: 'rgba(33, 150, 243, 0.1)',
+                                                border: '1px solid rgba(33, 150, 243, 0.3)',
+                                                borderRadius: '16px',
+                                                textAlign: 'center'
+                                            }}>
+                                                <Box sx={{
+                                                    width: 50,
+                                                    height: 50,
+                                                    margin: '0 auto 16px',
+                                                    borderRadius: '50%',
+                                                    background: 'conic-gradient(from 0deg, #2196F3, #64B5F6, #2196F3)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',               
+                                                    justifyContent: 'center',
+                                                    animation: 'spin 2s linear infinite',
+                                                    '@keyframes spin': {
+                                                        '0%': { transform: 'rotate(0deg)' },
+                                                        '100%': { transform: 'rotate(360deg)' }
+                                                    }
+                                                }}>
+                                                    <Box sx={{
+                                                        width: 35,
+                                                        height: 35,
+                                                        borderRadius: '50%',
+                                                        bgcolor: 'white',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        ⏳
+                                                    </Box>
+                                                </Box>
+                                                <Typography variant="h6" sx={{ color: '#2196F3', fontWeight: 'bold', mb: 1 }}>
+                                                    {userStatusMessage}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: '#666' }}>
+                                                    Please wait...
+                                                </Typography>
+                                            </Box>
+                                        )}
+
+                                        {/* Show member type as read-only (auto-detected) */}
+                                        {!isCheckingUserStatus && memberType && (
+                                            <Box sx={{
+                                                p: 3,
+                                                mb: 3,
+                                                bgcolor: memberType === 'Member' 
+                                                    ? 'rgba(76, 175, 80, 0.1)' 
+                                                    : 'rgba(255, 152, 0, 0.1)',
+                                                border: memberType === 'Member'
+                                                    ? '1px solid rgba(76, 175, 80, 0.3)'
+                                                    : '1px solid rgba(255, 152, 0, 0.3)',
+                                                borderRadius: '16px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between'
+                                            }}>
+                                                <Box>
+                                                    <Typography variant="caption" sx={{ 
+                                                        color: memberType === 'Member' ? '#2E7D32' : '#E65100',
+                                                        fontWeight: 'bold',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '1px',
+                                                        fontSize: '0.7rem'
+                                                    }}>
+                                                        Your Member Type
+                                                    </Typography>
+                                                    <Typography variant="h6" sx={{ 
+                                                        color: memberType === 'Member' ? '#2E7D32' : '#E65100',
+                                                        fontWeight: 'bold',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 1,
+                                                        mt: 0.5
+                                                    }}>
+                                                        <Typography sx={{ fontSize: '1.5rem' }}>
+                                                            {memberType === 'Member' ? '👤' : '👥'}
+                                                        </Typography>
+                                                        {memberType}
+                                                    </Typography>
+                                                </Box>
+                                                <Box sx={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: '50%',
+                                                    bgcolor: memberType === 'Member' 
+                                                        ? 'rgba(76, 175, 80, 0.2)' 
+                                                        : 'rgba(255, 152, 0, 0.2)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '1.2rem'
+                                                }}>
+                                                    ✓
+                                                </Box>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                )}
+                            </>
                         )}
 
                         {bookingType && memberType && (
@@ -5033,7 +5147,7 @@ const handleHourlyMemberType = (memberType) => {
                                     height: { xs: '40px', sm: '45px' }
                                 }}
                             >
-                                {memberType === 'Member' ? 'Book Now' : 'Proceed to Payment'}
+                                {memberType === 'Member' ? 'B Now' : 'Proceed to Payment'}
                             </Button>
                         </Box>
                     </Box>
