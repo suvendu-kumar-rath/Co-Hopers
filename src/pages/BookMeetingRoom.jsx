@@ -93,9 +93,13 @@ const BookMeetingRoom = () => {
     }, [location.state, location.pathname, navigate]);
     
     const seatingOptions = [
-        { id: 'C1', name: '4-6 Seater', capacity: 4-6 },
-        { id: 'C2', name: '10-12 Seater', capacity:10-12}
+        { id: 'C1', name: '4-6 Seater', capacity: 4 },
+        { id: 'C2', name: '10-12 Seater', capacity: 10 }
     ];
+
+    // Meeting rooms from API
+    const [meetingRooms, setMeetingRooms] = useState([]);
+    const [isLoadingMeetingRooms, setIsLoadingMeetingRooms] = useState(false);
 
     // Modify rooms data to include seating capacity
     const rooms = [
@@ -138,13 +142,13 @@ const BookMeetingRoom = () => {
         const basePrice = getBasePrice();
         
         const subtotal = Math.ceil(duration * basePrice);
-        // const gst = subtotal * 0.18;
+        const gst = subtotal * 0.18;
         
         return {
             duration,
             subtotal,
-            // gst,
-            total: subtotal
+            gst,
+            total: subtotal + gst
         };
     };
 
@@ -450,6 +454,10 @@ const BookMeetingRoom = () => {
     const [availableDays, setAvailableDays] = useState([]);
     const [isLoadingAvailableDays, setIsLoadingAvailableDays] = useState(false);
 
+    // State for tracking per-date slot availability in hourly booking mode
+    // { [dateStr]: { loading: boolean, isAvailable: boolean, availableSlotCount: number | null } }
+    const [hourlyDateAvailability, setHourlyDateAvailability] = useState({});
+
     // Update timeSlots to include 30-minute and 1-hour intervals
     const timeSlots = Array.from({ length: 19 }, (_, i) => {
         const hour = Math.floor(i / 2) + 9;
@@ -501,33 +509,37 @@ const BookMeetingRoom = () => {
         return dates;
     };
 
-    // Check if a date is available for whole day booking
+    // Check if a date is available for booking based on booking type and existing bookings.
+    // Rules:
+    //   Hourly   – date is blocked when a full-day booking already exists (0 available slots).
+    //   Whole Day – date is blocked when any hourly OR full-day booking already exists
+    //               (backend returns only truly-free days in availableDays).
     const isDateAvailableForBooking = (date) => {
-        // If we're not in whole day booking mode, all dates are available
-        if (bookingType !== 'Whole Day') {
-            return true;
-        }
-
-        // If seating is not selected yet, don't check availability
-        if (!selectedSeating) {
-            return true;
-        }
-
-        // If still loading available days, allow selection (optimistic)
-        if (isLoadingAvailableDays) {
-            return true;
-        }
-
-        // If no available days data, allow all dates (fallback)
-        if (!availableDays || availableDays.length === 0) {
-            return true;
-        }
-
-        // Check if the date is in the available days array
         const dateStr = format(date, 'yyyy-MM-dd');
+
+        if (bookingType === 'Hourly') {
+            const status = hourlyDateAvailability[dateStr];
+            // While loading or no data yet, allow selection (optimistic)
+            if (!status || status.loading) return true;
+            // Block dates where NO slots are available (full-day booking covers the day)
+            return status.isAvailable;
+        }
+
+        // ── Whole Day booking ──────────────────────────────────────────
+        // If seating is not selected yet, don't restrict dates
+        if (!selectedSeating) return true;
+
+        // While fetching available days, allow selection (optimistic)
+        if (isLoadingAvailableDays) return true;
+
+        // If no available days data arrived yet, allow all dates (fallback)
+        if (!availableDays || availableDays.length === 0) return true;
+
+        // A date is only available for whole-day booking if the backend
+        // confirmed it has no existing bookings of any type.
         const isAvailable = availableDays.includes(dateStr);
-        
-        console.log('Checking date availability:', {
+
+        console.log('Checking whole-day date availability:', {
             date: dateStr,
             isAvailable,
             availableDaysCount: availableDays.length
@@ -656,18 +668,34 @@ const BookMeetingRoom = () => {
                 </Button>
                 
                 {getAvailableDates().map((date) => {
+                    const dateStr = format(date, 'yyyy-MM-dd');
                     const isAvailable = isDateAvailableForBooking(date);
-                    const isSelected = selectedDate && format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                    const isSelected = selectedDate && dateStr === format(selectedDate, 'yyyy-MM-dd');
+                    const hourlyStatus = hourlyDateAvailability[dateStr];
+
+                    // Sub-label logic: explain why a date is unavailable or show slot count
+                    let subLabel = null;
+                    if (bookingType === 'Hourly') {
+                        if (hourlyStatus?.loading) {
+                            subLabel = 'Checking…';
+                        } else if (!isAvailable) {
+                            subLabel = 'Full Day Booked';
+                        } else if (hourlyStatus?.availableSlotCount != null) {
+                            subLabel = `${hourlyStatus.availableSlotCount} slot${hourlyStatus.availableSlotCount !== 1 ? 's' : ''} free`;
+                        }
+                    } else if (bookingType === 'Whole Day' && !isAvailable) {
+                        subLabel = 'Not Available';
+                    }
                     
                     return (
                         <Button
-                            key={format(date, 'yyyy-MM-dd')}
+                            key={dateStr}
                             variant={isSelected ? "contained" : "outlined"}
                             disabled={!isAvailable}
                             onClick={() => {
                                 if (isAvailable) {
                                     console.log('Date selected:', {
-                                        date: format(date, 'yyyy-MM-dd'),
+                                        date: dateStr,
                                         memberType,
                                         selectedSeating
                                     });
@@ -680,6 +708,8 @@ const BookMeetingRoom = () => {
                                 fontSize: { xs: '0.75rem', sm: '0.875rem' },
                                 px: { xs: 1, sm: 2 },
                                 flexShrink: 0,
+                                flexDirection: 'column',
+                                lineHeight: 1.3,
                                 background: isSelected
                                     ? 'linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%)'
                                     : 'transparent',
@@ -694,6 +724,19 @@ const BookMeetingRoom = () => {
                             }}
                         >
                             {format(date, 'dd MMM yyyy')}
+                            {subLabel && (
+                                <span style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 600,
+                                    opacity: 0.85,
+                                    display: 'block',
+                                    textDecoration: 'none',
+                                    color: !isAvailable ? 'inherit' : (isSelected ? 'rgba(255,255,255,0.9)' : '#666'),
+                                    letterSpacing: '0.2px'
+                                }}>
+                                    {subLabel}
+                                </span>
+                            )}
                         </Button>
                     );
                 })}
@@ -895,6 +938,20 @@ const BookMeetingRoom = () => {
                         </Box>
                     </Box>
 
+                    {/* No slots available – explain why (hourly mode only) */}
+                    {bookingType === 'Hourly' && selectedDate && availableSlots.length === 0 && (
+                        <Alert severity="warning" sx={{ mb: 2, borderRadius: '12px' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                No Available Time Slots
+                            </Typography>
+                            <Typography variant="body2">
+                                {hourlyDateAvailability[format(selectedDate, 'yyyy-MM-dd')]?.isAvailable === false
+                                    ? 'This date already has a full-day booking. Hourly booking is not allowed on this date.'
+                                    : 'All time slots on this date are already booked. Please select a different date.'}
+                            </Typography>
+                        </Alert>
+                    )}
+
                     {/* Enhanced Time Slots Grid */}
                     <Box sx={{ 
                         display: 'grid',
@@ -903,18 +960,22 @@ const BookMeetingRoom = () => {
                         mb: 4,
                         px: 2
                 }}>
-                    {availableSlots.map((slot, index) => {
-                        const isSelected = selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
-                            const isInPreview = hoveredSlot && getConsecutiveSlots(slot, selectedTotalDuration).some(s => 
+                    {(() => {
+                        const slotsForGrid = availableSlots;
+
+                        return slotsForGrid.map((slot, index) => {
+                        const isBooked = false;
+                        const isSelected = !isBooked && selectedTimeSlots.some(s => s.start === slot.start && s.end === slot.end);
+                            const isInPreview = !isBooked && hoveredSlot && getConsecutiveSlots(hoveredSlot, selectedTotalDuration).some(s => 
                                 s.start === slot.start && s.end === slot.end
                             );
-                            const canSelect = true; // Always allow selection with duration-based booking
+                            const canSelect = !isBooked; // Only available slots are selectable
                         
                         return (
                             <Box
                                 key={index}
                                     onClick={() => canSelect && handleTimeSlotSelectionUnified(slot)}
-                                    onMouseEnter={() => setHoveredSlot(slot)}
+                                    onMouseEnter={() => !isBooked && setHoveredSlot(slot)}
                                     onMouseLeave={() => setHoveredSlot(null)}
                                 sx={{
                                         position: 'relative',
@@ -924,25 +985,32 @@ const BookMeetingRoom = () => {
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                        background: isSelected 
+                                        background: isBooked
+                                            ? 'linear-gradient(135deg, #F5F5F5 0%, #EEEEEE 100%)'
+                                            : isSelected 
                                             ? 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)'
                                             : isInPreview
                                                 ? 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
                                                 : 'linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)',
-                                        border: isSelected 
+                                        border: isBooked
+                                            ? '2px dashed rgba(0,0,0,0.15)'
+                                            : isSelected 
                                             ? '2px solid #2E7D32' 
                                             : isInPreview
                                                 ? '2px solid #1976D2'
                                                 : '2px solid transparent',
                                         borderRadius: '16px',
-                                        cursor: canSelect ? 'pointer' : 'not-allowed',
-                                        boxShadow: isSelected 
+                                        cursor: isBooked ? 'not-allowed' : (canSelect ? 'pointer' : 'not-allowed'),
+                                        opacity: isBooked ? 0.55 : 1,
+                                        boxShadow: isBooked
+                                            ? 'none'
+                                            : isSelected 
                                             ? '0 8px 25px rgba(76, 175, 80, 0.3)'
                                             : isInPreview
                                                 ? '0 8px 25px rgba(33, 150, 243, 0.3)'
                                                 : '0 4px 15px rgba(0, 0, 0, 0.1)',
-                                        transform: isSelected ? 'scale(1.05)' : isInPreview ? 'scale(1.03)' : 'scale(1)',
-                                        '&:hover': canSelect ? {
+                                        transform: isBooked ? 'scale(1)' : (isSelected ? 'scale(1.05)' : isInPreview ? 'scale(1.03)' : 'scale(1)'),
+                                        '&:hover': (canSelect && !isBooked) ? {
                                             transform: 'scale(1.08) translateY(-4px)',
                                             boxShadow: isSelected 
                                                 ? '0 12px 35px rgba(76, 175, 80, 0.4)'
@@ -967,7 +1035,9 @@ const BookMeetingRoom = () => {
                                             left: 0,
                                             right: 0,
                                             bottom: 0,
-                                            background: isSelected 
+                                            background: isBooked
+                                                ? 'none'
+                                                : isSelected 
                                                 ? 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, transparent 50%)'
                                                 : 'radial-gradient(circle at 70% 70%, rgba(76, 175, 80, 0.1) 0%, transparent 50%)',
                                             opacity: 0.8,
@@ -980,7 +1050,7 @@ const BookMeetingRoom = () => {
                                     sx={{
                                             fontSize: '1rem',
                                             fontWeight: 'bold',
-                                            color: isSelected ? 'white' : isInPreview ? 'white' : '#2E7D32',
+                                            color: isBooked ? '#9E9E9E' : (isSelected ? 'white' : isInPreview ? 'white' : '#2E7D32'),
                                             textAlign: 'center',
                                             mb: 1,
                                             position: 'relative',
@@ -994,8 +1064,8 @@ const BookMeetingRoom = () => {
                                     
                                     {/* Duration Badge */}
                                     <Box sx={{
-                                        bgcolor: isSelected ? 'rgba(255,255,255,0.2)' : isInPreview ? 'rgba(255,255,255,0.2)' : 'rgba(76, 175, 80, 0.2)',
-                                        color: isSelected ? 'white' : isInPreview ? 'white' : '#2E7D32',
+                                        bgcolor: isBooked ? 'rgba(244,67,54,0.1)' : (isSelected ? 'rgba(255,255,255,0.2)' : isInPreview ? 'rgba(255,255,255,0.2)' : 'rgba(76, 175, 80, 0.2)'),
+                                        color: isBooked ? '#F44336' : (isSelected ? 'white' : isInPreview ? 'white' : '#2E7D32'),
                                         px: 2,
                                         py: 0.5,
                                         borderRadius: '20px',
@@ -1003,10 +1073,10 @@ const BookMeetingRoom = () => {
                                         fontWeight: 'medium',
                                         position: 'relative',
                                         zIndex: 1,
-                                        border: `1px solid ${isSelected ? 'rgba(255,255,255,0.3)' : isInPreview ? 'rgba(255,255,255,0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
+                                        border: `1px solid ${isBooked ? 'rgba(244,67,54,0.3)' : (isSelected ? 'rgba(255,255,255,0.3)' : isInPreview ? 'rgba(255,255,255,0.3)' : 'rgba(76, 175, 80, 0.3)')}`,
                                         backdropFilter: 'blur(10px)'
                                     }}>
-                                        {slot.duration}
+                                        {isBooked ? 'Already Booked' : slot.duration}
                                     </Box>
 
                                     {/* Status Icon */}
@@ -1017,7 +1087,7 @@ const BookMeetingRoom = () => {
                                         width: 24,
                                         height: 24,
                                         borderRadius: '50%',
-                                        bgcolor: isSelected ? 'rgba(255,255,255,0.3)' : isInPreview ? 'rgba(255,255,255,0.3)' : 'rgba(76, 175, 80, 0.3)',
+                                        bgcolor: isBooked ? 'rgba(244,67,54,0.2)' : (isSelected ? 'rgba(255,255,255,0.3)' : isInPreview ? 'rgba(255,255,255,0.3)' : 'rgba(76, 175, 80, 0.3)'),
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -1029,7 +1099,7 @@ const BookMeetingRoom = () => {
                                             '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' }
                                         }
                                     }}>
-                                        {isSelected ? '✓' : isInPreview ? '👁' : '○'}
+                                        {isBooked ? '✗' : isSelected ? '✓' : isInPreview ? '👁' : '○'}
                                     </Box>
 
                                     {/* Ripple Effect on Click */}
@@ -1060,7 +1130,8 @@ const BookMeetingRoom = () => {
                                 )}
                             </Box>
                         );
-                    })}
+                    });
+                    })()}
                 </Box>
                 </>
             )}
@@ -1213,15 +1284,32 @@ const BookMeetingRoom = () => {
                         backgroundSize: '20px 20px',
                         backgroundPosition: '0 0, 10px 10px'
                     }}>
+                        <Typography variant="h6" sx={{ 
+                            color: '#2E7D32', 
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            mb: 1.5
+                        }}>
+                            💰 Price Summary
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ color: '#4CAF50' }}>Base Price</Typography>
+                            <Typography variant="body2" sx={{ color: '#2E7D32', fontWeight: 500 }}>
+                                ₹{Math.ceil(calculatedPrice.subtotal)}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                            <Typography variant="body2" sx={{ color: '#4CAF50' }}>GST (18%)</Typography>
+                            <Typography variant="body2" sx={{ color: '#2E7D32', fontWeight: 500 }}>
+                                ₹{Math.ceil(calculatedPrice.gst)}
+                            </Typography>
+                        </Box>
+                        <Divider sx={{ borderColor: 'rgba(76, 175, 80, 0.3)', mb: 1.5 }} />
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Typography variant="h6" sx={{ 
-                                color: '#2E7D32', 
-                                fontWeight: 'bold',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1
-                            }}>
-                                💰 Total Amount
+                            <Typography variant="h6" sx={{ color: '#2E7D32', fontWeight: 'bold' }}>
+                                Total Amount
                             </Typography>
                             <Typography variant="h5" sx={{ 
                                 color: '#2E7D32', 
@@ -1230,7 +1318,7 @@ const BookMeetingRoom = () => {
                                 textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                             }}>
                                 ₹{Math.ceil(calculatedPrice.total)}/-
-                    </Typography>
+                            </Typography>
                         </Box>
                         <Typography variant="caption" sx={{ 
                             color: '#4CAF50',
@@ -1238,7 +1326,7 @@ const BookMeetingRoom = () => {
                             mt: 1,
                             display: 'block'
                         }}>
-                            *Including GST and all charges
+                            *Total including GST and all charges
                         </Typography>
                     </Box>
                 </Box>
@@ -1386,7 +1474,7 @@ const BookMeetingRoom = () => {
 
                         // Prepare the request data exactly as per API requirement
                         const bookingData = {
-                            capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
+                            capacityType: getSelectedCapacityType(),
                             bookingDate: format(selectedDate, 'yyyy-MM-dd'),
                             timeSlots: formattedTimeSlots,
                             duration: duration,
@@ -1496,12 +1584,24 @@ const BookMeetingRoom = () => {
         console.log('=== End of handleFinalBooking ===');
     };
 
+    // Helper: returns the capacityType string for the currently selected room
+    const getSelectedCapacityType = () =>
+        selectedRoom?.capacityType || (selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater');
+
     // Get base price based on member type and seating capacity
     const getBasePrice = () => {
         const apiMemberType = resolveApiMemberType(memberType);
         const member = apiMemberType === 'member';
 
-        // For whole day booking
+        // Use actual room rates when a room is selected from the API
+        if (selectedRoom) {
+            if (bookingType === 'Whole Day') {
+                return parseFloat(member ? selectedRoom.memberDayRate : selectedRoom.dayRate) || (member ? 1800 : 2300);
+            }
+            return parseFloat(member ? selectedRoom.memberHourlyRate : selectedRoom.hourlyRate) || (member ? 200 : 250);
+        }
+
+        // For whole day booking (fallback)
         if (bookingType === 'Whole Day') {
             if (selectedSeating === 'C2') { // 10-12 Seater
                 return member ? 2500 : 3000;
@@ -1509,7 +1609,7 @@ const BookMeetingRoom = () => {
             return member ? 1800 : 2300; // Default whole day pricing for 4-6 seater
         }
         
-        // For hourly booking
+        // For hourly booking (fallback)
         if (member) {
             // For members, price depends on seating capacity
             if (selectedSeating === 'C1') { // 4-6 Seater
@@ -1541,6 +1641,26 @@ const BookMeetingRoom = () => {
     const handleBookNowClick = () => {
         setShowPricingModal(true);
     };
+
+    // Fetch all meeting rooms from API (for seating capacity selection)
+    const fetchMeetingRooms = async () => {
+        setIsLoadingMeetingRooms(true);
+        try {
+            const response = await axios.get('https://api.boldtribe.in/api/meetingrooms');
+            if (response.data.success && Array.isArray(response.data.data)) {
+                // Only show active rooms
+                setMeetingRooms(response.data.data.filter(r => r.status === true));
+            }
+        } catch (error) {
+            console.error('Error fetching meeting rooms:', error.message);
+        } finally {
+            setIsLoadingMeetingRooms(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMeetingRooms();
+    }, []);
 
     const [roomTypes, setRoomTypes] = useState([]);
     const [isLoadingRoomTypes, setIsLoadingRoomTypes] = useState(false);
@@ -1590,11 +1710,12 @@ const BookMeetingRoom = () => {
             // For whole day booking, set the calculated price directly
             if (bookingType === 'Whole Day') {
                 const basePrice = getBasePrice();
+                const gst = basePrice * 0.18;
                 setCalculatedPrice({
                     duration: 9, // 9 hours (9am-6pm)
                     subtotal: basePrice,
-                    gst: 0, // GST is already included
-                    total: basePrice
+                    gst: gst,
+                    total: basePrice + gst
                 });
                 
                 // For whole day booking, create a single time slot for the whole day
@@ -1655,11 +1776,6 @@ const BookMeetingRoom = () => {
             setMemberType(detectedMemberType);
             console.log('Member Type from backend:', rawMemberType, '-> Display:', detectedMemberType);
             
-            // Fetch pricing data if booking type is selected
-            if (bookingType) {
-                fetchPricingData(detectedMemberType, bookingType, selectedSeating || 'C1');
-            }
-
             // After 1.5 seconds, route to the correct next step
             setTimeout(() => {
                 setIsCheckingUserStatus(false);
@@ -1853,14 +1969,11 @@ const BookMeetingRoom = () => {
         // Reset date and seating when booking type changes
         setSelectedDate(null);
         setSelectedSeating('');
+        setSelectedRoom(null);
         setSelectedTimeSlots([]);
         setAvailableTimeSlots([]);
+        setHourlyDateAvailability({}); // Clear stale per-date status
         
-        // Fetch pricing data when booking type changes if member type is already selected
-        if (memberType && newBookingType) {
-            // Use the exact values from the API response
-            fetchPricingData(memberType, newBookingType, selectedSeating || 'C1');
-        }
     };
 
     const [amenities, setAmenities] = useState({
@@ -2016,6 +2129,7 @@ const handleHourlyMemberType = (memberType) => {
         // Reset date and seating when member type changes
         setSelectedDate(null);
         setSelectedSeating('');
+        setSelectedRoom(null);
 
     } else {
         setMemberType('Non-Member');
@@ -2027,6 +2141,7 @@ const handleHourlyMemberType = (memberType) => {
         // Reset date and seating when member type changes
         setSelectedDate(null);
         setSelectedSeating('');
+        setSelectedRoom(null);
     }
 };
     // Update handleTimeChange
@@ -2165,7 +2280,7 @@ const handleHourlyMemberType = (memberType) => {
 
             try {
                 const currentDate = dateWindowStart || new Date();
-                const capacityType = selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater';
+                const capacityType = getSelectedCapacityType();
                 
                 // Fetch available days for current month and potentially next 2 months
                 // to cover the date picker's visible range
@@ -2226,6 +2341,16 @@ const handleHourlyMemberType = (memberType) => {
         fetchAvailableDaysForBooking();
     }, [selectedSeating, bookingType, dateWindowStart]);
 
+    // Pre-fetch hourly date availability whenever the visible date window,
+    // booking type, member type, or seating capacity changes.
+    // This ensures date buttons show correct availability badges immediately.
+    useEffect(() => {
+        if (bookingType === 'Hourly' && memberType && selectedSeating) {
+            prefetchHourlyDateAvailability(getAvailableDates());
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dateWindowStart, bookingType, memberType, selectedSeating]);
+
     // Add useEffect to reset duration if it's incompatible with member type
     useEffect(() => {
         if (memberType === 'Non-Member' && selectedBookingDuration === 30) {
@@ -2250,58 +2375,7 @@ const handleHourlyMemberType = (memberType) => {
     }, [showWholeDaySummaryModal, bookingType, memberType, selectedDate, selectedSeating, isAuthenticated]);
 
     const [pricingData, setPricingData] = useState(null);
-    const [isLoadingPricing, setIsLoadingPricing] = useState(false);
-
-    // Add function to fetch pricing data
-    const fetchPricingData = async (memberType, bookingType, seatingCapacity) => {
-        setIsLoadingPricing(true);
-        console.log('Fetching pricing data...');
-        try {
-            const apiMemberType = resolveApiMemberType(memberType);
-            // Format the parameters correctly
-            const params = {
-                capacityType: seatingCapacity === 'C1' ? '4-6 Seater' : '10-12 Seater',
-                bookingType: bookingType,
-                memberType: apiMemberType
-            };
-            
-            console.log('Fetching pricing with params:', params);
-            const response = await axios.get('https://api.boldtribe.in/api/meetingrooms/pricing', { params });
-            console.log('Pricing API Response:', response.data);
-            
-            if (response.data.success) {
-                console.log('Successfully fetched pricing data:', response.data.data);
-                setPricingData(response.data.data);
-            } else {
-                console.error('Failed to fetch pricing data. API returned:', response.data.message);
-                // Set default pricing data if API fails
-                setPricingData({
-                    price: bookingType === 'Hourly' ? (memberType === 'Member' ? 200 : 250) : (memberType === 'Member' ? 1800 : 2300),
-                    openTime: '09:00 AM',
-                    closeTime: '06:00 PM',
-                    bookingType: bookingType,
-                    memberType: memberType
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching pricing data:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status
-            });
-            // Set default pricing data if API fails
-            setPricingData({
-                price: bookingType === 'Hourly' ? (memberType === 'Member' ? 200 : 250) : (memberType === 'Member' ? 1800 : 2300),
-                openTime: '09:00 AM',
-                closeTime: '06:00 PM',
-                bookingType: bookingType,
-                memberType: memberType
-            });
-        } finally {
-            setIsLoadingPricing(false);
-            console.log('Finished loading pricing data');
-        }
-    };
+    const isLoadingPricing = false;
 
     // Update the member type selection handler
     const handleMemberTypeChange = (e) => {
@@ -2322,17 +2396,14 @@ const handleHourlyMemberType = (memberType) => {
         // Reset date and seating when member type changes
         setSelectedDate(null);
         setSelectedSeating('');
+        setSelectedRoom(null);
         setSelectedTimeSlots([]);
         setAvailableTimeSlots([]);
+        setHourlyDateAvailability({}); // Clear stale per-date status
         
         // Set default duration (manual selection for all users)
         setSelectedBookingDuration('manual');
 
-        // Fetch pricing data when member type changes if booking type is already selected
-        if (selectedMemberType && bookingType) {
-            // Use the exact values from the API response
-            fetchPricingData(selectedMemberType, bookingType, selectedSeating || 'C1');
-        }
     };
 
     // Update the seating capacity change handler
@@ -2340,10 +2411,18 @@ const handleHourlyMemberType = (memberType) => {
         const newSeating = e.target.value;
         setSelectedSeating(newSeating);
         
-        // Fetch pricing data when seating changes if both member type and booking type are selected
-        if (memberType && bookingType) {
-            fetchPricingData(memberType, bookingType, newSeating);
-        }
+        // Clear stale per-date hourly status so new seating's availability is fetched
+        setHourlyDateAvailability({});
+
+    };
+
+    // Called when a room card is clicked in the seating selection UI
+    const handleRoomCardSelect = (room) => {
+        setSelectedRoom(room);
+        setSelectedSeating(room.id.toString());
+        setHourlyDateAvailability({});
+        setSelectedTimeSlots([]);
+        setCalculatedPrice({ subtotal: 0, gst: 0, total: 0, duration: 0 });
     };
 
     const [availableSlots, setAvailableSlots] = useState([]);
@@ -2365,15 +2444,20 @@ const handleHourlyMemberType = (memberType) => {
         
         const params = {
             date: format(date, 'yyyy-MM-dd'),
-            capacityType: selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater',
+            capacityType: getSelectedCapacityType(),
             memberType: resolveApiMemberType(memberType)
         };
         
         console.log('API Parameters:', params);
+
+        const authToken = sessionStorage.getItem('authToken');
         
         try {
             const response = await axios.get(`https://api.boldtribe.in/api/meetingrooms/available-slots`, {
-                params
+                params,
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
             });
             console.log('Available Slots API Response:', response.data);
             
@@ -2405,6 +2489,57 @@ const handleHourlyMemberType = (memberType) => {
             setIsLoadingSlots(false);
             console.log('Finished loading available slots');
         }
+    };
+
+    // Pre-fetch slot availability for all visible dates in hourly booking mode.
+    // This allows date buttons to show "Full Day Booked" / slot count labels
+    // BEFORE the user clicks a date.
+    const prefetchHourlyDateAvailability = async (dates) => {
+        if (!memberType || !selectedSeating || bookingType !== 'Hourly') return;
+
+        const dateStrings = dates.map(d => format(d, 'yyyy-MM-dd'));
+
+        // Mark all target dates as loading
+        const loadingStates = {};
+        dateStrings.forEach(ds => {
+            loadingStates[ds] = { loading: true, isAvailable: true, availableSlotCount: null };
+        });
+        setHourlyDateAvailability(prev => ({ ...prev, ...loadingStates }));
+
+        // Fetch all dates in parallel
+        const authToken = sessionStorage.getItem('authToken');
+        const results = await Promise.allSettled(
+            dateStrings.map(async (dateStr) => {
+                const response = await axios.get(
+                    'https://api.boldtribe.in/api/meetingrooms/available-slots',
+                    {
+                        params: {
+                            date: dateStr,
+                            capacityType: getSelectedCapacityType(),
+                            memberType: resolveApiMemberType(memberType)
+                        },
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    }
+                );
+                const slots = response.data?.data?.availableSlots || [];
+                return { dateStr, isAvailable: slots.length > 0, availableSlotCount: slots.length };
+            })
+        );
+
+        const newStatuses = {};
+        results.forEach((result, i) => {
+            const dateStr = dateStrings[i];
+            if (result.status === 'fulfilled') {
+                newStatuses[dateStr] = { ...result.value, loading: false };
+            } else {
+                // On error, remain optimistic (allow selection, server will validate)
+                newStatuses[dateStr] = { isAvailable: true, availableSlotCount: null, loading: false };
+            }
+        });
+
+        setHourlyDateAvailability(prev => ({ ...prev, ...newStatuses }));
     };
 
     // Add back the isRoomAvailable function
@@ -2553,7 +2688,7 @@ const handleHourlyMemberType = (memberType) => {
             // Prepare FormData for file upload
             const formData = new FormData();
             const proofFile = paymentReceipt?.file || paymentReceipt;
-            formData.append('capacityType', selectedSeating === 'C1' ? '4-6 Seater' : '10-12 Seater');
+            formData.append('capacityType', getSelectedCapacityType());
             formData.append('bookingDate', format(selectedDate, 'yyyy-MM-dd'));
             formattedTimeSlots.forEach(slot => formData.append('timeSlots[]', slot));
             formData.append('duration', duration);
@@ -3657,7 +3792,7 @@ const handleHourlyMemberType = (memberType) => {
                             <Typography 
                                 variant="body2" 
                                 sx={{ 
-                                    color: '#666',
+                                    color: '#666', 
                                     fontSize: '0.95rem'
                                 }}
                             >
@@ -3929,9 +4064,7 @@ const handleHourlyMemberType = (memberType) => {
                                             <Typography variant="h6" gutterBottom>
                                                 {bookingType === 'Whole Day' 
                                                     ? (selectedSeating 
-                                                        ? `₹${selectedSeating === 'C2' 
-                                                            ? (memberType === 'Member' ? '2,500' : '3,000') 
-                                                            : (memberType === 'Member' ? '1,800' : '2,300')}/- (Including GST)`
+                                                        ? `₹${Math.round(getBasePrice()).toLocaleString()}/- (Including GST)`
                                                         : `Starting from ₹${memberType === 'Member' ? '1,800' : '2,300'}/- (Including GST)`)
                                                     : `₹${pricingData?.price}/- ${bookingType === 'Hourly' ? '+ GST per hour' : '(Including GST)'}`
                                                 }
@@ -3946,7 +4079,7 @@ const handleHourlyMemberType = (memberType) => {
                                                 {bookingType === 'Whole Day' ? 'Whole Day Booking' : pricingData?.bookingType}
                                             </Typography>
                                             <Typography variant="body2" sx={{ mb: 2 }}>
-                                                {memberType} {selectedSeating ? `- ${seatingOptions.find(s => s.id === selectedSeating)?.name}` : '- Multiple seating options available'}
+                                                {memberType} {selectedRoom ? `- ${selectedRoom.name} (${selectedRoom.capacityType})` : (selectedSeating ? `- ${seatingOptions.find(s => s.id === selectedSeating)?.name}` : '- Multiple seating options available')}
                                             </Typography>
                                         </>
                                     ) : (
@@ -4138,41 +4271,231 @@ const handleHourlyMemberType = (memberType) => {
                                     <Alert severity="info" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
                                         🔍 Checking available dates...
                                     </Alert>
-                                ) : (
+                                ) : availableDays.length > 0 ? (
                                     <Alert severity="success" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
-                                        ✅ {availableDays.length} date{availableDays.length !== 1 ? 's' : ''} available for booking. Unavailable dates are disabled in the calendar.
+                                        ✅ {availableDays.length} date{availableDays.length !== 1 ? 's' : ''} available this period. Greyed-out dates already have bookings.
+                                    </Alert>
+                                ) : (
+                                    <Alert severity="info" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                                        📅 Open the calendar to select your date. Dates with existing bookings will be greyed out automatically.
                                     </Alert>
                                 )}
                             </Box>
                         )}
 
                         {selectedDate && (
-                            <FormControl fullWidth sx={{ mb: { xs: 2, sm: 3 } }}>
-                                <InputLabel>Seating Capacity</InputLabel>
-                                <Select
-                                    value={selectedSeating}
-                                    onChange={handleSeatingChange}
-                                    label="Seating Capacity"
-                                    sx={{
-                                        height: { xs: '45px', sm: '50px' },
-                                        fontSize: { xs: '0.9rem', sm: '1rem' }
-                                    }}
-                                >
-                                    {seatingOptions.map((option) => (
-                                        <MenuItem 
-                                            key={option.id} 
-                                            value={option.id}
-                                            sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
-                                        >
-                                            {option.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                            <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+                                <Typography variant="subtitle1" sx={{
+                                    fontWeight: 'bold',
+                                    mb: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    color: '#444'
+                                }}>
+                                    🏢 Select a Meeting Room
+                                </Typography>
+
+                                {isLoadingMeetingRooms ? (
+                                    <Box sx={{ textAlign: 'center', py: 3 }}>
+                                        <Typography variant="body2" sx={{ color: '#888' }}>Loading rooms...</Typography>
+                                    </Box>
+                                ) : meetingRooms.length === 0 ? (
+                                    <Typography variant="body2" sx={{ color: '#888' }}>No rooms available at the moment.</Typography>
+                                ) : (
+                                    <Box sx={{
+                                        display: 'grid',
+                                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+                                        gap: 2
+                                    }}>
+                                        {meetingRooms.map((room) => {
+                                            const isSelected = selectedRoom?.id === room.id;
+                                            const isMem = resolveApiMemberType(memberType) === 'member';
+                                            const displayRate = bookingType === 'Whole Day'
+                                                ? parseFloat(isMem ? room.memberDayRate : room.dayRate)
+                                                : parseFloat(isMem ? room.memberHourlyRate : room.hourlyRate);
+                                            const BASE_URL = 'https://api.boldtribe.in';
+
+                                            return (
+                                                <Box
+                                                    key={room.id}
+                                                    onClick={() => handleRoomCardSelect(room)}
+                                                    sx={{
+                                                        position: 'relative',
+                                                        borderRadius: '16px',
+                                                        overflow: 'hidden',
+                                                        cursor: 'pointer',
+                                                        border: isSelected
+                                                            ? '2.5px solid #667eea'
+                                                            : '2px solid rgba(0,0,0,0.08)',
+                                                        boxShadow: isSelected
+                                                            ? '0 8px 30px rgba(102,126,234,0.35)'
+                                                            : '0 4px 16px rgba(0,0,0,0.08)',
+                                                        transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                                                        transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+                                                        background: isSelected
+                                                            ? 'linear-gradient(135deg, #f0f3ff 0%, #f8f0ff 100%)'
+                                                            : '#fff',
+                                                        '&:hover': {
+                                                            transform: 'scale(1.03) translateY(-2px)',
+                                                            boxShadow: '0 12px 35px rgba(102,126,234,0.25)',
+                                                            borderColor: '#667eea'
+                                                        }
+                                                    }}
+                                                >
+                                                    {/* Room image or gradient placeholder */}
+                                                    <Box sx={{
+                                                        height: 90,
+                                                        background: room.image
+                                                            ? 'none'
+                                                            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                        position: 'relative',
+                                                        overflow: 'hidden'
+                                                    }}>
+                                                        {room.image ? (
+                                                            <Box
+                                                                component="img"
+                                                                src={`${BASE_URL}${room.image}`}
+                                                                alt={room.name}
+                                                                sx={{
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    objectFit: 'cover',
+                                                                    display: 'block'
+                                                                }}
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none';
+                                                                    e.target.parentNode.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <Box sx={{
+                                                                height: '100%',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontSize: '2.5rem',
+                                                                opacity: 0.9
+                                                            }}>
+                                                                🏢
+                                                            </Box>
+                                                        )}
+                                                        {/* Selected badge */}
+                                                        {isSelected && (
+                                                            <Box sx={{
+                                                                position: 'absolute',
+                                                                top: 8,
+                                                                right: 8,
+                                                                bgcolor: '#667eea',
+                                                                color: 'white',
+                                                                borderRadius: '50%',
+                                                                width: 28,
+                                                                height: 28,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontWeight: 'bold',
+                                                                fontSize: '0.9rem',
+                                                                boxShadow: '0 2px 8px rgba(102,126,234,0.5)'
+                                                            }}>
+                                                                ✓
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+
+                                                    {/* Room details */}
+                                                    <Box sx={{ p: 1.5 }}>
+                                                        <Typography sx={{
+                                                            fontWeight: 700,
+                                                            fontSize: '0.9rem',
+                                                            color: isSelected ? '#667eea' : '#222',
+                                                            mb: 0.5,
+                                                            lineHeight: 1.3
+                                                        }}>
+                                                            {room.name}
+                                                        </Typography>
+
+                                                        {/* Capacity badge */}
+                                                        <Box sx={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: 0.5,
+                                                            bgcolor: isSelected ? 'rgba(102,126,234,0.12)' : 'rgba(0,0,0,0.06)',
+                                                            borderRadius: '20px',
+                                                            px: 1.2,
+                                                            py: 0.3,
+                                                            mb: 1
+                                                        }}>
+                                                            <Typography sx={{ fontSize: '0.7rem' }}>👥</Typography>
+                                                            <Typography sx={{
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: 600,
+                                                                color: isSelected ? '#667eea' : '#555'
+                                                            }}>
+                                                                {room.capacityType}
+                                                            </Typography>
+                                                        </Box>
+
+                                                        {/* Price row */}
+                                                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.5 }}>
+                                                            <Typography sx={{
+                                                                fontSize: '1rem',
+                                                                fontWeight: 800,
+                                                                color: isSelected ? '#667eea' : '#333',
+                                                                lineHeight: 1
+                                                            }}>
+                                                                ₹{displayRate ? Math.round(displayRate).toLocaleString() : '—'}
+                                                            </Typography>
+                                                            <Typography sx={{ fontSize: '0.7rem', color: '#888' }}>
+                                                                /{bookingType === 'Whole Day' ? 'day' : 'hr'}
+                                                            </Typography>
+                                                        </Box>
+
+                                                        {/* Timing */}
+                                                        {(room.openTime || room.closeTime) && (
+                                                            <Typography sx={{
+                                                                fontSize: '0.68rem',
+                                                                color: '#888',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: 0.4
+                                                            }}>
+                                                                🕐 {room.openTime} – {room.closeTime}
+                                                            </Typography>
+                                                        )}
+
+                                                        {/* Description */}
+                                                        {room.description && (
+                                                            <Typography sx={{
+                                                                fontSize: '0.68rem',
+                                                                color: '#999',
+                                                                mt: 0.5,
+                                                                overflow: 'hidden',
+                                                                display: '-webkit-box',
+                                                                WebkitLineClamp: 2,
+                                                                WebkitBoxOrient: 'vertical'
+                                                            }}>
+                                                                {room.description}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                </Box>
+                                            );
+                                        })}
+                                    </Box>
+                                )}
+                            </Box>
                         )}
 
                         {/* Whole Day Booking Summary and Book Now Button */}
                         {bookingType === 'Whole Day' && selectedDate && selectedSeating && (
+                            <>
+                            {/* Warn when the picked date is blocked due to existing bookings */}
+                            {!isLoadingAvailableDays && availableDays.length > 0 && !availableDays.includes(format(selectedDate, 'yyyy-MM-dd')) && (
+                                <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+                                    <strong>{format(selectedDate, 'MMM dd, yyyy')}</strong> is not available for whole-day booking — it already has existing bookings. Please select a different date from the calendar above.
+                                </Alert>
+                            )}
                             <Card sx={{
                                 mt: 3,
                                 background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
@@ -4192,7 +4515,7 @@ const handleHourlyMemberType = (memberType) => {
                                             ⏰ <strong>Time:</strong> {memberType === 'Member' ? '9:00 AM - 6:30 PM (9.5 hours)' : '9:00 AM - 6:00 PM (9 hours)'}
                                         </Typography>
                                         <Typography variant="body1" sx={{ mb: 1 }}>
-                                            🪑 <strong>Seating:</strong> {seatingOptions.find(s => s.id === selectedSeating)?.name}
+                                            🪑 <strong>Seating:</strong> {selectedRoom ? `${selectedRoom.name} (${selectedRoom.capacityType})` : seatingOptions.find(s => s.id === selectedSeating)?.name}
                                         </Typography>
                                         <Typography variant="body1" sx={{ mb: 2 }}>
                                             👤 <strong>Type:</strong> {memberType}
@@ -4213,10 +4536,7 @@ const handleHourlyMemberType = (memberType) => {
                                             WebkitBackgroundClip: 'text',
                                             WebkitTextFillColor: 'transparent'
                                         }}>
-                                            ₹{selectedSeating === 'C2' 
-                                                ? (memberType === 'Member' ? '2,500' : '3,000') 
-                                                : (memberType === 'Member' ? '1,800' : '2,300')
-                                            }
+                                            ₹{Math.round(getBasePrice()).toLocaleString()}
                                         </Typography>
                                         <Typography variant="body2" sx={{ color: '#666' }}>
                                             Including GST
@@ -4226,6 +4546,7 @@ const handleHourlyMemberType = (memberType) => {
                                     <Button
                                         fullWidth
                                         variant="contained"
+                                        disabled={!isLoadingAvailableDays && availableDays.length > 0 && !availableDays.includes(format(selectedDate, 'yyyy-MM-dd'))}
                                         onClick={() => {
                                             console.log('Whole Day Book Now clicked - opening summary modal');
                                             // Calculate the price for whole day booking
@@ -4253,6 +4574,10 @@ const handleHourlyMemberType = (memberType) => {
                                                 transform: 'translateY(-2px)',
                                                 boxShadow: '0 15px 30px rgba(102, 126, 234, 0.4)'
                                             },
+                                            '&.Mui-disabled': {
+                                                background: 'linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)',
+                                                color: '#999'
+                                            },
                                             transition: 'all 0.3s ease'
                                         }}
                                     >
@@ -4260,6 +4585,7 @@ const handleHourlyMemberType = (memberType) => {
                                     </Button>
                                 </CardContent>
                             </Card>
+                             </>
                         )}
 
                         {bookingType !== 'Whole Day' && selectedDate && selectedSeating && (
@@ -5359,6 +5685,19 @@ const handleHourlyMemberType = (memberType) => {
                                             textAlign: 'center',
                                             border: '2px solid rgba(102, 126, 234, 0.3)'
                                         }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                <Typography variant="body2" sx={{ color: '#666' }}>Base Price</Typography>
+                                                <Typography variant="body2" sx={{ color: '#333', fontWeight: 500 }}>
+                                                    ₹{calculatedPrice.subtotal ? Math.ceil(calculatedPrice.subtotal) : Math.round(getBasePrice()).toLocaleString()}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                                                <Typography variant="body2" sx={{ color: '#666' }}>GST (18%)</Typography>
+                                                <Typography variant="body2" sx={{ color: '#333', fontWeight: 500 }}>
+                                                    ₹{calculatedPrice.gst ? Math.ceil(calculatedPrice.gst) : Math.round(getBasePrice() * 0.18).toLocaleString()}
+                                                </Typography>
+                                            </Box>
+                                            <Divider sx={{ mb: 1.5 }} />
                                             <Typography variant="body1" sx={{ color: '#666', mb: 1 }}>
                                                 Total Price (Including GST)
                                             </Typography>
@@ -5369,7 +5708,7 @@ const handleHourlyMemberType = (memberType) => {
                                                 WebkitBackgroundClip: 'text',
                                                 WebkitTextFillColor: 'transparent'
                                             }}>
-                                                ₹{calculatedPrice.total ? Math.ceil(calculatedPrice.total) : (selectedSeating === 'C2' ? (memberType === 'Member' ? '2,500' : '3,000') : (memberType === 'Member' ? '1,800' : '2,300'))}
+                                                ₹{calculatedPrice.total ? Math.ceil(calculatedPrice.total) : Math.round(getBasePrice() * 1.18).toLocaleString()}
                                             </Typography>
                                             <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
                                                 {memberType === 'Member' ? 'Premium Member Rate' : 'Standard Rate'}
