@@ -1758,6 +1758,7 @@ const BookMeetingRoom = () => {
             
             // KYC is approved, proceed with member type.
             const rawMemberType =
+                userData?.userType ??
                 userData?.memberType ??
                 userData?.membershipType ??
                 userData?.membership ??
@@ -1812,7 +1813,7 @@ const BookMeetingRoom = () => {
     // Handle successful login - receive userData with memberType from backend
     const handleLoginSuccess = async (userData) => {
         console.log('Login successful:', userData);
-        console.log('Member Type from backend:', userData?.memberType);
+        console.log('Member Type from backend:', userData?.userType || userData?.memberType);
         console.log('Post-login booking type check:', bookingType);
         setShowLoginModal(false);
 
@@ -1822,7 +1823,8 @@ const BookMeetingRoom = () => {
                 const freshUserData = profileResult.data;
                 const mergedUserData = {
                     ...freshUserData,
-                    memberType: freshUserData.memberType || userData?.memberType,
+                    userType: freshUserData.userType || userData?.userType,
+                    memberType: freshUserData.userType || userData?.userType,
                     kycRequired: freshUserData.kycRequired ?? userData?.kycRequired,
                     token: freshUserData.token || userData?.token,
                 };
@@ -4097,8 +4099,7 @@ const handleHourlyMemberType = (memberType) => {
                                                 console.log('Selected Date:', selectedDate);
                                                 console.log('Selected Seating:', selectedSeating);
                                                 console.log('Is Authenticated:', isAuthenticated);
-                                                console.log('Pricing Data:', pricingData);
-                                                console.log('Button should be disabled:', bookingType === 'Whole Day' ? (!bookingType || !memberType || !selectedDate || !selectedSeating) : !pricingData);
+                                                console.log('Button enabled by booking type and member type');
                                                 console.log('================================');
                                                 
                                                 // Check if user is member and not authenticated
@@ -4113,10 +4114,9 @@ const handleHourlyMemberType = (memberType) => {
                                                 }
                                             }}
                                             disabled={
-                                                // For whole day bookings, only require booking type and member type
-                                                bookingType === 'Whole Day' 
-                                                    ? (!bookingType || !memberType)
-                                                    : !pricingData  // For hourly bookings, require pricing data
+                                                // For both whole day and hourly bookings, only require booking type and member type
+                                                // Date and seating selection happen in the time slot modal
+                                                !bookingType || !memberType
                                             }
                                             sx={{
                                                 bgcolor: 'white',

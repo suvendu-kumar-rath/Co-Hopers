@@ -73,10 +73,20 @@ export const authService = {
             console.log('Login response:', response.data);
 
             if (response.data && response.data.success) {
+                const apiData = response.data.data;
+                // Flatten the response: extract user object and merge with top level
+                const flattenedData = {
+                    ...apiData,
+                    ...(apiData.user || {}),
+                    kycStatus: apiData.kycStatus,
+                    kyc: apiData.kyc,
+                    token: response.data.token || apiData.token || apiData.user?.token
+                };
+                
                 return {
                     success: true,
-                    data: response.data.data,
-                    token: response.data.token || response.data.data?.token,
+                    data: flattenedData,
+                    token: flattenedData.token,
                     message: response.data.message
                 };
             } else {
