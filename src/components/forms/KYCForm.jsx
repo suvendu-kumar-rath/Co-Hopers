@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Box, Typography, Button, Grid, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert, Snackbar } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const KYCForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   
   // Note: KYC is now independent of any space booking
@@ -246,14 +247,31 @@ const KYCForm = () => {
       setSubmitSuccess(true);
       setShowSuccessPopup(true);
       
-      // Navigate to success page
+      // Check if there's a return path (e.g., from KycRedirectRoute for booking)
+      const returnPath = location.state?.returnPath;
+      const successMessage = location.state?.message || 'Your KYC has been submitted successfully! You can proceed with booking once approved.';
+      
+      // Navigate to success page or return path
       setTimeout(() => {
-        navigate(ROUTES.PENDING_REVIEW, {
-          state: {
-            kycId: kycOnlyResult.data?.kycId,
-            message: 'Your KYC has been submitted successfully! You can proceed with booking once approved.'
-          }
-        });
+        if (returnPath && returnPath !== ROUTES.FORM) {
+          // If coming from booking redirect, go to return path with success state
+          navigate(returnPath, {
+            state: {
+              kycId: kycOnlyResult.data?.kycId,
+              message: successMessage,
+              kycSubmitted: true,
+              returnedFromKYC: true
+            }
+          });
+        } else {
+          // Default behavior - go to pending review
+          navigate(ROUTES.PENDING_REVIEW, {
+            state: {
+              kycId: kycOnlyResult.data?.kycId,
+              message: successMessage
+            }
+          });
+        }
       }, 2500);
       
     } catch (error) {

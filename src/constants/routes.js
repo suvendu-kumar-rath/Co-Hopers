@@ -3,6 +3,7 @@ export const ROUTES = {
   HOME: '/',
   SERVICES: '/services',
   MEETING_ROOM: '/meeting-room',
+  BOOK_MEETING: '/book-meeting', // KYC-protected booking route for visitors
   FORM: '/form',
   PENDING_REVIEW: '/pending-review',
   SUCCESS: '/success',

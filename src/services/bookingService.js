@@ -472,7 +472,7 @@ export const bookingService = {
     },
 
     /**
-     * Submit KYC data without booking (for meeting room registrations)
+     * Submit KYC data without booking (for visitor KYC registrations)
      * @param {Object} kycData - KYC form data
      * @returns {Promise} - API response
      */
@@ -547,7 +547,9 @@ export const bookingService = {
                 console.log(key, value);
             }
             
-            // Submit to a separate endpoint for KYC-only submissions
+            // Submit to /booking/kyc endpoint for KYC submissions
+            // (Backend should allow visitors to submit KYC here)
+            console.log('Submitting KYC to endpoint: /booking/kyc');
             const response = await apiClient.post(`/booking/kyc`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
