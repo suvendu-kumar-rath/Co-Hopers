@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../constants/routes';
@@ -9,22 +9,31 @@ const SuccessPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-  const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
 
-  // Automatically log out the user and redirect to services page
+  // Redirect to the previous page or meeting room after 3 seconds
   useEffect(() => {
-    console.log('Success page loaded - automatically logging out user and redirecting to services');
-    logout();
+    console.log('Success page loaded - keeping user logged in');
     
-    // Redirect to services page after 3 seconds (giving user time to see the success message)
+    // Get the return path from location state (set by KYCForm)
+    const returnPath = location.state?.returnPath || ROUTES.MEETING_ROOM;
+    
+    // Redirect after 3 seconds (giving user time to see the success message)
     const redirectTimer = setTimeout(() => {
-      navigate(ROUTES.SERVICES);
+      if (isAuthenticated) {
+        // If KYC was from a booking flow, return to booking page
+        navigate(returnPath, { replace: true });
+      } else {
+        // If not authenticated, go to services
+        navigate(ROUTES.SERVICES, { replace: true });
+      }
     }, 3000);
 
     // Cleanup timer on component unmount
     return () => clearTimeout(redirectTimer);
-  }, [logout, navigate]);
+  }, [navigate, isAuthenticated, location.state?.returnPath]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>

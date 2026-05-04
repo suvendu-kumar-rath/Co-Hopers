@@ -248,30 +248,19 @@ const KYCForm = () => {
       setShowSuccessPopup(true);
       
       // Check if there's a return path (e.g., from KycRedirectRoute for booking)
-      const returnPath = location.state?.returnPath;
+      const returnPath = location.state?.returnPath || ROUTES.MEETING_ROOM;
       const successMessage = location.state?.message || 'Your KYC has been submitted successfully! You can proceed with booking once approved.';
       
-      // Navigate to success page or return path
+      // Always navigate to success page with the return path
       setTimeout(() => {
-        if (returnPath && returnPath !== ROUTES.FORM) {
-          // If coming from booking redirect, go to return path with success state
-          navigate(returnPath, {
-            state: {
-              kycId: kycOnlyResult.data?.kycId,
-              message: successMessage,
-              kycSubmitted: true,
-              returnedFromKYC: true
-            }
-          });
-        } else {
-          // Default behavior - go to pending review
-          navigate(ROUTES.PENDING_REVIEW, {
-            state: {
-              kycId: kycOnlyResult.data?.kycId,
-              message: successMessage
-            }
-          });
-        }
+        navigate(ROUTES.PENDING_REVIEW, {
+          state: {
+            kycId: kycOnlyResult.data?.kycId,
+            message: successMessage,
+            returnPath: returnPath,
+            kycSubmitted: true
+          }
+        });
       }, 2500);
       
     } catch (error) {
