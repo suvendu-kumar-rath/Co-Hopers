@@ -282,10 +282,10 @@ const Header = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           px: { xs: 1.5, sm: 2.5, md: 4 },
-          py: 0.4,
+          py: 0.8,
           backgroundColor: '#2a2a2a',
           color: '#ffffff',
-          fontSize: { xs: '0.7rem', sm: '0.8rem' },
+          fontSize: { xs: '0.8rem', sm: '0.9rem' },
           letterSpacing: '0.02em'
         }}
       >
@@ -295,8 +295,8 @@ const Header = () => {
 
       <Toolbar sx={{
         justifyContent: 'space-between',
-        padding: { xs: '0.5rem 1rem', sm: '0.6rem 2rem', md: '0.75rem 3rem' },
-        minHeight: { xs: 64, md: 72 }
+        padding: { xs: '1rem 1rem', sm: '1.2rem 2rem', md: '1.5rem 3rem' },
+        minHeight: { xs: 80, md: 100 }
       }}>
         {/* Logo */}
         <Box 
@@ -312,7 +312,7 @@ const Header = () => {
             src={Logo} 
             alt="CoHoppers Logo" 
             style={{ 
-              height: isMobile ? '38px' : '48px'
+              height: isMobile ? '50px' : '60px'
             }} 
           />
         </Box>

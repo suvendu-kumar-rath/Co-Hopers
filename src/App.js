@@ -27,7 +27,7 @@ function App() {
             <VisitorKYCAutoRedirect>
               <div className="App">
                 <Header />
-                <main style={{ minHeight: 'calc(100vh - 160px)', paddingTop: '84px' }}>
+                <main className="App-main" style={{ marginTop: '150px' }}>
                   <Routes>
                     <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.SERVICES} replace />} />
                     <Route path={ROUTES.SERVICES} element={<Services />} />
