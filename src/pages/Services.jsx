@@ -290,7 +290,8 @@ const Services = () => {
     navigate(ROUTES.FORM, {
       state: {
         fromRegistration: true,
-        userId: userData?.id || userData?.user?.id
+        userId: userData?.id || userData?.user?.id,
+        returnPath: ROUTES.SERVICES
       }
     });
   };

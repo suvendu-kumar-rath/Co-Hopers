@@ -15,7 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 const KYCForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
   // Note: KYC is now independent of any space booking
   // No space ID or booking data is required during KYC submission
@@ -247,21 +247,29 @@ const KYCForm = () => {
       setSubmitSuccess(true);
       setShowSuccessPopup(true);
       
-      // Check if there's a return path (e.g., from KycRedirectRoute for booking)
-      const returnPath = location.state?.returnPath || ROUTES.MEETING_ROOM;
-      const successMessage = location.state?.message || 'Your KYC has been submitted successfully! You can proceed with booking once approved.';
-      
-      // Always navigate to success page with the return path
-      setTimeout(() => {
-        navigate(ROUTES.PENDING_REVIEW, {
-          state: {
-            kycId: kycOnlyResult.data?.kycId,
-            message: successMessage,
-            returnPath: returnPath,
-            kycSubmitted: true
-          }
+      // Update user's KYC status in auth context to prevent redirect loop
+      if (user) {
+        updateUser({
+          ...user,
+          kycStatus: 'pending' // Mark as pending review instead of not_submitted
         });
-      }, 2500);
+        console.log('[KYCForm] Updated user KYC status to pending');
+      }
+      
+      // Get the return path from location state
+      const returnPath = location.state?.returnPath || ROUTES.SERVICES;
+      const source = location.state?.source;
+      
+      console.log('[KYCForm] Redirecting after KYC success:', {
+        returnPath,
+        source,
+        fromRegistration: location.state?.fromRegistration
+      });
+      
+      // Redirect back to the previous page after a short delay
+      setTimeout(() => {
+        navigate(returnPath, { replace: true });
+      }, 1500);
       
     } catch (error) {
       console.error('Submission error:', error);

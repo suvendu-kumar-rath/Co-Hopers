@@ -22,7 +22,8 @@ const VisitorKYCAutoRedirect = ({ children }) => {
     // Don't proceed while auth is loading
     if (loading) return;
 
-    // Check if user is authenticated and is a visitor
+    // Check if user is authenticated and is a visitor with NOT_SUBMITTED KYC
+    // Don't redirect if KYC is pending, approved, or rejected
     if (
       isAuthenticated &&
       user?.userType === 'visitor' &&
@@ -42,6 +43,16 @@ const VisitorKYCAutoRedirect = ({ children }) => {
           returnPath: ROUTES.SERVICES,
           message: 'As a visitor, please complete KYC verification to proceed with booking.',
         },
+      });
+    } else if (
+      isAuthenticated &&
+      user?.userType === 'visitor' &&
+      (user?.kycStatus === 'pending' || user?.kycStatus === 'PENDING')
+    ) {
+      console.log('[VisitorKYCAutoRedirect] Visitor has submitted KYC, allowing to proceed', {
+        userId: user.id,
+        userType: user.userType,
+        kycStatus: user.kycStatus
       });
     }
   }, [isAuthenticated, user?.userType, user?.kycStatus, loading, navigate]);
