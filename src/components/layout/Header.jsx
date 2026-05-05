@@ -223,7 +223,7 @@ const Header = () => {
           </ListItem>
         ))}
 
-        {showHeaderActions && (
+        {showHeaderActions && !isAuthenticated && (
           <ListItem
             onClick={handleSignUp}
             sx={{
@@ -348,7 +348,7 @@ const Header = () => {
 
         {/* Right side icons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {!isMobile && showHeaderActions && (
+          {!isMobile && showHeaderActions && !isAuthenticated && (
             <Button
               color="inherit"
               variant="outlined"
