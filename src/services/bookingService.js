@@ -341,11 +341,24 @@ export const bookingService = {
             const formData = new FormData();
             console.log('kycData', kycData);
             
+            // Add userId and bookingId for backend email template
+            if (kycData.userId) {
+                formData.append('userId', kycData.userId);
+            }
+            if (bookingId) {
+                formData.append('bookingId', bookingId);
+            }
+            
             // Handle different KYC types
             if (kycData.kycType === 'freelancer') {
                 // Freelancer KYC fields - use form data if available, otherwise fallback to user data
                 formData.append('type', 'freelancer');
-                formData.append('name', kycData.freelancerData?.name || kycData.userName || '');
+                // Client Name: Use freelancer's name from form or fallback to user's account name
+                const clientName = kycData.freelancerData?.name || kycData.userName || '';
+                formData.append('name', clientName);
+                formData.append('clientName', clientName); // Explicitly set for email template
+                // Company Name: For freelancer, set to "Freelancer"
+                formData.append('companyName', 'Freelancer');
                 formData.append('email', kycData.freelancerData?.email || kycData.userEmail || '');
                 formData.append('mobile', kycData.freelancerData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
                 
@@ -362,17 +375,18 @@ export const bookingService = {
                 if (kycData.freelancerFiles?.memberPhoto?.file) {
                     formData.append('photo', kycData.freelancerFiles.memberPhoto.file);
                 }
-                if (kycData.freelancerFiles?.paymentScreenshot?.file) {
-                    formData.append('paymentScreenshot', kycData.freelancerFiles.paymentScreenshot.file);
-                }
-                
             } else if (kycData.kycType === 'company') {
                 // Company KYC fields
                 formData.append('type', 'company');
-                formData.append('name', kycData.companyData?.directorName || kycData.userName || '');
+                // Client Name: Use user's account name (not director name)
+                const clientName = kycData.userName || '';
+                formData.append('name', clientName);
+                formData.append('clientName', clientName); // Explicitly set for email template
+                // Company Name: Use company name from form (should not be empty)
+                const companyName = kycData.companyData?.companyName || 'N/A';
+                formData.append('companyName', companyName);
                 formData.append('email', kycData.companyData?.email || kycData.userEmail || '');
                 formData.append('mobile', kycData.companyData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
-                formData.append('companyName', kycData.companyData?.companyName || '');
                 formData.append('gstNumber', kycData.companyData?.gstNumber || '');
                 formData.append('directorName', kycData.companyData?.directorName || '');
                 formData.append('din', kycData.companyData?.din || '');
@@ -483,11 +497,21 @@ export const bookingService = {
             // Create FormData for multipart/form-data submission
             const formData = new FormData();
             
+            // Add userId and email for backend email template
+            if (kycData.userId) {
+                formData.append('userId', kycData.userId);
+            }
+            
             // Handle different KYC types
             if (kycData.kycType === 'freelancer') {
                 // Freelancer KYC fields
                 formData.append('type', 'freelancer');
-                formData.append('name', kycData.freelancerData?.name || kycData.userName || '');
+                // Client Name: Use freelancer's name from form or fallback to user's account name
+                const clientName = kycData.freelancerData?.name || kycData.userName || '';
+                formData.append('name', clientName);
+                formData.append('clientName', clientName); // Explicitly set for email template
+                // Company Name: For freelancer, set to "Freelancer"
+                formData.append('companyName', 'Freelancer');
                 formData.append('email', kycData.freelancerData?.email || kycData.userEmail || '');
                 formData.append('mobile', kycData.freelancerData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
                 
@@ -508,10 +532,15 @@ export const bookingService = {
             } else if (kycData.kycType === 'company') {
                 // Company KYC fields
                 formData.append('type', 'company');
-                formData.append('name', kycData.companyData?.directorName || kycData.userName || '');
+                // Client Name: Use user's account name (not director name)
+                const clientName = kycData.userName || '';
+                formData.append('name', clientName);
+                formData.append('clientName', clientName); // Explicitly set for email template
+                // Company Name: Use company name from form (should not be empty)
+                const companyName = kycData.companyData?.companyName || 'N/A';
+                formData.append('companyName', companyName);
                 formData.append('email', kycData.companyData?.email || kycData.userEmail || '');
                 formData.append('mobile', kycData.companyData?.mobile || kycData.user?.mobile || kycData.user?.phone || kycData.user?.mobileNumber || '');
-                formData.append('companyName', kycData.companyData?.companyName || '');
                 formData.append('gstNumber', kycData.companyData?.gstNumber || '');
                 formData.append('directorName', kycData.companyData?.directorName || '');
                 formData.append('din', kycData.companyData?.din || '');
