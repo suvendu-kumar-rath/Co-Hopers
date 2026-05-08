@@ -5473,7 +5473,7 @@ const handleHourlyMemberType = (memberType) => {
                                     height: { xs: '40px', sm: '45px' }
                                 }}
                             >
-                                {memberType === 'Member' ? 'B Now' : 'Proceed to Payment'}
+                                {memberType === 'Member' ? 'Snag This Slot' : 'Proceed to Payment'}
                             </Button>
                         </Box>
                     </Box>
