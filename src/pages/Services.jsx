@@ -114,7 +114,9 @@ const Services = () => {
               : (space.availability === 'Available' || space.isActive === true),
             // Ensure other required fields are present
             title: space.title || space.space_name || space.spaceName,
-            price: space.price || space.finalPrice || '₹0'
+            price: space.price || space.finalPrice || '₹0',
+            // Include pricing note with fallback
+            pricingNote: space.pricingNote || '(Excluding GST)'
           }));
           setSpaces(transformedSpaces);
           console.log('Transformed spaces data:', transformedSpaces);
@@ -126,7 +128,9 @@ const Services = () => {
               ? space.isAvailable 
               : (space.availability === 'Available' || space.isActive === true),
             title: space.title || space.space_name || space.spaceName,
-            price: space.price || space.finalPrice || '₹0'
+            price: space.price || space.finalPrice || '₹0',
+            // Include pricing note with fallback
+            pricingNote: space.pricingNote || '(Excluding GST)'
           }));
           setSpaces(transformedSpaces);
           console.log('Transformed spaces data (direct array):', transformedSpaces);
@@ -721,23 +725,39 @@ const Services = () => {
             bottom: 0,
             zIndex: 10
           }}>
-            <Typography 
-              variant="h5" 
-              component="div"
-              sx={{ 
-                bgcolor: '#9FE2DF',
-                px: { xs: 2, sm: 3 },
-                py: { xs: 1, sm: 1.5 },
-                borderRadius: '8px',
-                color: '#333',
-                fontWeight: 'bold',
-                fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-                textAlign: 'center',
-                flexShrink: 0
-              }}
-            >
-              {selectedOffice.price} Per Month
-            </Typography>
+            <Box sx={{
+              bgcolor: '#9FE2DF',
+              px: { xs: 2, sm: 3 },
+              py: { xs: 1, sm: 1.5 },
+              borderRadius: '8px',
+              flexShrink: 0,
+              textAlign: 'center'
+            }}>
+              <Typography 
+                variant="h5" 
+                component="div"
+                sx={{ 
+                  color: '#333',
+                  fontWeight: 'bold',
+                  fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+                  m: 0
+                }}
+              >
+                {selectedOffice.price} Per Month
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#555',
+                  fontStyle: 'italic',
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  display: 'block',
+                  mt: 0.5
+                }}
+              >
+                {selectedOffice.pricingNote || '(Excluding GST)'}
+              </Typography>
+            </Box>
 
         <Button
           variant="contained"
@@ -1593,19 +1613,32 @@ const Services = () => {
                   gap: 3,
                   mb: { xs: 2, sm: 3, md: 4 }
                 }}>
-                  <Typography
-                    variant="h4"
-                    component="div"
-                    sx={{ 
-                      textAlign: 'center',
-                      color: '#FFD700',
-                      fontWeight: 'bold',
-                      fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2.25rem' },
-                      textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
-                    }}
-                  >
-                    {office.price}
-                  </Typography>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography
+                      variant="h4"
+                      component="div"
+                      sx={{ 
+                        textAlign: 'center',
+                        color: '#FFD700',
+                        fontWeight: 'bold',
+                        fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2.25rem' },
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
+                      }}
+                    >
+                      {office.price}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#DDD',
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        fontStyle: 'italic',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
+                      }}
+                    >
+                      {office.pricingNote || '(Excluding GST)'}
+                    </Typography>
+                  </Box>
                   <Button
                     variant="contained"
                     onClick={(e) => {
