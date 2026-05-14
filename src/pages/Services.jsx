@@ -108,10 +108,10 @@ const Services = () => {
           // Transform API data to match UI expectations
           const transformedSpaces = response.data.map(space => ({
             ...space,
-            // Map availability fields - check multiple possible field names
-            isAvailable: space.isAvailable !== undefined 
-              ? space.isAvailable 
-              : (space.availability === 'Available' || space.isActive === true),
+            // Prioritize 'availability' string (admin-controlled) over boolean 'isAvailable'
+            isAvailable: space.availability !== undefined
+              ? space.availability === 'Available'
+              : (space.isAvailable !== undefined ? space.isAvailable : space.isActive === true),
             // Ensure other required fields are present
             title: space.title || space.space_name || space.spaceName,
             price: space.price || space.finalPrice || '₹0',
@@ -124,9 +124,10 @@ const Services = () => {
           // If response is directly an array of spaces
           const transformedSpaces = response.map(space => ({
             ...space,
-            isAvailable: space.isAvailable !== undefined 
-              ? space.isAvailable 
-              : (space.availability === 'Available' || space.isActive === true),
+            // Prioritize 'availability' string (admin-controlled) over boolean 'isAvailable'
+            isAvailable: space.availability !== undefined
+              ? space.availability === 'Available'
+              : (space.isAvailable !== undefined ? space.isAvailable : space.isActive === true),
             title: space.title || space.space_name || space.spaceName,
             price: space.price || space.finalPrice || '₹0',
             // Include pricing note with fallback
