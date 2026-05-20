@@ -12,10 +12,10 @@ export const ROUTES = {
 
 // External routes
 export const EXTERNAL_ROUTES = {
-  COHOPERS_HOME: 'https://co-hopers-frontend.vercel.app/',
-  COHOPERS_ABOUT: 'https://co-hopers-frontend.vercel.app/about',
-  COHOPERS_GALLERY: 'https://co-hopers-frontend.vercel.app/gallery',
-  COHOPERS_CONTACT: 'https://co-hopers-frontend.vercel.app/contact',
+  COHOPERS_HOME: 'https://cohopers.com/',
+  COHOPERS_ABOUT: 'https://cohopers.com/about',
+  COHOPERS_GALLERY: 'https://cohopers.com/gallery',
+  COHOPERS_CONTACT: 'https://cohopers.com/contact',
 };
 
 export default ROUTES;
