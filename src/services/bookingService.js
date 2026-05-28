@@ -570,6 +570,9 @@ export const bookingService = {
                 }
             }
             
+            // Append vehicle details
+            formData.append('vehicles', JSON.stringify(kycData.vehicleList || []));
+            
             // Log FormData contents for debugging
             console.log('FormData contents (KYC only):');
             for (let [key, value] of formData.entries()) {

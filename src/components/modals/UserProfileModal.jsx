@@ -12,13 +12,18 @@ import {
     IconButton,
     CircularProgress,
     Alert,
-    Divider
+    Divider,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
 
@@ -41,6 +46,15 @@ const UserProfileModal = ({ open, onClose }) => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    // Vehicle states
+    const [vehicles, setVehicles] = useState([]);
+    const [vehicleFormOpen, setVehicleFormOpen] = useState(false);
+    const [vehicleFormMode, setVehicleFormMode] = useState('add');
+    const [vehicleFormData, setVehicleFormData] = useState({ vehicleNumber: '', vehicleType: '' });
+    const [editingVehicleId, setEditingVehicleId] = useState(null);
+    const [vehicleLoading, setVehicleLoading] = useState(false);
+    const [vehicleError, setVehicleError] = useState('');
+
     // Load profile data when modal opens
     useEffect(() => {
         if (open && user) {
@@ -56,6 +70,7 @@ const UserProfileModal = ({ open, onClose }) => {
                 profilePhoto: user.profilePhoto || null
             });
             setProfilePhotoPreview(user.profilePhoto || null);
+            setVehicles(user.vehicles || []);
         }
     }, [open, user]);
 
@@ -196,6 +211,80 @@ const UserProfileModal = ({ open, onClose }) => {
         }
     };
 
+    // --- Vehicle handlers ---
+    const fetchVehicles = async () => {
+        const response = await userService.getVehicles();
+        if (response.success) {
+            setVehicles(response.data || []);
+        }
+    };
+
+    const openAddVehicleForm = () => {
+        setVehicleFormData({ vehicleNumber: '', vehicleType: '' });
+        setVehicleFormMode('add');
+        setEditingVehicleId(null);
+        setVehicleError('');
+        setVehicleFormOpen(true);
+    };
+
+    const openEditVehicleForm = (vehicle) => {
+        setVehicleFormData({ vehicleNumber: vehicle.vehicleNumber, vehicleType: vehicle.vehicleType });
+        setVehicleFormMode('edit');
+        setEditingVehicleId(vehicle.id);
+        setVehicleError('');
+        setVehicleFormOpen(true);
+    };
+
+    const closeVehicleForm = () => {
+        setVehicleFormOpen(false);
+        setVehicleError('');
+    };
+
+    const handleVehicleFormSubmit = async () => {
+        if (!vehicleFormData.vehicleNumber.trim()) {
+            setVehicleError('Vehicle number is required');
+            return;
+        }
+        if (!vehicleFormData.vehicleType) {
+            setVehicleError('Vehicle type is required');
+            return;
+        }
+        setVehicleLoading(true);
+        setVehicleError('');
+        try {
+            let response;
+            if (vehicleFormMode === 'add') {
+                response = await userService.addVehicle(vehicleFormData);
+            } else {
+                response = await userService.updateVehicle(editingVehicleId, vehicleFormData);
+            }
+            if (response.success) {
+                await fetchVehicles();
+                closeVehicleForm();
+            } else {
+                setVehicleError(response.message || 'Operation failed');
+            }
+        } catch (err) {
+            setVehicleError('An unexpected error occurred');
+        } finally {
+            setVehicleLoading(false);
+        }
+    };
+
+    const handleDeleteVehicle = async (id) => {
+        setVehicleLoading(true);
+        try {
+            const response = await userService.deleteVehicle(id);
+            if (response.success) {
+                await fetchVehicles();
+            }
+        } catch (err) {
+            console.error('Delete vehicle error:', err);
+        } finally {
+            setVehicleLoading(false);
+        }
+    };
+
     return (
         <Dialog 
             open={open} 
@@ -331,6 +420,131 @@ const UserProfileModal = ({ open, onClose }) => {
                         variant="outlined"
                     />
                 </Box>
+
+                {/* My Vehicles Section */}
+                <Divider sx={{ my: 3 }} />
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                    My Vehicles
+                </Typography>
+
+                {vehicles.length === 0 && !vehicleFormOpen && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        No vehicles added yet.
+                    </Typography>
+                )}
+
+                {vehicles.map((vehicle) => (
+                    <Box
+                        key={vehicle.id}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            p: 1.5,
+                            mb: 1,
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 1,
+                            bgcolor: '#fafafa'
+                        }}
+                    >
+                        <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {vehicle.vehicleNumber}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                {vehicle.vehicleType}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <IconButton
+                                size="small"
+                                onClick={() => openEditVehicleForm(vehicle)}
+                                disabled={vehicleLoading}
+                            >
+                                <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteVehicle(vehicle.id)}
+                                disabled={vehicleLoading}
+                            >
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </Box>
+                    </Box>
+                ))}
+
+                {vehicleFormOpen && (
+                    <Box sx={{ mt: 1.5, p: 2, border: '1px solid #75A5A3', borderRadius: 1 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+                            {vehicleFormMode === 'add' ? 'Add Vehicle' : 'Edit Vehicle'}
+                        </Typography>
+                        {vehicleError && (
+                            <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setVehicleError('')}>
+                                {vehicleError}
+                            </Alert>
+                        )}
+                        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+                            <TextField
+                                label="Vehicle Number"
+                                value={vehicleFormData.vehicleNumber}
+                                onChange={(e) => setVehicleFormData(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                                size="small"
+                                sx={{ flex: 1, minWidth: 130 }}
+                            />
+                            <FormControl size="small" sx={{ flex: 1, minWidth: 120 }}>
+                                <InputLabel>Vehicle Type</InputLabel>
+                                <Select
+                                    value={vehicleFormData.vehicleType}
+                                    onChange={(e) => setVehicleFormData(prev => ({ ...prev, vehicleType: e.target.value }))}
+                                    label="Vehicle Type"
+                                >
+                                    <MenuItem value="Car">Car</MenuItem>
+                                    <MenuItem value="Bike">Bike</MenuItem>
+                                    <MenuItem value="Scooty">Scooty</MenuItem>
+                                    <MenuItem value="Other">Other</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                onClick={handleVehicleFormSubmit}
+                                disabled={vehicleLoading}
+                                sx={{ bgcolor: '#75A5A3', '&:hover': { bgcolor: '#638e8c' } }}
+                            >
+                                {vehicleLoading ? <CircularProgress size={16} color="inherit" /> : 'Save'}
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={closeVehicleForm}
+                                disabled={vehicleLoading}
+                            >
+                                Cancel
+                            </Button>
+                        </Box>
+                    </Box>
+                )}
+
+                {!vehicleFormOpen && (
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={openAddVehicleForm}
+                        disabled={vehicleLoading}
+                        sx={{
+                            mt: 1,
+                            color: '#75A5A3',
+                            borderColor: '#75A5A3',
+                            '&:hover': { borderColor: '#638e8c', bgcolor: 'rgba(117,165,163,0.04)' }
+                        }}
+                    >
+                        + Add Vehicle
+                    </Button>
+                )}
             </DialogContent>
 
             <Divider />

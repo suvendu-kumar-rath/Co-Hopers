@@ -194,12 +194,108 @@ export const getUserHistory = async (params = {}) => {
 };
 
 /**
+ * Get all vehicles for the current user
+ * @returns {Promise} List of vehicles
+ */
+export const getVehicles = async () => {
+    try {
+        const response = await apiClient.get('/user/vehicles');
+        return {
+            success: true,
+            data: response.data.data || response.data.vehicles || response.data || [],
+            message: response.data.message
+        };
+    } catch (error) {
+        console.error('[UserService] Error fetching vehicles:', error);
+        return {
+            success: false,
+            message: error.response?.data?.message || 'Failed to fetch vehicles',
+            error: error.response?.data || error.message
+        };
+    }
+};
+
+/**
+ * Add a new vehicle
+ * @param {{ vehicleNumber: string, vehicleType: string }} vehicleData
+ * @returns {Promise}
+ */
+export const addVehicle = async (vehicleData) => {
+    try {
+        const response = await apiClient.post('/user/vehicles', vehicleData);
+        return {
+            success: true,
+            data: response.data.data || response.data,
+            message: response.data.message || 'Vehicle added successfully'
+        };
+    } catch (error) {
+        console.error('[UserService] Error adding vehicle:', error);
+        return {
+            success: false,
+            message: error.response?.data?.message || 'Failed to add vehicle',
+            error: error.response?.data || error.message
+        };
+    }
+};
+
+/**
+ * Update an existing vehicle
+ * @param {number} id - Vehicle ID
+ * @param {{ vehicleNumber: string, vehicleType: string }} vehicleData
+ * @returns {Promise}
+ */
+export const updateVehicle = async (id, vehicleData) => {
+    try {
+        const response = await apiClient.put(`/user/vehicles/${id}`, vehicleData);
+        return {
+            success: true,
+            data: response.data.data || response.data,
+            message: response.data.message || 'Vehicle updated successfully'
+        };
+    } catch (error) {
+        console.error('[UserService] Error updating vehicle:', error);
+        return {
+            success: false,
+            message: error.response?.data?.message || 'Failed to update vehicle',
+            error: error.response?.data || error.message
+        };
+    }
+};
+
+/**
+ * Delete a vehicle
+ * @param {number} id - Vehicle ID
+ * @returns {Promise}
+ */
+export const deleteVehicle = async (id) => {
+    try {
+        const response = await apiClient.delete(`/user/vehicles/${id}`);
+        return {
+            success: true,
+            data: response.data,
+            message: response.data.message || 'Vehicle deleted successfully'
+        };
+    } catch (error) {
+        console.error('[UserService] Error deleting vehicle:', error);
+        return {
+            success: false,
+            message: error.response?.data?.message || 'Failed to delete vehicle',
+            error: error.response?.data || error.message
+        };
+    }
+};
+
+/**
  * Export all user-related services
  */
 const userService = {
     getUserProfile,
     updateUserProfile,
-    getUserHistory
+    getUserHistory,
+    getVehicles,
+    addVehicle,
+    updateVehicle,
+    deleteVehicle
 };
 
 export default userService;

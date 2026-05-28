@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, Typography, Button, Grid, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert, Snackbar } from '@mui/material';
+import { Box, Typography, Button, Grid, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert, Snackbar, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -73,6 +73,9 @@ const KYCForm = () => {
     email: '',
     mobile: ''
   });
+
+  // Vehicle details state
+  const [vehicleList, setVehicleList] = useState([{ vehicleNumber: '', vehicleType: '' }]);
 
   const handleAccordionChange = (panel) => (event, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
@@ -206,6 +209,20 @@ const KYCForm = () => {
     setExpanded('panel1');
   };
 
+  const addVehicle = () => {
+    setVehicleList(prev => [...prev, { vehicleNumber: '', vehicleType: '' }]);
+  };
+
+  const removeVehicle = (index) => {
+    if (vehicleList.length > 1) {
+      setVehicleList(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateVehicle = (index, field, value) => {
+    setVehicleList(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v));
+  };
+
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
@@ -222,6 +239,7 @@ const KYCForm = () => {
         signingAuthorityFiles: kycType === 'company' && signingAuthority === 'signing-authority' ? signingAuthorityFiles : null,
         freelancerFiles: kycType === 'freelancer' ? freelancerFiles : null,
         freelancerData: kycType === 'freelancer' ? freelancerData : null, // Add freelancer form data
+        vehicleList,
         submittedAt: new Date().toISOString(),
         userId: user?.id || user?.userId,
         userEmail: user?.email,
@@ -278,6 +296,69 @@ const KYCForm = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Vehicle Details Section Component
+  const VehicleDetailsSection = () => (
+    <Box sx={{ mt: 4, mb: 3 }}>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+        Vehicle Details (Optional)
+      </Typography>
+      {vehicleList.map((vehicle, index) => (
+        <Grid container spacing={2} key={index} sx={{ mb: 2, alignItems: 'center' }}>
+          <Grid item xs={12} sm={5}>
+            <TextField
+              fullWidth
+              placeholder="Vehicle Number"
+              variant="outlined"
+              value={vehicle.vehicleNumber}
+              onChange={(e) => updateVehicle(index, 'vehicleNumber', e.target.value)}
+            />
+          </Grid>
+          <Grid item xs={12} sm={5}>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel>Vehicle Type</InputLabel>
+              <Select
+                value={vehicle.vehicleType}
+                onChange={(e) => updateVehicle(index, 'vehicleType', e.target.value)}
+                label="Vehicle Type"
+              >
+                <MenuItem value="Car">Car</MenuItem>
+                <MenuItem value="Bike">Bike</MenuItem>
+                <MenuItem value="Scooty">Scooty</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => removeVehicle(index)}
+              disabled={vehicleList.length === 1}
+              fullWidth
+            >
+              Remove
+            </Button>
+          </Grid>
+        </Grid>
+      ))}
+      <Button
+        variant="outlined"
+        onClick={addVehicle}
+        sx={{
+          color: '#75A5A3',
+          borderColor: '#75A5A3',
+          mt: 1,
+          '&:hover': {
+            borderColor: '#75A5A3',
+            bgcolor: 'rgba(117, 165, 163, 0.04)'
+          }
+        }}
+      >
+        + Add Vehicle
+      </Button>
+    </Box>
+  );
 
   // Submit Button Component
   const SubmitButton = () => (
@@ -1163,6 +1244,8 @@ const KYCForm = () => {
                     </Typography>
                   </Box>
 
+                  <VehicleDetailsSection />
+
                   {/* Action Buttons */}
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
                     <Button
@@ -1319,6 +1402,8 @@ const KYCForm = () => {
                     <Typography variant="body2">Team Cohopers</Typography>
                     <Typography variant="body2">9C Technology labs Pvt. Ltd.</Typography>
                   </Box>
+
+                  <VehicleDetailsSection />
 
                   {/* Action Buttons */}
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
@@ -1498,6 +1583,8 @@ const KYCForm = () => {
                 <Typography variant="body2">Team Cohopers</Typography>
                 <Typography variant="body2">9C Technology labs Pvt. Ltd.</Typography>
               </Box>
+
+              <VehicleDetailsSection />
 
               {/* Action Buttons */}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
