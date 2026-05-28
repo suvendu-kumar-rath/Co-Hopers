@@ -200,9 +200,10 @@ export const getUserHistory = async (params = {}) => {
 export const getVehicles = async () => {
     try {
         const response = await apiClient.get('/user/vehicles');
+        const raw = response.data?.data ?? response.data?.vehicles ?? response.data;
         return {
             success: true,
-            data: response.data.data || response.data.vehicles || response.data || [],
+            data: Array.isArray(raw) ? raw : [],
             message: response.data.message
         };
     } catch (error) {

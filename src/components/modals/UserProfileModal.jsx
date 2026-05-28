@@ -70,7 +70,7 @@ const UserProfileModal = ({ open, onClose }) => {
                 profilePhoto: user.profilePhoto || null
             });
             setProfilePhotoPreview(user.profilePhoto || null);
-            setVehicles(user.vehicles || []);
+            setVehicles(Array.isArray(user.vehicles) ? user.vehicles : []);
         }
     }, [open, user]);
 
