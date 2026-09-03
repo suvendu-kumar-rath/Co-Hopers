@@ -3482,7 +3482,6 @@ const handleHourlyMemberType = (memberType) => {
                         border: '1px solid rgba(255, 255, 255, 0.5)',
                         boxShadow: '0 30px 60px rgba(24, 36, 64, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
                         p: { xs: 3, sm: 4 },
-                        overflow: 'hidden',
                         animation: 'modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&::before': {
                             content: '""',
@@ -3505,6 +3504,20 @@ const handleHourlyMemberType = (memberType) => {
                             background: 'radial-gradient(circle, rgba(102, 126, 234, 0.25) 0%, rgba(102, 126, 234, 0) 70%)',
                             borderRadius: '50%',
                             zIndex: 0
+                        },
+                        '&::-webkit-scrollbar': {
+                            width: '8px'
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            background: 'rgba(0, 0, 0, 0.08)',
+                            borderRadius: '10px'
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: 'rgba(255, 107, 107, 0.6)',
+                            borderRadius: '10px',
+                            '&:hover': {
+                                background: 'rgba(255, 107, 107, 0.8)'
+                            }
                         }
                     }}>
                         <IconButton
