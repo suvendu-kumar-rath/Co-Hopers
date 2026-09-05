@@ -3602,7 +3602,7 @@ const handleHourlyMemberType = (memberType) => {
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <Typography sx={{ color: '#555' }}>Non-Member</Typography>
-                                <Typography sx={{ fontWeight: 700, color: '#1f3a5f' }}>₹250</Typography>
+                                <Typography sx={{ fontWeight: 700, color: '#1f3a5f' }}>₹700</Typography>
                             </Box>
                         </Box>
 
