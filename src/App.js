@@ -15,6 +15,7 @@ import { ROUTES } from './constants/routes';
 import { AuthProvider } from './context/AuthContext';
 import KycRedirectRoute from './components/routes/KycRedirectRoute';
 import VisitorKYCAutoRedirect from './components/routes/VisitorKYCAutoRedirect';
+import Analytics from './components/Analytics';
 
 // Theme is now imported from separate file
 
@@ -24,6 +25,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Router>
+            <Analytics />
             <VisitorKYCAutoRedirect>
               <div className="App">
                 <Header />
